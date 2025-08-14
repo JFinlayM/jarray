@@ -441,7 +441,8 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
 ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *)){
     if (self->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
-
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot find element in an empty array");
     ARRAY_RETURN ret;
     for (size_t i = 0; i < self->length; i++) {
         void *elem = (char*)self->data + i * self->elem_size;
@@ -471,6 +472,17 @@ ARRAY_RETURN array_data(struct Array *self){
     return ret;
 }
 
+/**
+ * @brief Create a subarray from a given Array.
+ * 
+ * @details Allocates a new Array containing elements from `low_index` to `high_index` (inclusive) of the original array.
+ * Copies the relevant elements into the new Array. The caller is responsible for freeing the subarray's data.
+ * 
+ * @param self Pointer to the original Array.
+ * @param low_index Starting index of the subarray (inclusive).
+ * @param high_index Ending index of the subarray (inclusive).
+ * @return ARRAY_RETURN On success, contains a pointer to the new subarray. On failure, contains an error code and message.
+ */
 ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index){
     if (self->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized\n");
@@ -479,7 +491,8 @@ ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_in
     if (low_index > high_index)
         return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher than high_index. It is also possible that low_index < 0 which would also trigger this error\n");
     if (low_index >= self->length)
-        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher than the length of array\n");
+        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher or equal than the length of array\n");
+    
 
     // Clamp high_index to last element if it's out of bounds
     if (high_index >= self->length)
@@ -514,6 +527,29 @@ ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_in
     return ret;
 }
 
+/**
+ * @brief Sets the element at the given index in the array.
+ * @return ARRAY_RETURN with success or error.
+ */
+ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized\n");
+
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot set element in an empty array");
+
+    if (index >= self->length)
+        return create_return_error(INVALID_ARGUMENT, "Index cannot be higher or equal to the length of array\n");
+
+    // Copy the new element into the array at the given index
+    void *dest = (char*)self->data + index * self->elem_size;
+    memcpy(dest, elem, self->elem_size);
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = TO_POINTER(bool, true);
+    return ret;
+}
 
 
 
@@ -534,4 +570,5 @@ Jarray jarray = {
     .find_by_predicate = array_find_by_predicate,
     .data = array_data,
     .subarray = array_subarray,
+    .set = array_set,
 };

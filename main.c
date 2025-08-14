@@ -76,9 +76,14 @@ int main(void) {
     int *data = ret.value;
     printf("el[0]=%d\n", data[0]);
 
-    ret = jarray.subarray(&array, -1, 3);
+    ret = jarray.subarray(&array, 0, 3);
     CHECK_RET(ret);
     ret = jarray.print(ret.value);
+    CHECK_RET(ret);
+
+    ret = jarray.set(&array, 1, TO_POINTER(int, 13));
+    CHECK_RET(ret);
+    ret = jarray.print(&array);
     CHECK_RET(ret);
     return 0;
 }

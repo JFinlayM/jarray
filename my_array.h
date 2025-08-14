@@ -186,7 +186,23 @@ typedef struct Jarray {
      *              - ARRAY_UNINITIALIZED: The array has not been initialized.
      */
     ARRAY_RETURN (*data)(struct Array *self);
+    /**
+     * @brief Create a subarray from a given Array.
+     * 
+     * @details Allocates a new Array containing elements from `low_index` to `high_index` (inclusive) of the original array.
+     * Copies the relevant elements into the new Array. The caller is responsible for freeing the subarray's data.
+     * 
+     * @param self Pointer to the original Array.
+     * @param low_index Starting index of the subarray (inclusive).
+     * @param high_index Ending index of the subarray (inclusive).
+     * @return ARRAY_RETURN On success, contains a pointer to the new subarray. On failure, contains an error code and message.
+     */
     ARRAY_RETURN (*subarray)(struct Array *self, size_t low_index, size_t high_index);
+    /**
+     * @brief Sets the element at the given index in the array.
+     * @return ARRAY_RETURN with success or error.
+     */
+    ARRAY_RETURN (*set)(struct Array *self, size_t index, const void *elem);
 } Jarray;
 
 extern Jarray jarray;
@@ -207,6 +223,7 @@ ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
 ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *));
 ARRAY_RETURN array_data(struct Array *self);
 ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index);
+ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
 
 /* ----- MACROS ----- */
 
