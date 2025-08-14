@@ -172,15 +172,40 @@ ARRAY_RETURN array_print(struct Array *array);
 ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
 void print_array_err(ARRAY_RETURN ret);
 
+// Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`.
+// Example: int x = GET_VALUE(int, ret);
 #define GET_VALUE(type, array_return) (*(type*)(array_return).value)
+
+// Get the *pointer* directly from ARRAY_RETURN, casting it to `type*`.
+// Example: int* ptr = GET_POINTER(int, ret);
 #define GET_POINTER(type, array_return) (type*)(array_return.value)
+
+// Create a temporary variable of `type` with the given `value`
+// and return its pointer (useful for passing literals to functions expecting void*).
+// Example: jarray.add(&arr, TO_POINTER(int, 42));
 #define TO_POINTER(type, value) (&(type){value})
+
+// Like GET_VALUE but safe: if `.has_value` is false, return `default_value` instead.
+// Example: int x = GET_VALUE_SAFE(int, ret, -1);
 #define GET_VALUE_SAFE(type, array_return, default_value) \
     ((array_return).has_value == true ? *(type*)((array_return).value) : (default_value))
+
+// Check if a function returning ARRAY_RETURN was successful.
+// If not, print the error and return from the current function.
 #define CHECK_RET(ret)      if (!ret.has_value) {                       \
                                 jarray.print_array_err(ret);            \
                                 return;                                 \
                             }
 
+// Same as CHECK_RET but doesn't return — just prints the error and continues execution.
+#define CHECK_RET_CONTINUE(ret) if (!ret.has_value) { \
+                                jarray.print_array_err(ret);            \
+                            }
+
+// Same as CHECK_RET_CONTINUE but also frees ret.value if it exists.
+#define CHECK_RET_CONTINUE_FREE(ret) if (!ret.has_value) { \
+                                jarray.print_array_err(ret);            \
+                                free(ret.value);                        \
+                            }
 
 #endif

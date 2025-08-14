@@ -22,31 +22,24 @@ int main(void) {
     // Initialisation de l'Array
     Array array;
     ret = jarray.init(&array, sizeof(int));
-    if (!ret.has_value) {
-        jarray.print_array_err(ret);
-        return 1;
-    }
+    CHECK_RET(ret);
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.compare = compare_int;
 
     // Ajouter des valeurs
     for (int i = 1; i <= 10; i++) {
         ret = jarray.add(&array, TO_POINTER(int, i));
-        if (!ret.has_value) {
-            jarray.print_array_err(ret);
-            free(array.data);
-            return 1;
-        }
+        CHECK_RET(ret);
     }
     ret = jarray.add_at(&array, 0, TO_POINTER(int, 11)); // Ajouter 0 au début
-    if (!ret.has_value) jarray.print_array_err(ret);
+    CHECK_RET(ret);
     ret = jarray.add_at(&array, 5, TO_POINTER(int, 12)); // Ajouter 12 à l'index 5
-    if (!ret.has_value) jarray.print_array_err(ret);
+    CHECK_RET(ret);
 
     // Afficher tous les éléments
     printf("Array complet : ");
     ret = jarray.print(&array);
-    if (!ret.has_value) jarray.print_array_err(ret);
+    CHECK_RET(ret);
 
     // Filtrer les éléments pairs
     ret = jarray.filter(&array, is_even);
@@ -57,7 +50,7 @@ int main(void) {
     // Afficher les éléments filtrés
     printf("Éléments pairs : ");
     ret = jarray.print(&evens);
-    if (!ret.has_value) jarray.print_array_err(ret);
+    CHECK_RET(ret);
 
     // Trier l'Array
     ret = jarray.sort(&array, QSORT);
