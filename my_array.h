@@ -63,4 +63,10 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
 ARRAY_RETURN array_print(struct Array *array, void (*print_element_callback)(const void *));
 void print_array_err(ARRAY_RETURN ret);
 
+#define GET_VALUE(type, array_return) (*(type*)(array_return).value)
+#define GET_VALUE_SAFE(type, array_return, default_value) \
+    ((array_return).has_value == true ? *(type*)((array_return).value) : (default_value))
+
+
+
 #endif

@@ -46,11 +46,11 @@ int main(void) {
         return 1;
     }
 
-    Array *evens = (Array*)ret.value;
+    Array evens = GET_VALUE(Array, ret);
 
     // Afficher les éléments filtrés
     printf("Éléments pairs : ");
-    ret = jarray.print(evens, print_int);
+    ret = jarray.print(&evens, print_int);
     if (!ret.has_value) jarray.print_array_err(ret);
     
     size_t idx = 10;
@@ -58,14 +58,8 @@ int main(void) {
     if (!ret.has_value) {
         jarray.print_array_err(ret);
     } else {
-        printf("ret = %d\n", *(int*)ret.value);  // <-- cast + deref
+        printf("ret = %d\n", GET_VALUE_SAFE(int, ret, 0));  // <-- cast + deref
     }
-
-
-    // Libération mémoire
-    free(array.data);
-    free(evens->data);
-    free(evens);
 
     return 0;
 }
