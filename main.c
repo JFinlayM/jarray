@@ -22,6 +22,7 @@ int main(void) {
         jarray.print_array_err(ret);
         return 1;
     }
+    array.user_implementation.print_element_callback = print_int;
 
     // Ajouter des valeurs
     for (int i = 1; i <= 10; i++) {
@@ -35,7 +36,7 @@ int main(void) {
 
     // Afficher tous les éléments
     printf("Array complet : ");
-    ret = jarray.print(&array, print_int);
+    ret = jarray.print(&array);
     if (!ret.has_value) jarray.print_array_err(ret);
 
     // Filtrer les éléments pairs
@@ -50,7 +51,7 @@ int main(void) {
 
     // Afficher les éléments filtrés
     printf("Éléments pairs : ");
-    ret = jarray.print(&evens, print_int);
+    ret = jarray.print(&evens);
     if (!ret.has_value) jarray.print_array_err(ret);
     
     size_t idx = 10;

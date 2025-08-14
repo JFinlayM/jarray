@@ -8,7 +8,8 @@
 typedef enum {
     INDEX_OUT_OF_BOUND = 0,
     ARRAY_UNINITIALIZED,
-    DATA_NULL
+    DATA_NULL,
+    PRINT_ELEMENT_CALLBACK_UNINTIALIZED
 } ARRAY_ERROR;
 
 // État de l'Array
@@ -32,13 +33,20 @@ typedef struct {
     bool has_value;                 // vrai si value valide
 } ARRAY_RETURN;
 
+
+typedef struct USER_FUNCTION_IMPLEMENTATION {
+    void (*print_element_callback)(const void*);
+}USER_FUNCTION_IMPLEMENTATION;
+
 // Structure principale Array
 typedef struct Array {
     void *data;
     size_t length;
     size_t elem_size;
     Array_state_t state;
+    USER_FUNCTION_IMPLEMENTATION user_implementation;
 } Array;
+
 
 // Interface "statique" pour méthodes
 typedef struct Jarray {
@@ -47,7 +55,7 @@ typedef struct Jarray {
     ARRAY_RETURN (*add)(struct Array *self, const void * elem);
     ARRAY_RETURN (*init)(struct Array *array, size_t elem_size);
     ARRAY_RETURN (*init_with_data)(struct Array *array, void *data, size_t length, size_t elem_size);
-    ARRAY_RETURN (*print)(struct Array *self, void (*print_element_callback)(const void *));
+    ARRAY_RETURN (*print)(struct Array *self);
     void (*print_array_err)(ARRAY_RETURN ret);
 } Jarray;
 
@@ -60,7 +68,7 @@ ARRAY_RETURN array_at(struct Array *self, size_t index);
 ARRAY_RETURN array_add(struct Array *self, const void * elem);
 ARRAY_RETURN array_init(Array *array, size_t elem_size);
 ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_t elem_size);
-ARRAY_RETURN array_print(struct Array *array, void (*print_element_callback)(const void *));
+ARRAY_RETURN array_print(struct Array *array);
 void print_array_err(ARRAY_RETURN ret);
 
 #define GET_VALUE(type, array_return) (*(type*)(array_return).value)

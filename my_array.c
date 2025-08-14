@@ -114,6 +114,7 @@ ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *)) {
     result->elem_size = self->elem_size;
     result->state = INITIALIZED;
     result->data = malloc(count * self->elem_size);
+    result->user_implementation = self->user_implementation;
 
     size_t j = 0;
     for (size_t i = 0; i < self->length; i++) {
@@ -131,13 +132,14 @@ ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *)) {
 }
 
 // array_print
-ARRAY_RETURN array_print(Array *array, void (*print_element_callback)(const void *)) {
+ARRAY_RETURN array_print(Array *array) {
     if (array->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
-
+    if (array->user_implementation.print_element_callback == NULL)
+        return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
     for (size_t i = 0; i < array->length; i++) {
         void *elem = (char*)array->data + i * array->elem_size;
-        print_element_callback(elem);
+        array->user_implementation.print_element_callback(elem);
     }
     printf("\n");
 
