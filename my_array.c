@@ -71,6 +71,88 @@ ARRAY_RETURN array_add(Array *self, const void *elem) {
     ret.value = (char*)self->data + (self->length-1) * self->elem_size;
     return ret;
 }
+// Insère un élément à l'index donné
+ARRAY_RETURN array_add_at(Array *self, size_t index, const void *elem) {
+    if (self->state != INITIALIZED)
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (index > self->length) // autorise index == length (ajout à la fin)
+        return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
+
+    void *new_data = realloc(self->data, (self->length + 1) * self->elem_size);
+    if (!new_data)
+        return create_return_error(DATA_NULL, "Memory allocation failed in add_at");
+
+    self->data = new_data;
+
+    // Décaler les éléments vers la droite
+    memmove(
+        (char*)self->data + (index + 1) * self->elem_size,
+        (char*)self->data + index * self->elem_size,
+        (self->length - index) * self->elem_size
+    );
+
+    // Copier le nouvel élément
+    memcpy((char*)self->data + index * self->elem_size, elem, self->elem_size);
+
+    self->length++;
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = (char*)self->data + index * self->elem_size;
+    return ret;
+}
+
+// Supprime un élément à un index donné
+ARRAY_RETURN array_remove_at(Array *self, size_t index) {
+    if (self->state != INITIALIZED)
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (index >= self->length)
+        return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
+
+    // Sauvegarde l'adresse de l'élément à retourner
+    void *removed_elem = malloc(self->elem_size);
+    if (!removed_elem)
+        return create_return_error(DATA_NULL, "Memory allocation failed in remove_at");
+    memcpy(removed_elem, (char*)self->data + index * self->elem_size, self->elem_size);
+
+    // Décaler les éléments restants vers la gauche
+    memmove(
+        (char*)self->data + index * self->elem_size,
+        (char*)self->data + (index + 1) * self->elem_size,
+        (self->length - index - 1) * self->elem_size
+    );
+
+    self->length--;
+
+    // Réduire la taille mémoire
+    if (self->length > 0) {
+        void *new_data = realloc(self->data, self->length * self->elem_size);
+        if (new_data) self->data = new_data; // éviter de perdre data si realloc échoue
+    } else {
+        free(self->data);
+        self->data = NULL;
+    }
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = removed_elem; // pointeur alloué que l'appelant devra free
+    return ret;
+}
+
+ARRAY_RETURN array_remove(Array *self) {
+    if (self->state != INITIALIZED)
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot remove from empty array");
+
+    size_t last_index = self->length - 1;
+    return array_remove_at(self, last_index);
+}
+
+
 
 // array_init
 ARRAY_RETURN array_init(Array *array, size_t elem_size) {
@@ -149,6 +231,109 @@ ARRAY_RETURN array_print(Array *array) {
     return ret;
 }
 
+
+// array_sort
+ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
+    int (*compare)(const void*, const void*) = self->user_implementation.compare;
+    if (self->state != INITIALIZED)
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot sort an empty array");
+
+    if (compare == NULL)
+        return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "Compare callback not set");
+
+    // Création d'une copie des données
+    void *copy_data = malloc(self->length * self->elem_size);
+    if (!copy_data)
+        return create_return_error(DATA_NULL, "Memory allocation failed in array_sort");
+
+    memcpy(copy_data, self->data, self->length * self->elem_size);
+
+    // Appliquer le tri sur la copie
+    switch(method) {
+        case QSORT:
+            qsort(copy_data, self->length, self->elem_size, compare);
+            break;
+
+        case BUBBLE_SORT:
+            for (size_t i = 0; i < self->length - 1; i++) {
+                for (size_t j = 0; j < self->length - i - 1; j++) {
+                    void *a = (char*)copy_data + j * self->elem_size;
+                    void *b = (char*)copy_data + (j + 1) * self->elem_size;
+                    if (compare(a, b) > 0) {
+                        void *temp = malloc(self->elem_size);
+                        memcpy(temp, a, self->elem_size);
+                        memcpy(a, b, self->elem_size);
+                        memcpy(b, temp, self->elem_size);
+                        free(temp);
+                    }
+                }
+            }
+            break;
+
+        case INSERTION_SORT:
+            for (size_t i = 1; i < self->length; i++) {
+                void *key = malloc(self->elem_size);
+                memcpy(key, (char*)copy_data + i * self->elem_size, self->elem_size);
+                size_t j = i;
+                while (j > 0 && compare((char*)copy_data + (j - 1) * self->elem_size, key) > 0) {
+                    memcpy((char*)copy_data + j * self->elem_size,
+                           (char*)copy_data + (j - 1) * self->elem_size,
+                           self->elem_size);
+                    j--;
+                }
+                memcpy((char*)copy_data + j * self->elem_size, key, self->elem_size);
+                free(key);
+            }
+            break;
+
+        case SELECTION_SORT:
+            for (size_t i = 0; i < self->length - 1; i++) {
+                size_t min_idx = i;
+                for (size_t j = i + 1; j < self->length; j++) {
+                    void *a = (char*)copy_data + j * self->elem_size;
+                    void *b = (char*)copy_data + min_idx * self->elem_size;
+                    if (compare(a, b) < 0) {
+                        min_idx = j;
+                    }
+                }
+                if (min_idx != i) {
+                    void *temp = malloc(self->elem_size);
+                    memcpy(temp, (char*)copy_data + i * self->elem_size, self->elem_size);
+                    memcpy((char*)copy_data + i * self->elem_size, (char*)copy_data + min_idx * self->elem_size, self->elem_size);
+                    memcpy((char*)copy_data + min_idx * self->elem_size, temp, self->elem_size);
+                    free(temp);
+                }
+            }
+            break;
+
+        default:
+            free(copy_data);
+            return create_return_error(INDEX_OUT_OF_BOUND, "Sort method %d not implemented", method);
+    }
+
+    // Créer un Array pour la copie triée
+    Array *sorted_array = malloc(sizeof(Array));
+    if (!sorted_array) {
+        free(copy_data);
+        return create_return_error(DATA_NULL, "Memory allocation failed for sorted array struct");
+    }
+
+    sorted_array->data = copy_data;
+    sorted_array->length = self->length;
+    sorted_array->elem_size = self->elem_size;
+    sorted_array->state = INITIALIZED;
+    sorted_array->user_implementation = self->user_implementation;
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = sorted_array;
+    return ret;
+}
+
+
 // print error
 void print_array_err(ARRAY_RETURN ret) {
     if (ret.has_value) return;
@@ -156,13 +341,19 @@ void print_array_err(ARRAY_RETURN ret) {
     free((void*)ret.error.error_msg); // libération mémoire dynamique
 }
 
+
+
 // interface statique
 Jarray jarray = {
     .filter = array_filter,
     .at = array_at,
     .add = array_add,
+    .remove = array_remove,
+    .remove_at = array_remove_at,
+    .add_at = array_add_at,
     .print = array_print,
     .init = array_init,
     .init_with_data = array_init_with_data,
-    .print_array_err = print_array_err
+    .print_array_err = print_array_err,
+    .sort = array_sort
 };
