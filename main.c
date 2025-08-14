@@ -2,35 +2,70 @@
 #include <stdlib.h>
 #include "my_array.h"
 
+// Prédicat pour filtrer les nombres pairs
 bool is_even(const void *x) {
     return (*(const int*)x) % 2 == 0;
 }
 
+// Fonction pour afficher un int
 void print_int(const void *x) {
     printf("%d ", *(const int*)x);
 }
 
 int main(void) {
-    Array array;
-    array_init(&array, sizeof(int));
+    ARRAY_RETURN ret;
 
-    // ajouter des valeurs
-    for (int i = 1; i <= 10; i++) {
-        jarray.add(&array, &i);
+    // Initialisation de l'Array
+    Array array;
+    ret = jarray.init(&array, sizeof(int));
+    if (!ret.has_value) {
+        jarray.print_array_err(ret);
+        return 1;
     }
 
+    // Ajouter des valeurs
+    for (int i = 1; i <= 10; i++) {
+        ret = jarray.add(&array, &i);
+        if (!ret.has_value) {
+            jarray.print_array_err(ret);
+            free(array.data);
+            return 1;
+        }
+    }
+
+    // Afficher tous les éléments
     printf("Array complet : ");
-    jarray.print(&array, print_int);
+    ret = jarray.print(&array, print_int);
+    if (!ret.has_value) jarray.print_array_err(ret);
 
-    // filtrer les éléments pairs
-    Array evens = jarray.filter(&array, is_even);
+    // Filtrer les éléments pairs
+    ret = jarray.filter(&array, is_even);
+    if (!ret.has_value) {
+        jarray.print_array_err(ret);
+        free(array.data);
+        return 1;
+    }
 
+    Array *evens = (Array*)ret.value;
+
+    // Afficher les éléments filtrés
     printf("Éléments pairs : ");
-    jarray.print(&evens, print_int);
+    ret = jarray.print(evens, print_int);
+    if (!ret.has_value) jarray.print_array_err(ret);
+    
+    size_t idx = 10;
+    ret = jarray.at(&array, idx);        // <-- passer la valeur, pas l'adresse
+    if (!ret.has_value) {
+        jarray.print_array_err(ret);
+    } else {
+        printf("ret = %d\n", *(int*)ret.value);  // <-- cast + deref
+    }
 
-    // libération mémoire
+
+    // Libération mémoire
     free(array.data);
-    free(evens.data);
+    free(evens->data);
+    free(evens);
 
     return 0;
 }
