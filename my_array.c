@@ -408,6 +408,41 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
 }
 
 /**
+ * @brief Finds the first element in the array that satisfies a given predicate.
+ *
+ * This function iterates over each element of the array and applies the provided
+ * predicate function. If the predicate returns true for an element, the search stops,
+ * and that element is returned. If no element satisfies the predicate, an error is returned.
+ *
+ * @param self       Pointer to the Array structure.
+ * @param predicate  Function pointer to a predicate function that takes a `const void*` 
+ *                   (pointer to the element) and returns a boolean indicating whether
+ *                   the element matches the desired condition.
+ *
+ * @return ARRAY_RETURN
+ *         - On success: `.has_value = true` and `.value` points to the matching element.
+ *         - On failure: `.has_value = false` and `.error` contains error information:
+ *              - ARRAY_UNINITIALIZED: The array has not been initialized.
+ *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
+ */
+ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *)){
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    ARRAY_RETURN ret;
+    for (size_t i = 0; i < self->length; i++) {
+        void *elem = (char*)self->data + i * self->elem_size;
+        if (predicate(elem)) {
+            ret.has_value = true;
+            ret.value = elem;
+            return ret;
+        }
+    }
+    return create_return_error(ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
+}
+
+
+/**
  * @brief Prints an error message from an ARRAY_RETURN.
  *
  * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
@@ -432,5 +467,6 @@ Jarray jarray = {
     .init = array_init,
     .init_with_data = array_init_with_data,
     .print_array_err = print_array_err,
-    .sort = array_sort
+    .sort = array_sort,
+    .find_by_predicate = array_find_by_predicate,
 };

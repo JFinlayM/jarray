@@ -9,7 +9,8 @@ typedef enum {
     ARRAY_UNINITIALIZED,
     DATA_NULL,
     PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
-    EMPTY_ARRAY
+    EMPTY_ARRAY,
+    ELEMENT_NOT_FOUND,
 } ARRAY_ERROR;
 
 typedef enum {
@@ -149,6 +150,25 @@ typedef struct Jarray {
      */
     ARRAY_RETURN (*sort)(struct Array *self, SORT_METHOD method);
     /**
+     * @brief Finds the first element in the array that satisfies a given predicate.
+     *
+     * This function iterates over each element of the array and applies the provided
+     * predicate function. If the predicate returns true for an element, the search stops,
+     * and that element is returned. If no element satisfies the predicate, an error is returned.
+     *
+     * @param self       Pointer to the Array structure.
+     * @param predicate  Function pointer to a predicate function that takes a `const void*` 
+     *                   (pointer to the element) and returns a boolean indicating whether
+     *                   the element matches the desired condition.
+     *
+     * @return ARRAY_RETURN
+     *         - On success: `.has_value = true` and `.value` points to the matching element.
+     *         - On failure: `.has_value = false` and `.error` contains error information:
+     *              - ARRAY_UNINITIALIZED: The array has not been initialized.
+     *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
+     */
+    ARRAY_RETURN (*find_by_predicate)(struct Array *self, bool (*predicate)(const void *));
+    /**
      * @brief Prints an error message from an ARRAY_RETURN.
      *
      * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
@@ -170,6 +190,7 @@ ARRAY_RETURN array_init(Array *array, size_t elem_size);
 ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_t elem_size);
 ARRAY_RETURN array_print(struct Array *array);
 ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
+ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *));
 void print_array_err(ARRAY_RETURN ret);
 
 // Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`.

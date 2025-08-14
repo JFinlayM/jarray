@@ -62,11 +62,14 @@ int main(void) {
     CHECK_RET(ret);
 
     
-    size_t idx = 15;
-    ret = jarray.at(&array, idx);        // <-- passer la valeur, pas l'adresse
+ 
+    ret = jarray.at(&array, 3);        // <-- passer la valeur, pas l'adresse
     CHECK_RET(ret);
-    printf("ret = %d\n", GET_VALUE_SAFE(int, ret, 0));  // <-- cast + deref
+    printf("ret = %d\n", GET_VALUE(int, ret));
     
+    ret = jarray.find_by_predicate(&array, is_even);
+    CHECK_RET(ret);
+    printf("ret = %d\n", GET_VALUE(int, ret));
 
     return 0;
 }
