@@ -53,7 +53,15 @@ typedef enum SORT_METHOD {
     SELECTION_SORT,
 } SORT_METHOD;
 
-typedef struct Jarray {
+typedef struct Jarray {    
+    /**
+    * @brief Prints an error message from an ARRAY_RETURN.
+    *
+    * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
+    *
+    * @param ret The ARRAY_RETURN to inspect.
+    */
+    void (*print_array_err)(ARRAY_RETURN ret);
     /**
      * @brief Filters an array using a predicate function.
      *
@@ -169,17 +177,21 @@ typedef struct Jarray {
      */
     ARRAY_RETURN (*find_by_predicate)(struct Array *self, bool (*predicate)(const void *));
     /**
-     * @brief Prints an error message from an ARRAY_RETURN.
-     *
-     * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
-     *
-     * @param ret The ARRAY_RETURN to inspect.
+     * @brief Gets the data in array self.
+     * @param self Pointer to the Array structure.
+     * @return ARRAY_RETURN
+     *         - On success: `.has_value = true` and `.value` points to the data.
+     *         - On failure: `.has_value = false` and `.error` contains error information:
+     *              - ARRAY_UNINITIALIZED: The array has not been initialized.
      */
-    void (*print_array_err)(ARRAY_RETURN ret);
+    ARRAY_RETURN (*data)(struct Array *self);
 } Jarray;
 
 extern Jarray jarray;
 
+/* ----- PROTOTYPES ----- */
+
+void print_array_err(ARRAY_RETURN ret);
 ARRAY_RETURN array_filter(struct Array *self, bool (*predicate)(const void *));
 ARRAY_RETURN array_at(struct Array *self, size_t index);
 ARRAY_RETURN array_add(struct Array *self, const void * elem);
@@ -191,7 +203,9 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
 ARRAY_RETURN array_print(struct Array *array);
 ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
 ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *));
-void print_array_err(ARRAY_RETURN ret);
+ARRAY_RETURN array_data(struct Array *self);
+
+/* ----- MACROS ----- */
 
 // Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`.
 // Example: int x = GET_VALUE(int, ret);

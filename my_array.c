@@ -441,6 +441,22 @@ ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const
     return create_return_error(ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
 }
 
+/**
+ * @brief Gets the data in array self.
+ * @param self Pointer to the Array structure.
+ * @return ARRAY_RETURN
+ *         - On success: `.has_value = true` and `.value` points to the data.
+ *         - On failure: `.has_value = false` and `.error` contains error information:
+ *              - ARRAY_UNINITIALIZED: The array has not been initialized.
+ */
+ARRAY_RETURN array_data(struct Array *self){
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = self->data;
+    return ret;
+}
 
 /**
  * @brief Prints an error message from an ARRAY_RETURN.
@@ -469,4 +485,6 @@ Jarray jarray = {
     .print_array_err = print_array_err,
     .sort = array_sort,
     .find_by_predicate = array_find_by_predicate,
+    .data = array_data,
+    
 };

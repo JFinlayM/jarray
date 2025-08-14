@@ -71,5 +71,9 @@ int main(void) {
     CHECK_RET(ret);
     printf("ret = %d\n", GET_VALUE(int, ret));
 
+    ret = jarray.data(&array);
+    CHECK_RET(ret);
+    int *data = ret.value;
+    printf("el[0]=%d\n", data[0]);
     return 0;
 }
