@@ -11,6 +11,7 @@ typedef enum {
     PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
     EMPTY_ARRAY,
     ELEMENT_NOT_FOUND,
+    INVALID_ARGUMENT,
 } ARRAY_ERROR;
 
 typedef enum {
@@ -185,6 +186,7 @@ typedef struct Jarray {
      *              - ARRAY_UNINITIALIZED: The array has not been initialized.
      */
     ARRAY_RETURN (*data)(struct Array *self);
+    ARRAY_RETURN (*subarray)(struct Array *self, size_t low_index, size_t high_index);
 } Jarray;
 
 extern Jarray jarray;
@@ -204,6 +206,7 @@ ARRAY_RETURN array_print(struct Array *array);
 ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
 ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *));
 ARRAY_RETURN array_data(struct Array *self);
+ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index);
 
 /* ----- MACROS ----- */
 
@@ -242,5 +245,6 @@ ARRAY_RETURN array_data(struct Array *self);
                                 jarray.print_array_err(ret);            \
                                 free(ret.value);                        \
                             }
+#define MAX(a, b) a > b ? a : b
 
 #endif

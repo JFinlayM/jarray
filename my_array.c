@@ -12,6 +12,19 @@ const char *enum_to_string[] = {
 };
 
 /**
+ * @brief Prints an error message from an ARRAY_RETURN.
+ *
+ * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
+ *
+ * @param ret The ARRAY_RETURN to inspect.
+ */
+void print_array_err(ARRAY_RETURN ret) {
+    if (ret.has_value) return;
+    printf("\033[31m%s\033[0m\n", ret.error.error_msg);
+    free((void*)ret.error.error_msg);
+}
+
+/**
  * @brief Creates an ARRAY_RETURN object representing an error, with a formatted message.
  *
  * Allocates memory for the error message so that it can persist after the function returns.
@@ -458,18 +471,52 @@ ARRAY_RETURN array_data(struct Array *self){
     return ret;
 }
 
-/**
- * @brief Prints an error message from an ARRAY_RETURN.
- *
- * If the ARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
- *
- * @param ret The ARRAY_RETURN to inspect.
- */
-void print_array_err(ARRAY_RETURN ret) {
-    if (ret.has_value) return;
-    printf("\033[31m%s\033[0m\n", ret.error.error_msg);
-    free((void*)ret.error.error_msg);
+ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index){
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized\n");
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot determine a sub array with an empty array\n");
+    if (low_index > high_index)
+        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher than high_index. It is also possible that low_index < 0 which would also trigger this error\n");
+    if (low_index >= self->length)
+        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher than the length of array\n");
+
+    // Clamp high_index to last element if it's out of bounds
+    if (high_index >= self->length)
+        high_index = self->length - 1;
+    size_t sub_length = high_index - low_index + 1;
+
+    // Allocate the Array struct itself
+    Array *ret_array = malloc(sizeof(Array));
+    if (!ret_array)
+        return create_return_error(DATA_NULL, "Failed to allocate memory for subarray struct\n");
+
+    ret_array->state = INITIALIZED;
+    ret_array->elem_size = self->elem_size;
+    ret_array->length = sub_length;
+    ret_array->data = malloc(sub_length * self->elem_size);
+    ret_array->user_implementation = self->user_implementation;
+    if (!ret_array->data) {
+        free(ret_array);
+        return create_return_error(DATA_NULL, "Failed to allocate memory for subarray data\n");
+    }
+
+    // Copy relevant elements
+    for (size_t i = 0; i < sub_length; i++) {
+        void *src = (char*)self->data + (low_index + i) * self->elem_size;
+        void *dst = (char*)ret_array->data + i * self->elem_size;
+        memcpy(dst, src, self->elem_size);
+    }
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.value = ret_array; // directly store pointer to new Array
+    return ret;
 }
+
+
+
+
 
 /// Static interface implementation for easier usage.
 Jarray jarray = {
@@ -486,5 +533,5 @@ Jarray jarray = {
     .sort = array_sort,
     .find_by_predicate = array_find_by_predicate,
     .data = array_data,
-    
+    .subarray = array_subarray,
 };
