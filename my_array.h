@@ -252,6 +252,7 @@ ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_in
 ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
 ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
 
+
 /* ----- MACROS WITH AUTO-FREE ----- */
 
 #define GET_VALUE(type, val) (*(type*)val)

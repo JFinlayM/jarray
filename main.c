@@ -30,7 +30,7 @@ typedef struct TEST_CTX {
 }TEST_CTX;
 
 bool test_ctx_func(const void *x, const void *ctx){
-    return (GET_VALUE(const int, x) > GET_VALUE(TEST_CTX, ctx).sn && GET_VALUE(const int, x) < GET_VALUE(TEST_CTX, ctx).hn);
+    return (GET_VALUE(const int, x) < GET_VALUE(TEST_CTX, ctx).sn || GET_VALUE(const int, x) > GET_VALUE(TEST_CTX, ctx).hn);
 }
 
 int main(void) {
