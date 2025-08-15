@@ -78,7 +78,7 @@ typedef struct Jarray {
      * @param predicate Function that returns true for elements to keep.
      * @return ARRAY_RETURN containing a pointer to the new filtered Array, or an error.
      */
-    ARRAY_RETURN (*filter)(struct Array *self, bool (*predicate)(const void *));
+    ARRAY_RETURN (*filter)(struct Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Retrieves an element at the specified index.
      *
@@ -182,7 +182,7 @@ typedef struct Jarray {
      *              - ARRAY_UNINITIALIZED: The array has not been initialized.
      *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
      */
-    ARRAY_RETURN (*find_by_predicate)(struct Array *self, bool (*predicate)(const void *));
+    ARRAY_RETURN (*find_first)(struct Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Gets the data in array self.
      * @param self Pointer to the Array structure.
@@ -227,7 +227,7 @@ typedef struct Jarray {
      *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
      *         - or error code if no match or failure occurs.
      */
-    ARRAY_RETURN (*find_index)(struct Array *self, const void *elem);
+    ARRAY_RETURN (*find_indexes)(struct Array *self, const void *elem);
 } Jarray;
 
 extern Jarray jarray;
@@ -236,7 +236,7 @@ extern Jarray jarray;
 
 void print_array_err(ARRAY_RETURN ret);
 void array_free(Array *array);
-ARRAY_RETURN array_filter(struct Array *self, bool (*predicate)(const void *));
+ARRAY_RETURN array_filter(struct Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
 ARRAY_RETURN array_at(struct Array *self, size_t index);
 ARRAY_RETURN array_add(struct Array *self, const void * elem);
 ARRAY_RETURN array_remove(struct Array *self);
@@ -246,11 +246,11 @@ ARRAY_RETURN array_init(Array *array, size_t elem_size);
 ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_t elem_size);
 ARRAY_RETURN array_print(struct Array *array);
 ARRAY_RETURN array_sort(struct Array *self, SORT_METHOD method);
-ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *));
+ARRAY_RETURN array_find_first(struct Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
 ARRAY_RETURN array_data(struct Array *self);
 ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index);
 ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
-ARRAY_RETURN array_find_index(struct Array *self, const void *elem);
+ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 

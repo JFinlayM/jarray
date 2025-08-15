@@ -292,14 +292,14 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
  * @param predicate Function that returns true for elements to keep.
  * @return ARRAY_RETURN containing a pointer to the new filtered Array, or an error.
  */
-ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *)) {
+ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
     if (self->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
 
     size_t count = 0;
     for (size_t i = 0; i < self->length; i++) {
         void *elem = (char*)self->data + i * self->elem_size;
-        if (predicate(elem)) count++;
+        if (predicate(elem, ctx)) count++;
     }
 
     Array *result = malloc(sizeof(Array));
@@ -312,7 +312,7 @@ ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *)) {
     size_t j = 0;
     for (size_t i = 0; i < self->length; i++) {
         void *elem = (char*)self->data + i * self->elem_size;
-        if (predicate(elem)) {
+        if (predicate(elem, ctx)) {
             memcpy((char*)result->data + j * self->elem_size, elem, self->elem_size);
             j++;
         }
@@ -474,7 +474,7 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
  *              - ARRAY_UNINITIALIZED: The array has not been initialized.
  *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
  */
-ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const void *)){
+ARRAY_RETURN array_find_first(struct Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
     if (self->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
     if (self->length == 0)
@@ -482,7 +482,7 @@ ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const
     ARRAY_RETURN ret;
     for (size_t i = 0; i < self->length; i++) {
         void *elem = (char*)self->data + i * self->elem_size;
-        if (predicate(elem)) {
+        if (predicate(elem, ctx)) {
             ret.has_value = true;
             ret.has_error = false;
             ret.value = elem;
@@ -650,7 +650,7 @@ static void quicksort_indexes(size_t *indexes, int *data, size_t left, size_t ri
  *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
  *         - or error code if no match or failure occurs.
  */
-ARRAY_RETURN array_find_index(struct Array *self, const void *elem) {
+ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem) {
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot search in empty array");
     if (self->state != INITIALIZED)
@@ -717,9 +717,9 @@ Jarray jarray = {
     .print_array_err = print_array_err,
     .free = array_free,
     .sort = array_sort,
-    .find_by_predicate = array_find_by_predicate,
+    .find_first = array_find_first,
     .data = array_data,
     .subarray = array_subarray,
     .set = array_set,
-    .find_index = array_find_index,
+    .find_indexes = array_find_indexes,
 };

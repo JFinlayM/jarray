@@ -5,7 +5,7 @@
 // ----------- Helpers -----------
 
 // Predicate: keep only even numbers
-bool is_even(const void *x) {
+bool is_even(const void *x, const void *ctx) {
     return (*(const int*)x) % 2 == 0;
 }
 
@@ -56,7 +56,7 @@ int main(void) {
 
     // --- Filtering ---
     printf("\nFiltering even numbers:\n");
-    ret = jarray.filter(&array, is_even);
+    ret = jarray.filter(&array, is_even, NULL);
     CHECK_RET(ret);
     Array* evens = RET_GET_POINTER(Array, ret);
     ret = jarray.print(evens);
@@ -79,7 +79,7 @@ int main(void) {
     printf("%d\n", RET_GET_VALUE(int, ret));
 
     printf("Find first even number: ");
-    ret = jarray.find_by_predicate(&array, is_even);
+    ret = jarray.find_first(&array, is_even, NULL);
     CHECK_RET(ret);
     printf("%d\n", RET_GET_VALUE(int, ret));
 
@@ -106,7 +106,7 @@ int main(void) {
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
 
-    ret = jarray.find_index(&array, TO_POINTER(int, 20));
+    ret = jarray.find_indexes(&array, TO_POINTER(int, 20));
     CHECK_RET_FREE(ret);
     size_t *indexes = RET_GET_POINTER(size_t, ret);
 
