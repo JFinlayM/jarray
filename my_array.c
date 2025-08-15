@@ -290,6 +290,7 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
  *
  * @param self Pointer to the Array instance.
  * @param predicate Function that returns true for elements to keep.
+ * @param ctx Pointer to context of predicate
  * @return ARRAY_RETURN containing a pointer to the new filtered Array, or an error.
  */
 ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
@@ -467,6 +468,7 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
  * @param predicate  Function pointer to a predicate function that takes a `const void*` 
  *                   (pointer to the element) and returns a boolean indicating whether
  *                   the element matches the desired condition.
+ * @param ctx        Pointer to context
  *
  * @return ARRAY_RETURN
  *         - On success: `.has_value = true` and `.value` points to the matching element.

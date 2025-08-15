@@ -254,6 +254,8 @@ ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 
+#define GET_VALUE(type, val) (*(type*)val)
+
 // Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`,
 // then free the underlying pointer to avoid leaks.
 // Example: int x = RET_GET_VALUE_FREE(int, ret);

@@ -6,21 +6,31 @@
 
 // Predicate: keep only even numbers
 bool is_even(const void *x, const void *ctx) {
-    return (*(const int*)x) % 2 == 0;
+    (void)ctx;
+    return GET_VALUE(const int, x) % 2 == 0;
 }
 
 // Print an int
 void print_int(const void *x) {
-    printf("%d ", *(const int*)x);
+    printf("%d ", GET_VALUE(const int, x));
 }
 
 // Compare two ints
 int compare_int(const void *a, const void *b) {
-    return (*(const int*)a) - (*(const int*)b);
+    return GET_VALUE(const int, a) - GET_VALUE(const int, b);
 }
 
 bool is_equal_int(const void *a, const void *b) {
-    return (*(const int*)a) == (*(const int*)b);
+    return GET_VALUE(const int, a) == GET_VALUE(const int, b);
+}
+
+typedef struct TEST_CTX {
+    int sn;
+    int hn;
+}TEST_CTX;
+
+bool test_ctx_func(const void *x, const void *ctx){
+    return (GET_VALUE(const int, x) > GET_VALUE(TEST_CTX, ctx).sn && GET_VALUE(const int, x) < GET_VALUE(TEST_CTX, ctx).hn);
 }
 
 int main(void) {
@@ -63,6 +73,14 @@ int main(void) {
     CHECK_RET_FREE(ret);
     jarray.free(evens); // free filtered array
 
+    printf("\nFiltering numbers between 3 and 9:\n");
+    TEST_CTX ctx = {3, 9};
+    ret = jarray.filter(&array, test_ctx_func, &ctx);
+    CHECK_RET(ret);
+    Array* filtered = RET_GET_POINTER(Array, ret);
+    ret = jarray.print(filtered);
+    CHECK_RET_FREE(ret);
+    jarray.free(evens); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
     ret = jarray.sort(&array, QSORT);
