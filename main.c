@@ -142,6 +142,21 @@ int main(void) {
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
 
+    // --- Clone ---
+    printf("\nCloning array:\n");
+    ret = jarray.clone(&array);
+    CHECK_RET(ret);
+    Array* clone = RET_GET_POINTER(Array, ret);
+    ret = jarray.print(clone);
+    CHECK_RET_FREE(ret);
+
+    // --- Clear ---
+    printf("\nClearing clone array:\n");
+    ret = jarray.clear(clone);
+    CHECK_RET_FREE(ret);
+    ret = jarray.print(clone);
+    CHECK_RET_CONTINUE_FREE(ret); // should print empty array
+
 
     // --- Cleanup ---
     printf("\nFreeing main array...\n");

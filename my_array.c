@@ -345,6 +345,8 @@ ARRAY_RETURN array_print(Array *array) {
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
+    if (array->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot print an empty array");
     for (size_t i = 0; i < array->length; i++) {
         void *elem = (char*)array->data + i * array->elem_size;
         array->user_implementation.print_element_callback(elem);
@@ -732,6 +734,66 @@ ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, voi
     return ret;
 }
 
+/**
+ * @brief Clears the array, removing all elements.
+ *
+ * Resets the array to an empty state without freeing the underlying data buffer.
+ *
+ * @param self Pointer to the Array instance.
+ * @return ARRAY_RETURN containing success or error information.
+ */
+ARRAY_RETURN array_clear(struct Array *self) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+    if (self->data == NULL) 
+        return create_return_error(DATA_NULL, "Data field of array is null");
+    // Free existing data
+    free(self->data);
+    self->data = NULL;
+    self->length = 0;
+
+    ARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+/**
+ * @brief Clones the array, creating a new Array with the same elements.
+ *
+ * Allocates a new Array and copies all elements from the original array.
+ *
+ * @param self Pointer to the Array instance to clone.
+ * @return ARRAY_RETURN containing a pointer to the cloned Array, or an error.
+ */
+ARRAY_RETURN array_clone(struct Array *self) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+    if (self->length == 0) 
+        return create_return_error(EMPTY_ARRAY, "Cannot clone an empty array");
+
+    Array *clone = malloc(sizeof(Array));
+    if (!clone) 
+        return create_return_error(DATA_NULL, "Memory allocation failed for clone");
+
+    clone->length = self->length;
+    clone->elem_size = self->elem_size;
+    clone->state = INITIALIZED;
+    clone->data = malloc(self->length * self->elem_size);
+    if (!clone->data) {
+        free(clone);
+        return create_return_error(DATA_NULL, "Memory allocation failed for clone data");
+    }
+    memcpy(clone->data, self->data, self->length * self->elem_size);
+    clone->user_implementation = self->user_implementation;
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = clone; // caller must free
+    return ret;
+}
 
 /// Static interface implementation for easier usage.
 Jarray jarray = {
@@ -753,4 +815,6 @@ Jarray jarray = {
     .set = array_set,
     .find_indexes = array_find_indexes,
     .for_each = array_for_each,
+    .clear = array_clear,
+    .clone = array_clone,
 };

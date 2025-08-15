@@ -239,6 +239,24 @@ typedef struct Jarray {
      * @return ARRAY_RETURN containing success or error information.
      */
     ARRAY_RETURN (*for_each)(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx);
+    /**
+     * @brief Clears the array, removing all elements.
+     *
+     * Resets the array to an empty state without freeing the underlying data buffer.
+     *
+     * @param self Pointer to the Array instance.
+     * @return ARRAY_RETURN containing success or error information.
+     */
+    ARRAY_RETURN (*clear)(struct Array *self);
+    /**
+     * @brief Clones the array, creating a new Array with the same elements.
+     *
+     * Allocates a new Array and copies all elements from the original array.
+     *
+     * @param self Pointer to the Array instance to clone.
+     * @return ARRAY_RETURN containing a pointer to the cloned Array, or an error.
+     */
+    ARRAY_RETURN (*clone)(struct Array *self);
 } Jarray;
 
 extern Jarray jarray;
@@ -263,6 +281,8 @@ ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_in
 ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
 ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
 ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx);
+ARRAY_RETURN array_clear(struct Array *self);
+ARRAY_RETURN array_clone(struct Array *self);
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 
@@ -303,7 +323,7 @@ ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, voi
     if ((ret).has_error) { jarray.print_array_err(ret); }
 
 #define CHECK_RET_CONTINUE_FREE(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret); free((ret).value); }
+    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret); }
 
 #define FREE_RET(ret) \
     if ((ret).has_value && (ret).value != NULL) { free((ret).value); (ret).value = NULL; }
