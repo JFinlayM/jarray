@@ -257,6 +257,35 @@ typedef struct Jarray {
      * @return ARRAY_RETURN containing a pointer to the cloned Array, or an error.
      */
     ARRAY_RETURN (*clone)(struct Array *self);
+    /**
+     * @brief Adds multiple elements to the array from a data buffer.
+     *
+     * Resizes the array to accommodate the new elements and copies them into the array.
+     *
+     * @param self Pointer to the Array instance.
+     * @param data Pointer to the data buffer containing elements to add.
+     * @param length Number of elements in the data buffer.
+     * @return ARRAY_RETURN containing success or error information.
+     */
+    ARRAY_RETURN (*add_all)(struct Array *self, const void *data, size_t length);
+    /**
+     * @brief Checks if the array contains a specific element.
+     *
+     * Uses the user-defined equality function to compare elements.
+     *
+     * @param self Pointer to the Array instance.
+     * @param elem Pointer to the element to check for.
+     * @return ARRAY_RETURN containing true if found, false otherwise, or an error.
+     */
+    ARRAY_RETURN (*contains)(struct Array *self, const void *elem);
+    /**
+     * @brief Removes all occurrences of elements also contained in the provided data buffer.
+     * This function iterates over the array and removes elements that match any in the provided data.
+     * @param self Pointer to the Array instance.
+     * @param data Pointer to the data buffer containing elements to remove.
+     * @return ARRAY_RETURN containing success or error information.
+     */
+    ARRAY_RETURN (*remove_all)(struct Array *self, const void *data, size_t length);
 } Jarray;
 
 extern Jarray jarray;
@@ -283,6 +312,9 @@ ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
 ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx);
 ARRAY_RETURN array_clear(struct Array *self);
 ARRAY_RETURN array_clone(struct Array *self);
+ARRAY_RETURN array_add_all(struct Array *self, const void *data, size_t length);
+ARRAY_RETURN array_contains(struct Array *self, const void *elem);
+ARRAY_RETURN array_remove_all(struct Array *self, const void *data, size_t length);
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 

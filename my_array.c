@@ -345,8 +345,6 @@ ARRAY_RETURN array_print(Array *array) {
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
-    if (array->length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot print an empty array");
     for (size_t i = 0; i < array->length; i++) {
         void *elem = (char*)array->data + i * array->elem_size;
         array->user_implementation.print_element_callback(elem);
@@ -635,10 +633,7 @@ static void quicksort_indexes(size_t *indexes, int *data, size_t left, size_t ri
 }
 
 /**
- * @brief Find all indexes in the array whose values match a target value, sorted by distance.
- *
- * This function searches for all elements in the array `self` that are equal to `elem` (by value).
- * It works in several steps:
+ * @brief Find all indexes in the array whose values match a target value.
  *
  * Error cases handled:
  *   - Empty array → returns `EMPTY_ARRAY` error.
@@ -657,50 +652,30 @@ ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem) {
         return create_return_error(EMPTY_ARRAY, "Cannot search in empty array");
     if (self->state != INITIALIZED)
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
-
-    int target = *(const int *)elem; // Adapt if generic types needed
-    int *data = (int *)self->data;
-
-    // Step 1: create index array
+    if (self->user_implementation.is_equal == NULL) {
+        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+    }
     size_t *indexes = malloc(self->length * sizeof(size_t));
-    if (!indexes)
-        return create_return_error(DATA_NULL, "Could not allocate indexes array");
-
-    for (size_t i = 0; i < self->length; i++)
-        indexes[i] = i;
-
-    // Step 2: quicksort index array by distance
-    quicksort_indexes(indexes, data, 0, self->length - 1, target);
-
-    // Step 3: count matches (distance == 0)
-    size_t count = 0;
+    if (!indexes) {
+        return create_return_error(DATA_NULL, "Memory allocation failed for indexes array");
+    }
+    int count = 0;
     for (size_t i = 0; i < self->length; i++) {
-        if (distance_int(data, indexes[i], target) == 0)
+        if (self->user_implementation.is_equal((char*)self->data + i * self->elem_size, elem)) {
+            indexes[i+1] = count; // Store the index of the matching element
             count++;
-        else
-            break; // because sorted, all matches are first
+        }
     }
     if (count == 0) {
         free(indexes);
-        return create_return_error(ELEMENT_NOT_FOUND, "Element not found in array");
+        return create_return_error(ELEMENT_NOT_FOUND, "No matching elements found");
     }
-    // Step 4: allocate and copy only matching indexes
-    size_t *result = malloc((count+1) * sizeof(size_t));
-    if (!result) {
-        free(indexes);
-        return create_return_error(DATA_NULL, "Could not allocate result array");
-    }
-    result[0] = count; // first element is the count of matches
-    // Copy matching indexes
-    for (size_t i = 1; i < count+1; i++)
-        result[i] = indexes[i-1];
+    indexes[0] = count; // Store the count of matches at the first index
 
-    free(indexes);
-    // Step 5: return pointer
     ARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
-    ret.value = result; // caller must free
+    ret.value = indexes; // Caller must free this pointer
     return ret;
 }
 
@@ -795,6 +770,144 @@ ARRAY_RETURN array_clone(struct Array *self) {
     return ret;
 }
 
+/**
+ * @brief Adds multiple elements to the array from a data buffer.
+ *
+ * Resizes the array to accommodate the new elements and copies them into the array.
+ *
+ * @param self Pointer to the Array instance.
+ * @param data Pointer to the data buffer containing elements to add.
+ * @param length Number of elements in the data buffer.
+ * @return ARRAY_RETURN containing success or error information.
+ */
+ARRAY_RETURN array_add_all(Array *self, const void *data, size_t count) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (!data || count == 0) 
+        return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
+
+    void *new_data = realloc(self->data, (self->length + count) * self->elem_size);
+    if (!new_data) 
+        return create_return_error(DATA_NULL, "Memory allocation failed in add_all");
+
+    self->data = new_data;
+    memcpy((char*)self->data + self->length * self->elem_size, data, count * self->elem_size);
+    self->length += count;
+
+    ARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+/**
+ * @brief Checks if the array contains a specific element.
+ *
+ * Uses the user-defined equality function to compare elements.
+ *
+ * @param self Pointer to the Array instance.
+ * @param elem Pointer to the element to check for.
+ * @return ARRAY_RETURN containing true if found, false otherwise, or an error.
+ */
+ARRAY_RETURN array_contains(struct Array *self, const void *elem) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (self->length == 0) 
+        return create_return_error(EMPTY_ARRAY, "Cannot check containment in an empty array");
+
+    if (self->user_implementation.is_equal == NULL) 
+        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+
+    for (size_t i = 0; i < self->length; i++) {
+        void *current_elem = (char*)self->data + i * self->elem_size;
+        if (self->user_implementation.is_equal(current_elem, elem)) {
+            ARRAY_RETURN ret;
+            ret.has_value = true;
+            ret.has_error = false;
+            ret.value = TO_POINTER(bool, true); // return pointer to the found element
+            return ret;
+        }
+    }
+
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = TO_POINTER(bool, false); // return pointer to false if not found
+    return ret;
+}
+
+/**
+ * @brief Removes all occurrences of elements also contained in the provided data buffer.
+ * This function iterates over the array and removes elements that match any in the provided data.
+ * @param self Pointer to the Array instance.
+ * @param data Pointer to the data buffer containing elements to remove.
+ * @return ARRAY_RETURN containing success or error information.
+ */
+ARRAY_RETURN array_remove_all(Array *self, const void *data, size_t count) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    if (!data || count == 0) 
+        return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
+
+
+    Array temp_array;
+    array_init(&temp_array, sizeof(size_t));
+    for (size_t i = 0; i < count; i++) {
+        const void *elem = (const char*)data + i * self->elem_size;
+        ARRAY_RETURN ret = array_find_indexes(self, elem);
+
+        if (ret.has_error && ret.error.error_code == ELEMENT_NOT_FOUND) {
+            continue; // No matches for this element
+        } 
+        else if (ret.has_error && ret.error.error_code == EMPTY_ARRAY) break;
+        else if (ret.has_error) {
+            return ret; // Some other error
+        } 
+        else if (!ret.has_value) {
+            return create_return_error(INVALID_ARGUMENT, "Unexpected return value from find_indexes");
+        }
+
+        size_t *indexes = (size_t*)ret.value;
+        size_t match_count = indexes[0];
+        printf("Found %zu matches for element %zu\n", match_count, i);
+        array_clear(&temp_array); // Clear temp array for new indexes
+        // Store only the real indexes
+        for (size_t j = 0; j < match_count; j++) {
+            array_add(&temp_array, &indexes[j + 1]); // j+1 because indexes[0] is count
+        }
+
+        // Sort indexes ascending, so we can remove from the end
+        array_sort(&temp_array, QSORT);
+
+        // Remove in reverse order to avoid shifting
+        for (size_t j = match_count; j > 0; j--) {
+            size_t idx;
+            ARRAY_RETURN ret_at = array_at(&temp_array, j-1); // j-1 is safe now
+            if (ret_at.has_error) {
+                free(indexes);
+                return ret_at; // Error retrieving index
+            }
+            idx = RET_GET_VALUE(size_t, ret_at);
+            ARRAY_RETURN remove_ret = array_remove_at(self, idx);
+            if (remove_ret.has_error) {
+                free(indexes);
+                return remove_ret;
+            }
+        }
+        free(indexes);
+    }
+
+    ARRAY_RETURN ok = { .has_value = false, .has_error = false, .value = NULL };
+    return ok;
+}
+
+
+
+
 /// Static interface implementation for easier usage.
 Jarray jarray = {
     .filter = array_filter,
@@ -817,4 +930,7 @@ Jarray jarray = {
     .for_each = array_for_each,
     .clear = array_clear,
     .clone = array_clone,
+    .add_all = array_add_all,
+    .contains = array_contains,
+    .remove_all = array_remove_all
 };

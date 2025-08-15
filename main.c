@@ -127,6 +127,8 @@ int main(void) {
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
 
+    // --- Find indexes ---
+    printf("\nFinding indexes of 12:\n");
     ret = jarray.find_indexes(&array, TO_POINTER(int, 12));
     CHECK_RET(ret);
     size_t *indexes = RET_GET_POINTER(size_t, ret);
@@ -156,6 +158,28 @@ int main(void) {
     CHECK_RET_FREE(ret);
     ret = jarray.print(clone);
     CHECK_RET_CONTINUE_FREE(ret); // should print empty array
+
+    // --- Add all ---
+    printf("\nAdding all elements from original array to clone:\n");
+    ret = jarray.add_all(clone, array.data, array.length);
+    CHECK_RET_FREE(ret);
+    ret = jarray.print(clone);
+    CHECK_RET_FREE(ret);
+
+    // --- Contains ---
+    printf("\nChecking if clone contains 5: ");
+    ret = jarray.contains(clone, TO_POINTER(int, 5));
+    CHECK_RET(ret);
+    bool contains = RET_GET_VALUE(bool, ret);
+    printf("%s\n", contains ? "Yes" : "No");
+
+    // --- Remove all ---
+    printf("\nRemoving all elements that are in clone from original array:\n");
+    jarray.add(&array, TO_POINTER(int, 17)); // add 17 to original array for testing
+    ret = jarray.remove_all(&array, clone->data, clone->length);
+    CHECK_RET_FREE(ret);
+    ret = jarray.print(&array); // Should only display 17
+    CHECK_RET_FREE(ret);
 
 
     // --- Cleanup ---
