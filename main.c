@@ -2,88 +2,109 @@
 #include <stdlib.h>
 #include "my_array.h"
 
-// Prédicat pour filtrer les nombres pairs
+// ----------- Helpers -----------
+
+// Predicate: keep only even numbers
 bool is_even(const void *x) {
     return (*(const int*)x) % 2 == 0;
 }
 
-// Fonction pour afficher un int
+// Print an int
 void print_int(const void *x) {
     printf("%d ", *(const int*)x);
 }
 
+// Compare two ints
 int compare_int(const void *a, const void *b) {
     return (*(const int*)a) - (*(const int*)b);
 }
 
 int main(void) {
     ARRAY_RETURN ret;
-
-    // Initialisation de l'Array
     Array array;
+
+    // --- Init ---
     ret = jarray.init(&array, sizeof(int));
-    CHECK_RET(ret);
+    CHECK_RET_FREE(ret);
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.compare = compare_int;
 
-    // Ajouter des valeurs
+    printf("\n=== DEMO: jarray ===\n");
+
+    // --- Adding elements ---
+    printf("\nAdding numbers 1..10:\n");
     for (int i = 1; i <= 10; i++) {
         ret = jarray.add(&array, TO_POINTER(int, i));
-        CHECK_RET(ret);
+        CHECK_RET_FREE(ret);
     }
-    ret = jarray.add_at(&array, 0, TO_POINTER(int, 11)); // Ajouter 0 au début
-    CHECK_RET(ret);
-    ret = jarray.add_at(&array, 5, TO_POINTER(int, 12)); // Ajouter 12 à l'index 5
-    CHECK_RET(ret);
 
-    // Afficher tous les éléments
-    printf("Array complet : ");
+    printf("Insert 11 at index 0, and 12 at index 5\n");
+    ret = jarray.add_at(&array, 0, TO_POINTER(int, 11));
+    CHECK_RET_FREE(ret);
+    ret = jarray.add_at(&array, 5, TO_POINTER(int, 12));
+    CHECK_RET_FREE(ret);
+
+    printf("Full array: ");
     ret = jarray.print(&array);
-    CHECK_RET(ret);
+    CHECK_RET_FREE(ret);
 
-    // Filtrer les éléments pairs
+
+    // --- Filtering ---
+    printf("\nFiltering even numbers:\n");
     ret = jarray.filter(&array, is_even);
     CHECK_RET(ret);
+    Array* evens = RET_GET_POINTER(Array, ret);
+    ret = jarray.print(evens);
+    CHECK_RET_FREE(ret);
+    jarray.free(evens); // free filtered array
 
-    Array evens = GET_VALUE(Array, ret);
-
-    // Afficher les éléments filtrés
-    printf("Éléments pairs : ");
-    ret = jarray.print(&evens);
-    CHECK_RET(ret);
-
-    // Trier l'Array
+    // --- Sorting ---
+    printf("\nSorting array:\n");
     ret = jarray.sort(&array, QSORT);
     CHECK_RET(ret);
-    
-    Array* sorted_array = GET_POINTER(Array, ret);
-    printf("Array trié : ");
-    ret = jarray.print(sorted_array);
-    CHECK_RET(ret);
+    Array* sorted = RET_GET_POINTER(Array, ret);
+    ret = jarray.print(sorted);
+    CHECK_RET_FREE(ret);
+    jarray.free(sorted); // free sorted copy
 
-    
- 
-    ret = jarray.at(&array, 3);        // <-- passer la valeur, pas l'adresse
+    // --- Accessing ---
+    printf("\nAccess element at index 3: ");
+    ret = jarray.at(&array, 3);
     CHECK_RET(ret);
-    printf("ret = %d\n", GET_VALUE(int, ret));
-    
+    printf("%d\n", RET_GET_VALUE(int, ret));
+
+    printf("Find first even number: ");
     ret = jarray.find_by_predicate(&array, is_even);
     CHECK_RET(ret);
-    printf("ret = %d\n", GET_VALUE(int, ret));
+    printf("%d\n", RET_GET_VALUE(int, ret));
 
+    // --- Raw data ---
+    printf("\nRaw data pointer:\n");
     ret = jarray.data(&array);
     CHECK_RET(ret);
-    int *data = ret.value;
-    printf("el[0]=%d\n", data[0]);
+    int *data = RET_GET_POINTER(int, ret);
+    printf("data[0] = %d\n", data[0]);
+    free(data); // because jarray.data allocated
 
+    // --- Subarray ---
+    printf("\nSubarray [0..3]:\n");
     ret = jarray.subarray(&array, 0, 3);
     CHECK_RET(ret);
-    ret = jarray.print(ret.value);
-    CHECK_RET(ret);
+    Array* sub = RET_GET_POINTER(Array, ret);
+    CHECK_RET_FREE(jarray.print(sub));
+    jarray.free(sub);
 
+    // --- Modify ---
+    printf("\nSet index 1 to 13:\n");
     ret = jarray.set(&array, 1, TO_POINTER(int, 13));
-    CHECK_RET(ret);
+    CHECK_RET_FREE(ret);
     ret = jarray.print(&array);
-    CHECK_RET(ret);
+    CHECK_RET_FREE(ret);
+
+    // --- Cleanup ---
+    printf("\nFreeing main array...\n");
+    jarray.free(&array);
+
+    printf("\n=== END DEMO ===\n");
     return 0;
 }

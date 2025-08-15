@@ -6,10 +6,18 @@
 
 /// Lookup table mapping ARRAY_ERROR enum values to their corresponding string descriptions.
 const char *enum_to_string[] = {
-    [INDEX_OUT_OF_BOUND] = "Index out of bound",
-    [ARRAY_UNINITIALIZED] = "Array uninitialized",
-    [DATA_NULL] = "Data is null"
+    [INDEX_OUT_OF_BOUND]               = "Index out of bound",
+    [ARRAY_UNINITIALIZED]              = "Array uninitialized",
+    [DATA_NULL]                        = "Data is null",
+    [PRINT_ELEMENT_CALLBACK_UNINTIALIZED] = "Print callback not set",
+    [EMPTY_ARRAY]                      = "Empty array",
+    [INVALID_ARGUMENT]                 = "Invalid argument",
+    [COMPARE_CALLBACK_UNINTIALIZED]    = "Compare callback not set",
+    [IS_EQUAL_CALLBACK_UNINTIALIZED]   = "is_equal callback not set",
+    [ELEMENT_NOT_FOUND]                = "Element not found",
+    [UNIMPLEMENTED_FUNCTION]           = "Function not implemented",
 };
+
 
 /**
  * @brief Prints an error message from an ARRAY_RETURN.
@@ -25,6 +33,24 @@ void print_array_err(ARRAY_RETURN ret) {
 }
 
 /**
+ * @brief Frees the memory allocated for an Array.
+ *
+ * This function frees the data buffer and resets the Array's state.
+ *
+ * @param array Pointer to the Array instance to free.
+ */
+void array_free(Array *array) {
+    if (!array) return;
+    free(array->data);
+    array->data = NULL;
+    array->length = 0;
+    array->elem_size = 0;
+    array->state = UNINITIALIZED;
+    memset(&array->user_implementation, 0, sizeof(array->user_implementation));
+}
+
+
+/**
  * @brief Creates an ARRAY_RETURN object representing an error, with a formatted message.
  *
  * Allocates memory for the error message so that it can persist after the function returns.
@@ -37,12 +63,13 @@ void print_array_err(ARRAY_RETURN ret) {
  */
 ARRAY_RETURN create_return_error(ARRAY_ERROR error_code, const char* fmt, ...) {
     ARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = true;
     va_list args;
     va_start(args, fmt);
 
     char *buf = malloc(256);
     if (!buf) {
-        ret.has_value = false;
         ret.error.error_msg = "Memory allocation failed";
         ret.error.error_code = ARRAY_UNINITIALIZED;
         va_end(args);
@@ -52,7 +79,6 @@ ARRAY_RETURN create_return_error(ARRAY_ERROR error_code, const char* fmt, ...) {
     vsnprintf(buf, 256, fmt, args);
     va_end(args);
 
-    ret.has_value = false;
     ret.error.error_code = error_code;
     ret.error.error_msg = buf;
     return ret;
@@ -80,6 +106,7 @@ ARRAY_RETURN array_at(Array *self, size_t index) {
 
     ARRAY_RETURN ret;
     ret.has_value = true;
+    ret.has_error = false;
     ret.value = (char*)self->data + index * self->elem_size;
     return ret;
 }
@@ -106,8 +133,9 @@ ARRAY_RETURN array_add(Array *self, const void *elem) {
     self->length++;
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = (char*)self->data + (self->length-1) * self->elem_size;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
@@ -144,8 +172,9 @@ ARRAY_RETURN array_add_at(Array *self, size_t index, const void *elem) {
     self->length++;
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = (char*)self->data + index * self->elem_size;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
@@ -189,6 +218,7 @@ ARRAY_RETURN array_remove_at(Array *self, size_t index) {
 
     ARRAY_RETURN ret;
     ret.has_value = true;
+    ret.has_error = false;
     ret.value = removed_elem;
     return ret;
 }
@@ -224,8 +254,9 @@ ARRAY_RETURN array_init(Array *array, size_t elem_size) {
     array->state = INITIALIZED;
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = array;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
@@ -245,8 +276,9 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
     array->state = INITIALIZED;
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = array;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
@@ -287,6 +319,7 @@ ARRAY_RETURN array_filter(Array *self, bool (*predicate)(const void *)) {
 
     ARRAY_RETURN ret;
     ret.has_value = true;
+    ret.has_error = false;
     ret.value = result;
     return ret;
 }
@@ -309,8 +342,9 @@ ARRAY_RETURN array_print(Array *array) {
     printf("\n");
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = array;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
@@ -332,7 +366,7 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
         return create_return_error(EMPTY_ARRAY, "Cannot sort an empty array");
 
     if (compare == NULL)
-        return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "Compare callback not set");
+        return create_return_error(COMPARE_CALLBACK_UNINTIALIZED, "Compare callback not set");
 
     void *copy_data = malloc(self->length * self->elem_size);
     if (!copy_data)
@@ -416,6 +450,7 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
 
     ARRAY_RETURN ret;
     ret.has_value = true;
+    ret.has_error = false;
     ret.value = sorted_array;
     return ret;
 }
@@ -448,6 +483,7 @@ ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const
         void *elem = (char*)self->data + i * self->elem_size;
         if (predicate(elem)) {
             ret.has_value = true;
+            ret.has_error = false;
             ret.value = elem;
             return ret;
         }
@@ -463,14 +499,25 @@ ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const
  *         - On failure: `.has_value = false` and `.error` contains error information:
  *              - ARRAY_UNINITIALIZED: The array has not been initialized.
  */
-ARRAY_RETURN array_data(struct Array *self){
+ARRAY_RETURN array_data(struct Array *self) {
     if (self->state != INITIALIZED) 
         return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
     ARRAY_RETURN ret;
+
+    void *copy = NULL;
+    if (self->length > 0) {
+        copy = malloc(self->length * self->elem_size);
+        if (!copy)
+            return create_return_error(DATA_NULL, "Failed to allocate data copy");
+        memcpy(copy, self->data, self->length * self->elem_size);
+    }
+
     ret.has_value = true;
-    ret.value = self->data;
+    ret.has_error = false;
+    ret.value = copy; // caller now owns this pointer (may be NULL if length==0)
     return ret;
 }
+
 
 /**
  * @brief Create a subarray from a given Array.
@@ -523,6 +570,7 @@ ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_in
 
     ARRAY_RETURN ret;
     ret.has_value = true;
+    ret.has_error = false;
     ret.value = ret_array; // directly store pointer to new Array
     return ret;
 }
@@ -542,16 +590,24 @@ ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem) {
         return create_return_error(INVALID_ARGUMENT, "Index cannot be higher or equal to the length of array\n");
 
     // Copy the new element into the array at the given index
-    void *dest = (char*)self->data + index * self->elem_size;
-    memcpy(dest, elem, self->elem_size);
+    memcpy((char*)self->data + index * self->elem_size, elem, self->elem_size);
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
-    ret.value = TO_POINTER(bool, true);
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
     return ret;
 }
 
-
+ARRAY_RETURN array_find_index(struct Array *self, const void *elem){
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized\n");
+    if (elem == NULL)
+        return create_return_error(INVALID_ARGUMENT, "element cannot be NULL\n");
+    if (self->user_implementation.is_equal == NULL)
+        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback function need to be initialized and attached in user_implementation\n");
+    create_return_error(UNIMPLEMENTED_FUNCTION, "function unimplemented for now...\n");
+}
 
 
 /// Static interface implementation for easier usage.
@@ -566,9 +622,11 @@ Jarray jarray = {
     .init = array_init,
     .init_with_data = array_init_with_data,
     .print_array_err = print_array_err,
+    .free = array_free,
     .sort = array_sort,
     .find_by_predicate = array_find_by_predicate,
     .data = array_data,
     .subarray = array_subarray,
     .set = array_set,
+    .find_index = array_find_index,
 };

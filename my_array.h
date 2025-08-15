@@ -9,9 +9,12 @@ typedef enum {
     ARRAY_UNINITIALIZED,
     DATA_NULL,
     PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
+    COMPARE_CALLBACK_UNINTIALIZED,
+    IS_EQUAL_CALLBACK_UNINTIALIZED,
     EMPTY_ARRAY,
     ELEMENT_NOT_FOUND,
     INVALID_ARGUMENT,
+    UNIMPLEMENTED_FUNCTION,
 } ARRAY_ERROR;
 
 typedef enum {
@@ -30,12 +33,14 @@ typedef struct {
         ARRAY_RETURN_ERROR error;
     };
     bool has_value;
+    bool has_error;
 } ARRAY_RETURN;
 
 
 typedef struct USER_FUNCTION_IMPLEMENTATION {
     void (*print_element_callback)(const void*);
     int (*compare)(const void*, const void*);
+    bool (*is_equal)(const void*, const void*);
 }USER_FUNCTION_IMPLEMENTATION;
 
 typedef struct Array {
@@ -63,6 +68,7 @@ typedef struct Jarray {
     * @param ret The ARRAY_RETURN to inspect.
     */
     void (*print_array_err)(ARRAY_RETURN ret);
+    void (*free)(Array *array);
     /**
      * @brief Filters an array using a predicate function.
      *
@@ -203,6 +209,7 @@ typedef struct Jarray {
      * @return ARRAY_RETURN with success or error.
      */
     ARRAY_RETURN (*set)(struct Array *self, size_t index, const void *elem);
+    ARRAY_RETURN (*find_index)(struct Array *self, const void *elem);
 } Jarray;
 
 extern Jarray jarray;
@@ -210,6 +217,7 @@ extern Jarray jarray;
 /* ----- PROTOTYPES ----- */
 
 void print_array_err(ARRAY_RETURN ret);
+void array_free(Array *array);
 ARRAY_RETURN array_filter(struct Array *self, bool (*predicate)(const void *));
 ARRAY_RETURN array_at(struct Array *self, size_t index);
 ARRAY_RETURN array_add(struct Array *self, const void * elem);
@@ -224,44 +232,50 @@ ARRAY_RETURN array_find_by_predicate(struct Array *self, bool (*predicate)(const
 ARRAY_RETURN array_data(struct Array *self);
 ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index);
 ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
+ARRAY_RETURN array_find_index(struct Array *self, const void *elem);
 
-/* ----- MACROS ----- */
+/* ----- MACROS WITH AUTO-FREE ----- */
 
-// Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`.
-// Example: int x = GET_VALUE(int, ret);
-#define GET_VALUE(type, array_return) (*(type*)(array_return).value)
+// Extract the *value* (by dereferencing) from ARRAY_RETURN, casting it to `type`,
+// then free the underlying pointer to avoid leaks.
+// Example: int x = RET_GET_VALUE_FREE(int, ret);
+#define RET_GET_VALUE_FREE(type, array_return) \
+    ({ type _tmp = *(type*)(array_return).value; free((array_return).value); _tmp; })
 
-// Get the *pointer* directly from ARRAY_RETURN, casting it to `type*`.
-// Example: int* ptr = GET_POINTER(int, ret);
-#define GET_POINTER(type, array_return) (type*)(array_return.value)
+// Get the *pointer* directly from ARRAY_RETURN, casting it to `type*`,
+// then set .value to NULL so we don’t accidentally double-free later.
+#define RET_GET_POINTER_OWNED(type, array_return) \
+    ({ type* _tmp = (type*)(array_return).value; (array_return).value = NULL; _tmp; })
 
-// Create a temporary variable of `type` with the given `value`
-// and return its pointer (useful for passing literals to functions expecting void*).
-// Example: jarray.add(&arr, TO_POINTER(int, 42));
+// Standard GET_VALUE (no free)
+#define RET_GET_VALUE(type, array_return) (*(type*)(array_return).value)
+
+// Standard GET_POINTER (no free)
+#define RET_GET_POINTER(type, array_return) ((type*)(array_return).value)
+
+// Create temporary variable pointer for literals.
 #define TO_POINTER(type, value) (&(type){value})
 
-// Like GET_VALUE but safe: if `.has_value` is false, return `default_value` instead.
-// Example: int x = GET_VALUE_SAFE(int, ret, -1);
-#define GET_VALUE_SAFE(type, array_return, default_value) \
-    ((array_return).has_value == true ? *(type*)((array_return).value) : (default_value))
+// Safe GET_VALUE with default
+#define RET_GET_VALUE_SAFE(type, array_return, default_value) \
+    ((array_return).has_value ? *(type*)((array_return).value) : (default_value))
 
-// Check if a function returning ARRAY_RETURN was successful.
-// If not, print the error and return from the current function.
-#define CHECK_RET(ret)      if (!ret.has_value) {                       \
-                                jarray.print_array_err(ret);            \
-                                return;                                 \
-                            }
+// Error handling macros
+#define CHECK_RET(ret) \
+    if ((ret).has_error) { jarray.print_array_err(ret); return; }
 
-// Same as CHECK_RET but doesn't return — just prints the error and continues execution.
-#define CHECK_RET_CONTINUE(ret) if (!ret.has_value) { \
-                                jarray.print_array_err(ret);            \
-                            }
+#define CHECK_RET_FREE(ret) \
+    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret);  return; }
 
-// Same as CHECK_RET_CONTINUE but also frees ret.value if it exists.
-#define CHECK_RET_CONTINUE_FREE(ret) if (!ret.has_value) { \
-                                jarray.print_array_err(ret);            \
-                                free(ret.value);                        \
-                            }
+#define CHECK_RET_CONTINUE(ret) \
+    if ((ret).has_error) { jarray.print_array_err(ret); }
+
+#define CHECK_RET_CONTINUE_FREE(ret) \
+    if ((ret).has_error) { jarray.print_array_err(ret); free((ret).value); }
+
+#define FREE_RET(ret) \
+    if ((ret).has_value && (ret).value != NULL) { free((ret).value); (ret).value = NULL; }
+
 #define MAX(a, b) a > b ? a : b
 
 #endif
