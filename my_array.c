@@ -29,7 +29,15 @@ const char *enum_to_string[] = {
  */
 void print_array_err(ARRAY_RETURN ret) {
     if (ret.has_value) return;
-    printf("\033[31m%s\033[0m\n", ret.error.error_msg);
+    if (!ret.has_error) return;
+    if (ret.error.error_code < 0 || ret.error.error_code >= sizeof(enum_to_string) / sizeof(enum_to_string[0]) || enum_to_string[ret.error.error_code] == NULL) {
+        fprintf(stderr, "[\033[31mUnknown error code: %d\033[0m]", ret.error.error_code);
+    } else {
+        fprintf(stderr, "[\033[31mError: %s\033[0m]", enum_to_string[ret.error.error_code]);
+    }
+    if (ret.error.error_msg) {
+        fprintf(stderr, "\t%s\n", ret.error.error_msg);
+    }
     free((void*)ret.error.error_msg);
 }
 
@@ -438,22 +446,12 @@ ARRAY_RETURN array_sort(Array *self, SORT_METHOD method) {
             return create_return_error(INDEX_OUT_OF_BOUND, "Sort method %d not implemented", method);
     }
 
-    Array *sorted_array = malloc(sizeof(Array));
-    if (!sorted_array) {
-        free(copy_data);
-        return create_return_error(DATA_NULL, "Memory allocation failed for sorted array struct");
-    }
-
-    sorted_array->data = copy_data;
-    sorted_array->length = self->length;
-    sorted_array->elem_size = self->elem_size;
-    sorted_array->state = INITIALIZED;
-    sorted_array->user_implementation = self->user_implementation;
+    self->data = copy_data;
 
     ARRAY_RETURN ret;
-    ret.has_value = true;
+    ret.has_value = false;
     ret.has_error = false;
-    ret.value = sorted_array;
+    ret.value = NULL;
     return ret;
 }
 
@@ -704,6 +702,36 @@ ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem) {
     return ret;
 }
 
+/**
+ * @brief Applies a callback function to each element in the array.
+ *
+ * Iterates over each element and calls the provided callback with the element and context.
+ *
+ * @param self Pointer to the Array instance.
+ * @param callback Function to call for each element.
+ * @param ctx Context pointer passed to the callback.
+ * @return ARRAY_RETURN containing success or error information.
+ */
+ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx) {
+    if (self->state != INITIALIZED) 
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+    if (!callback) 
+        return create_return_error(INVALID_ARGUMENT, "Callback function is null");
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot iterate over an empty array");
+
+    for (size_t i = 0; i < self->length; i++) {
+        void *elem = (char*)self->data + i * self->elem_size;
+        callback(elem, ctx);
+    }
+
+    ARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
 
 /// Static interface implementation for easier usage.
 Jarray jarray = {
@@ -724,4 +752,5 @@ Jarray jarray = {
     .subarray = array_subarray,
     .set = array_set,
     .find_indexes = array_find_indexes,
+    .for_each = array_for_each,
 };

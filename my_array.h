@@ -228,6 +228,17 @@ typedef struct Jarray {
      *         - or error code if no match or failure occurs.
      */
     ARRAY_RETURN (*find_indexes)(struct Array *self, const void *elem);
+    /**
+     * @brief Applies a callback function to each element in the array.
+     *
+     * Iterates over each element and calls the provided callback with the element and context.
+     *
+     * @param self Pointer to the Array instance.
+     * @param callback Function to call for each element.
+     * @param ctx Context pointer passed to the callback.
+     * @return ARRAY_RETURN containing success or error information.
+     */
+    ARRAY_RETURN (*for_each)(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx);
 } Jarray;
 
 extern Jarray jarray;
@@ -251,7 +262,7 @@ ARRAY_RETURN array_data(struct Array *self);
 ARRAY_RETURN array_subarray(struct Array *self, size_t low_index, size_t high_index);
 ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem);
 ARRAY_RETURN array_find_indexes(struct Array *self, const void *elem);
-
+ARRAY_RETURN array_for_each(struct Array *self, void (*callback)(void *elem, void *ctx), void *ctx);
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 

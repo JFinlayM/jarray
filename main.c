@@ -10,6 +10,11 @@ bool is_even(const void *x, const void *ctx) {
     return GET_VALUE(const int, x) % 2 == 0;
 }
 
+void modulo3(void *x, const void *ctx) {
+    (void)ctx;
+    GET_VALUE(int, x) %= 3;
+}
+
 // Print an int
 void print_int(const void *x) {
     printf("%d ", GET_VALUE(const int, x));
@@ -84,11 +89,9 @@ int main(void) {
     // --- Sorting ---
     printf("\nSorting array:\n");
     ret = jarray.sort(&array, QSORT);
-    CHECK_RET(ret);
-    Array* sorted = RET_GET_POINTER(Array, ret);
-    ret = jarray.print(sorted);
     CHECK_RET_FREE(ret);
-    jarray.free(sorted); // free sorted copy
+    ret = jarray.print(&array);
+    CHECK_RET_FREE(ret);
 
     // --- Accessing ---
     printf("\nAccess element at index 3: ");
@@ -124,13 +127,21 @@ int main(void) {
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
 
-    ret = jarray.find_indexes(&array, TO_POINTER(int, 20));
-    CHECK_RET_FREE(ret);
+    ret = jarray.find_indexes(&array, TO_POINTER(int, 12));
+    CHECK_RET(ret);
     size_t *indexes = RET_GET_POINTER(size_t, ret);
 
     // print matches
     printf("%zu\n", indexes[0]);
     free(indexes);
+
+    // --- For each ---
+    printf("\nFor each element, modulo 3:\n");
+    ret = jarray.for_each(&array, modulo3, NULL);
+    CHECK_RET_FREE(ret);
+    ret = jarray.print(&array);
+    CHECK_RET_FREE(ret);
+
 
     // --- Cleanup ---
     printf("\nFreeing main array...\n");
