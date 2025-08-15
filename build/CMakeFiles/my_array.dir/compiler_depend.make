@@ -65,6 +65,7 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
   /usr/include/endian.h \
   /usr/include/features-time64.h \
   /usr/include/features.h \
+  /usr/include/math.h \
   /usr/include/stdc-predef.h \
   /usr/include/stdio.h \
   /usr/include/stdlib.h \
@@ -76,8 +77,15 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
   /usr/include/x86_64-linux-gnu/bits/endianness.h \
   /usr/include/x86_64-linux-gnu/bits/floatn-common.h \
   /usr/include/x86_64-linux-gnu/bits/floatn.h \
+  /usr/include/x86_64-linux-gnu/bits/flt-eval-method.h \
+  /usr/include/x86_64-linux-gnu/bits/fp-fast.h \
+  /usr/include/x86_64-linux-gnu/bits/fp-logb.h \
   /usr/include/x86_64-linux-gnu/bits/libc-header-start.h \
+  /usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h \
   /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/bits/math-vector.h \
+  /usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h \
+  /usr/include/x86_64-linux-gnu/bits/mathcalls.h \
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes-arch.h \
   /usr/include/x86_64-linux-gnu/bits/pthreadtypes.h \
   /usr/include/x86_64-linux-gnu/bits/select.h \
@@ -124,11 +132,19 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 
 /usr/include/x86_64-linux-gnu/bits/types/locale_t.h:
 
+/usr/include/x86_64-linux-gnu/bits/math-vector.h:
+
+/usr/include/x86_64-linux-gnu/bits/fp-fast.h:
+
+/usr/include/x86_64-linux-gnu/bits/flt-eval-method.h:
+
 /usr/include/strings.h:
 
 /usr/include/alloca.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/__fpos_t.h:
+
+/usr/include/x86_64-linux-gnu/bits/mathcalls.h:
 
 /usr/include/x86_64-linux-gnu/bits/struct_mutex.h:
 
@@ -145,6 +161,8 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 /usr/lib/gcc/x86_64-linux-gnu/13/include/stdarg.h:
 
 /usr/include/x86_64-linux-gnu/bits/floatn.h:
+
+/usr/include/x86_64-linux-gnu/bits/mathcalls-helper-functions.h:
 
 /home/jonathan/Documents/Projets\ de\ codage/C/Tests/main.c:
 
@@ -174,6 +192,8 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 
 /usr/include/x86_64-linux-gnu/bits/typesizes.h:
 
+/usr/include/math.h:
+
 /usr/include/x86_64-linux-gnu/bits/timesize.h:
 
 /usr/include/stdlib.h:
@@ -190,6 +210,10 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 
 /usr/include/x86_64-linux-gnu/bits/types/FILE.h:
 
+/usr/include/string.h:
+
+/usr/include/x86_64-linux-gnu/bits/endian.h:
+
 /home/jonathan/Documents/Projets\ de\ codage/C/Tests/my_array.c:
 
 /usr/include/x86_64-linux-gnu/bits/libc-header-start.h:
@@ -197,6 +221,8 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 /usr/include/x86_64-linux-gnu/bits/stdlib-float.h:
 
 /usr/include/stdc-predef.h:
+
+/usr/include/x86_64-linux-gnu/bits/libm-simd-decl-stubs.h:
 
 /usr/include/x86_64-linux-gnu/bits/types/clockid_t.h:
 
@@ -206,13 +232,11 @@ CMakeFiles/my_array.dir/my_array.c.o: /home/jonathan/Documents/Projets\ de\ coda
 
 /usr/include/x86_64-linux-gnu/bits/types/__mbstate_t.h:
 
+/usr/include/x86_64-linux-gnu/bits/fp-logb.h:
+
 /usr/include/x86_64-linux-gnu/bits/uintn-identity.h:
 
 /usr/include/x86_64-linux-gnu/gnu/stubs-64.h:
-
-/usr/include/x86_64-linux-gnu/bits/endian.h:
-
-/usr/include/string.h:
 
 /usr/include/x86_64-linux-gnu/bits/long-double.h:
 

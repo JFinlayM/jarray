@@ -209,6 +209,24 @@ typedef struct Jarray {
      * @return ARRAY_RETURN with success or error.
      */
     ARRAY_RETURN (*set)(struct Array *self, size_t index, const void *elem);
+    /**
+     * @brief Find all indexes in the array whose values match a target value, sorted by distance.
+     *
+     * This function searches for all elements in the array `self` that are equal to `elem` (by value).
+     * It works in several steps:
+     *
+     * Error cases handled:
+     *   - Empty array → returns `EMPTY_ARRAY` error.
+     *   - Array not initialized → returns `ARRAY_UNINITIALIZED` error.
+     *   - Memory allocation failure → returns `DATA_NULL` error.
+     *   - No matches found → returns `ELEMENT_NOT_FOUND` error.
+     *
+     * @param self Pointer to the Array structure.
+     * @param elem Pointer to the target value to find (currently assumes `int` type).
+     * @return ARRAY_RETURN containing either:
+     *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
+     *         - or error code if no match or failure occurs.
+     */
     ARRAY_RETURN (*find_index)(struct Array *self, const void *elem);
 } Jarray;
 

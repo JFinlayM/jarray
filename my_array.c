@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <math.h>
 
 /// Lookup table mapping ARRAY_ERROR enum values to their corresponding string descriptions.
 const char *enum_to_string[] = {
@@ -599,14 +600,106 @@ ARRAY_RETURN array_set(struct Array *self, size_t index, const void *elem) {
     return ret;
 }
 
-ARRAY_RETURN array_find_index(struct Array *self, const void *elem){
-    if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized\n");
-    if (elem == NULL)
-        return create_return_error(INVALID_ARGUMENT, "element cannot be NULL\n");
-    if (self->user_implementation.is_equal == NULL)
-        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback function need to be initialized and attached in user_implementation\n");
-    create_return_error(UNIMPLEMENTED_FUNCTION, "function unimplemented for now...\n");
+
+static void swap_size_t(size_t *a, size_t *b) {
+    size_t tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+static int distance_int(const int *data, size_t index, int target) {
+    return abs(data[index] - target);
+}
+
+static void quicksort_indexes(size_t *indexes, int *data, size_t left, size_t right, int target) {
+    if (left >= right) return;
+
+    size_t i = left, j = right;
+    int pivot = distance_int(data, indexes[(left + right) / 2], target);
+
+    while (i <= j) {
+        while (distance_int(data, indexes[i], target) < pivot) i++;
+        while (distance_int(data, indexes[j], target) > pivot) j--;
+
+        if (i <= j) {
+            swap_size_t(&indexes[i], &indexes[j]);
+            i++;
+            if (j > 0) j--;
+        }
+    }
+
+    if (j > left) quicksort_indexes(indexes, data, left, j, target);
+    if (i < right) quicksort_indexes(indexes, data, i, right, target);
+}
+
+/**
+ * @brief Find all indexes in the array whose values match a target value, sorted by distance.
+ *
+ * This function searches for all elements in the array `self` that are equal to `elem` (by value).
+ * It works in several steps:
+ *
+ * Error cases handled:
+ *   - Empty array → returns `EMPTY_ARRAY` error.
+ *   - Array not initialized → returns `ARRAY_UNINITIALIZED` error.
+ *   - Memory allocation failure → returns `DATA_NULL` error.
+ *   - No matches found → returns `ELEMENT_NOT_FOUND` error.
+ *
+ * @param self Pointer to the Array structure.
+ * @param elem Pointer to the target value to find (currently assumes `int` type).
+ * @return ARRAY_RETURN containing either:
+ *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
+ *         - or error code if no match or failure occurs.
+ */
+ARRAY_RETURN array_find_index(struct Array *self, const void *elem) {
+    if (self->length == 0)
+        return create_return_error(EMPTY_ARRAY, "Cannot search in empty array");
+    if (self->state != INITIALIZED)
+        return create_return_error(ARRAY_UNINITIALIZED, "Array not initialized");
+
+    int target = *(const int *)elem; // Adapt if generic types needed
+    int *data = (int *)self->data;
+
+    // Step 1: create index array
+    size_t *indexes = malloc(self->length * sizeof(size_t));
+    if (!indexes)
+        return create_return_error(DATA_NULL, "Could not allocate indexes array");
+
+    for (size_t i = 0; i < self->length; i++)
+        indexes[i] = i;
+
+    // Step 2: quicksort index array by distance
+    quicksort_indexes(indexes, data, 0, self->length - 1, target);
+
+    // Step 3: count matches (distance == 0)
+    size_t count = 0;
+    for (size_t i = 0; i < self->length; i++) {
+        if (distance_int(data, indexes[i], target) == 0)
+            count++;
+        else
+            break; // because sorted, all matches are first
+    }
+    if (count == 0) {
+        free(indexes);
+        return create_return_error(ELEMENT_NOT_FOUND, "Element not found in array");
+    }
+    // Step 4: allocate and copy only matching indexes
+    size_t *result = malloc((count+1) * sizeof(size_t));
+    if (!result) {
+        free(indexes);
+        return create_return_error(DATA_NULL, "Could not allocate result array");
+    }
+    result[0] = count; // first element is the count of matches
+    // Copy matching indexes
+    for (size_t i = 1; i < count+1; i++)
+        result[i] = indexes[i-1];
+
+    free(indexes);
+    // Step 5: return pointer
+    ARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = result; // caller must free
+    return ret;
 }
 
 

@@ -19,6 +19,10 @@ int compare_int(const void *a, const void *b) {
     return (*(const int*)a) - (*(const int*)b);
 }
 
+bool is_equal_int(const void *a, const void *b) {
+    return (*(const int*)a) == (*(const int*)b);
+}
+
 int main(void) {
     ARRAY_RETURN ret;
     Array array;
@@ -28,6 +32,7 @@ int main(void) {
     CHECK_RET_FREE(ret);
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.compare = compare_int;
+    array.user_implementation.is_equal = is_equal_int;
 
     printf("\n=== DEMO: jarray ===\n");
 
@@ -95,11 +100,19 @@ int main(void) {
     jarray.free(sub);
 
     // --- Modify ---
-    printf("\nSet index 1 to 13:\n");
-    ret = jarray.set(&array, 1, TO_POINTER(int, 13));
+    printf("\nSet index 1 to 12:\n");
+    ret = jarray.set(&array, 1, TO_POINTER(int, 12));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
+
+    ret = jarray.find_index(&array, TO_POINTER(int, 20));
+    CHECK_RET_FREE(ret);
+    size_t *indexes = RET_GET_POINTER(size_t, ret);
+
+    // print matches
+    printf("%zu\n", indexes[0]);
+    free(indexes);
 
     // --- Cleanup ---
     printf("\nFreeing main array...\n");
