@@ -1,1 +1,1 @@
-/usr/bin/c89-gcc -fPIC  -Wall -Wextra -pedantic -shared -Wl,-soname,libjarray.so -o libjarray.so CMakeFiles/jarray_shared.dir/jarray.c.o 
+/usr/bin/cc -fPIC  -Wall -Wextra -pedantic -shared -Wl,-soname,libjarray.so -o libjarray.so CMakeFiles/jarray_shared.dir/jarray.c.o 

@@ -73,15 +73,15 @@ CMakeFiles/jarray.dir/jarray.c.o: CMakeFiles/jarray.dir/flags.make
 CMakeFiles/jarray.dir/jarray.c.o: /home/jonathan/Documents/Projets\ de\ codage/C/Tests/jarray.c
 CMakeFiles/jarray.dir/jarray.c.o: CMakeFiles/jarray.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/jonathan/Documents/Projets de codage/C/Tests/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/jarray.dir/jarray.c.o"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/jarray.dir/jarray.c.o -MF CMakeFiles/jarray.dir/jarray.c.o.d -o CMakeFiles/jarray.dir/jarray.c.o -c "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/jarray.dir/jarray.c.o -MF CMakeFiles/jarray.dir/jarray.c.o.d -o CMakeFiles/jarray.dir/jarray.c.o -c "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c"
 
 CMakeFiles/jarray.dir/jarray.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/jarray.dir/jarray.c.i"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c" > CMakeFiles/jarray.dir/jarray.c.i
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c" > CMakeFiles/jarray.dir/jarray.c.i
 
 CMakeFiles/jarray.dir/jarray.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/jarray.dir/jarray.c.s"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c" -o CMakeFiles/jarray.dir/jarray.c.s
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/home/jonathan/Documents/Projets de codage/C/Tests/jarray.c" -o CMakeFiles/jarray.dir/jarray.c.s
 
 # Object files for target jarray
 jarray_OBJECTS = \

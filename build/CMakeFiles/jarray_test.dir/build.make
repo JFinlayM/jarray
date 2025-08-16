@@ -73,15 +73,15 @@ CMakeFiles/jarray_test.dir/main.c.o: CMakeFiles/jarray_test.dir/flags.make
 CMakeFiles/jarray_test.dir/main.c.o: /home/jonathan/Documents/Projets\ de\ codage/C/Tests/main.c
 CMakeFiles/jarray_test.dir/main.c.o: CMakeFiles/jarray_test.dir/compiler_depend.ts
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir="/home/jonathan/Documents/Projets de codage/C/Tests/build/CMakeFiles" --progress-num=$(CMAKE_PROGRESS_1) "Building C object CMakeFiles/jarray_test.dir/main.c.o"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/jarray_test.dir/main.c.o -MF CMakeFiles/jarray_test.dir/main.c.o.d -o CMakeFiles/jarray_test.dir/main.c.o -c "/home/jonathan/Documents/Projets de codage/C/Tests/main.c"
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -MD -MT CMakeFiles/jarray_test.dir/main.c.o -MF CMakeFiles/jarray_test.dir/main.c.o.d -o CMakeFiles/jarray_test.dir/main.c.o -c "/home/jonathan/Documents/Projets de codage/C/Tests/main.c"
 
 CMakeFiles/jarray_test.dir/main.c.i: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing C source to CMakeFiles/jarray_test.dir/main.c.i"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E "/home/jonathan/Documents/Projets de codage/C/Tests/main.c" > CMakeFiles/jarray_test.dir/main.c.i
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -E "/home/jonathan/Documents/Projets de codage/C/Tests/main.c" > CMakeFiles/jarray_test.dir/main.c.i
 
 CMakeFiles/jarray_test.dir/main.c.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling C source to assembly CMakeFiles/jarray_test.dir/main.c.s"
-	/usr/bin/c89-gcc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/home/jonathan/Documents/Projets de codage/C/Tests/main.c" -o CMakeFiles/jarray_test.dir/main.c.s
+	/usr/bin/cc $(C_DEFINES) $(C_INCLUDES) $(C_FLAGS) -S "/home/jonathan/Documents/Projets de codage/C/Tests/main.c" -o CMakeFiles/jarray_test.dir/main.c.s
 
 # Object files for target jarray_test
 jarray_test_OBJECTS = \
