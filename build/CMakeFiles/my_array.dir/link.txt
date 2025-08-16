@@ -1,1 +1,0 @@
-/usr/bin/cc  -Wall -Wextra -pedantic CMakeFiles/my_array.dir/main.c.o CMakeFiles/my_array.dir/my_array.c.o -o my_array 

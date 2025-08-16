@@ -1,2 +1,2 @@
-# Empty dependencies file for my_array.
+# Empty dependencies file for jarray_test.
 # This may be replaced when dependencies are built.

@@ -1,4 +1,4 @@
-#include "my_array.h"
+#include "jarray.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -261,6 +261,10 @@ ARRAY_RETURN array_init(Array *array, size_t elem_size) {
     array->length = 0;
     array->elem_size = elem_size;
     array->state = INITIALIZED;
+    
+    array->user_implementation.print_element_callback = NULL;
+    array->user_implementation.compare = NULL;
+    array->user_implementation.is_equal = NULL;
 
     ARRAY_RETURN ret;
     ret.has_value = false;
@@ -283,6 +287,10 @@ ARRAY_RETURN array_init_with_data(Array *array, void *data, size_t length, size_
     array->length = length;
     array->elem_size = elem_size;
     array->state = INITIALIZED;
+
+    array->user_implementation.print_element_callback = NULL;
+    array->user_implementation.compare = NULL;
+    array->user_implementation.is_equal = NULL;
 
     ARRAY_RETURN ret;
     ret.has_value = false;

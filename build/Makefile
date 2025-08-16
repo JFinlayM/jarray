@@ -85,6 +85,51 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
 
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
+
 # The main all target
 all: cmake_check_build_system
 	$(CMAKE_COMMAND) -E cmake_progress_start "/home/jonathan/Documents/Projets de codage/C/Tests/build/CMakeFiles" "/home/jonathan/Documents/Projets de codage/C/Tests/build//CMakeFiles/progress.marks"
@@ -117,24 +162,103 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named my_array
+# Target rules for targets named jarray
 
 # Build rule for target.
-my_array: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_array
-.PHONY : my_array
+jarray: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 jarray
+.PHONY : jarray
 
 # fast build rule for target.
-my_array/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/build
-.PHONY : my_array/fast
+jarray/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray.dir/build.make CMakeFiles/jarray.dir/build
+.PHONY : jarray/fast
+
+#=============================================================================
+# Target rules for targets named jarray_shared
+
+# Build rule for target.
+jarray_shared: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 jarray_shared
+.PHONY : jarray_shared
+
+# fast build rule for target.
+jarray_shared/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_shared.dir/build.make CMakeFiles/jarray_shared.dir/build
+.PHONY : jarray_shared/fast
+
+#=============================================================================
+# Target rules for targets named lib
+
+# Build rule for target.
+lib: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 lib
+.PHONY : lib
+
+# fast build rule for target.
+lib/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/lib.dir/build.make CMakeFiles/lib.dir/build
+.PHONY : lib/fast
+
+#=============================================================================
+# Target rules for targets named jarray_test
+
+# Build rule for target.
+jarray_test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 jarray_test
+.PHONY : jarray_test
+
+# fast build rule for target.
+jarray_test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_test.dir/build.make CMakeFiles/jarray_test.dir/build
+.PHONY : jarray_test/fast
+
+#=============================================================================
+# Target rules for targets named test
+
+# Build rule for target.
+test: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test
+.PHONY : test
+
+# fast build rule for target.
+test/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/build
+.PHONY : test/fast
+
+jarray.o: jarray.c.o
+.PHONY : jarray.o
+
+# target to build an object file
+jarray.c.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray.dir/build.make CMakeFiles/jarray.dir/jarray.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_shared.dir/build.make CMakeFiles/jarray_shared.dir/jarray.c.o
+.PHONY : jarray.c.o
+
+jarray.i: jarray.c.i
+.PHONY : jarray.i
+
+# target to preprocess a source file
+jarray.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray.dir/build.make CMakeFiles/jarray.dir/jarray.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_shared.dir/build.make CMakeFiles/jarray_shared.dir/jarray.c.i
+.PHONY : jarray.c.i
+
+jarray.s: jarray.c.s
+.PHONY : jarray.s
+
+# target to generate assembly for a file
+jarray.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray.dir/build.make CMakeFiles/jarray.dir/jarray.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_shared.dir/build.make CMakeFiles/jarray_shared.dir/jarray.c.s
+.PHONY : jarray.c.s
 
 main.o: main.c.o
 .PHONY : main.o
 
 # target to build an object file
 main.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/main.c.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_test.dir/build.make CMakeFiles/jarray_test.dir/main.c.o
 .PHONY : main.c.o
 
 main.i: main.c.i
@@ -142,7 +266,7 @@ main.i: main.c.i
 
 # target to preprocess a source file
 main.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/main.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_test.dir/build.make CMakeFiles/jarray_test.dir/main.c.i
 .PHONY : main.c.i
 
 main.s: main.c.s
@@ -150,32 +274,8 @@ main.s: main.c.s
 
 # target to generate assembly for a file
 main.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/main.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/jarray_test.dir/build.make CMakeFiles/jarray_test.dir/main.c.s
 .PHONY : main.c.s
-
-my_array.o: my_array.c.o
-.PHONY : my_array.o
-
-# target to build an object file
-my_array.c.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/my_array.c.o
-.PHONY : my_array.c.o
-
-my_array.i: my_array.c.i
-.PHONY : my_array.i
-
-# target to preprocess a source file
-my_array.c.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/my_array.c.i
-.PHONY : my_array.c.i
-
-my_array.s: my_array.c.s
-.PHONY : my_array.s
-
-# target to generate assembly for a file
-my_array.c.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_array.dir/build.make CMakeFiles/my_array.dir/my_array.c.s
-.PHONY : my_array.c.s
 
 # Help Target
 help:
@@ -184,14 +284,22 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
 	@echo "... rebuild_cache"
-	@echo "... my_array"
+	@echo "... lib"
+	@echo "... test"
+	@echo "... jarray"
+	@echo "... jarray_shared"
+	@echo "... jarray_test"
+	@echo "... jarray.o"
+	@echo "... jarray.i"
+	@echo "... jarray.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"
-	@echo "... my_array.o"
-	@echo "... my_array.i"
-	@echo "... my_array.s"
 .PHONY : help
 
 

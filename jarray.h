@@ -1,5 +1,5 @@
-#ifndef MY_ARRAY_H
-#define MY_ARRAY_H
+#ifndef JARRAY_H
+#define JARRAY_H
 
 #include <stdbool.h>
 #include <stddef.h>
