@@ -59,7 +59,7 @@ typedef enum SORT_METHOD {
     SELECTION_SORT,
 } SORT_METHOD;
 
-typedef struct Jarray {    
+typedef struct JARRAY_INTERFACE {    
     /**
     * @brief Prints an error message from an JARRAY_RETURN.
     *
@@ -286,9 +286,9 @@ typedef struct Jarray {
      * @return JARRAY_RETURN containing success or error information.
      */
     JARRAY_RETURN (*remove_all)(struct JArray *self, const void *data, size_t length);
-} Jarray;
+} JARRAY_INTERFACE;
 
-extern Jarray jarray;
+extern JARRAY_INTERFACE jarray;
 
 /* ----- PROTOTYPES ----- */
 

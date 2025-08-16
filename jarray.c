@@ -917,7 +917,7 @@ JARRAY_RETURN array_remove_all(JArray *self, const void *data, size_t count) {
 
 
 /// Static interface implementation for easier usage.
-Jarray jarray = {
+JARRAY_INTERFACE jarray = {
     .filter = array_filter,
     .at = array_at,
     .add = array_add,
