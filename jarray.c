@@ -8,7 +8,7 @@
 /// Lookup table mapping JARRAY_ERROR enum values to their corresponding string descriptions.
 const char *enum_to_string[] = {
     [INDEX_OUT_OF_BOUND]               = "Index out of bound",
-    [ARRAY_UNINITIALIZED]              = "JArray uninitialized",
+    [ARRAY_UNINITIALIZED]              = "JARRAY uninitialized",
     [DATA_NULL]                        = "Data is null",
     [PRINT_ELEMENT_CALLBACK_UNINTIALIZED] = "Print callback not set",
     [EMPTY_ARRAY]                      = "Empty array",
@@ -42,13 +42,13 @@ void print_array_err(JARRAY_RETURN ret) {
 }
 
 /**
- * @brief Frees the memory allocated for an JArray.
+ * @brief Frees the memory allocated for an JARRAY.
  *
- * This function frees the data buffer and resets the JArray's state.
+ * This function frees the data buffer and resets the JARRAY's state.
  *
- * @param array Pointer to the JArray instance to free.
+ * @param array Pointer to the JARRAY instance to free.
  */
-void array_free(JArray *array) {
+void array_free(JARRAY *array) {
     if (!array) return;
     free(array->data);
     array->data = NULL;
@@ -99,13 +99,13 @@ JARRAY_RETURN create_return_error(JARRAY_ERROR error_code, const char* fmt, ...)
  * Returns a pointer to the element inside the array's data buffer.
  * The pointer is valid as long as the array is not reallocated or freed.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param index Index of the element to retrieve.
  * @return JARRAY_RETURN containing a pointer to the element, or an error if out of bounds.
  */
-JARRAY_RETURN array_at(JArray *self, size_t index) {
+JARRAY_RETURN array_at(JARRAY *self, size_t index) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!self->data) 
         return create_return_error(DATA_NULL, "Data field of array is null");
@@ -125,13 +125,13 @@ JARRAY_RETURN array_at(JArray *self, size_t index) {
  *
  * Resizes the array by one element and copies the provided data into the new slot.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param elem Pointer to the element to add.
  * @return JARRAY_RETURN containing a pointer to the newly added element, or an error.
  */
-JARRAY_RETURN array_add(JArray *self, const void *elem) {
+JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     void *new_data = realloc(self->data, (self->length + 1) * self->elem_size);
     if (!new_data) 
@@ -153,14 +153,14 @@ JARRAY_RETURN array_add(JArray *self, const void *elem) {
  *
  * Shifts elements to the right to make space for the new element.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param index Index where the element should be inserted.
  * @param elem Pointer to the element to insert.
  * @return JARRAY_RETURN containing a pointer to the inserted element, or an error.
  */
-JARRAY_RETURN array_add_at(JArray *self, size_t index, const void *elem) {
+JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) {
     if (self->state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (index > self->length)
         return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
@@ -193,13 +193,13 @@ JARRAY_RETURN array_add_at(JArray *self, size_t index, const void *elem) {
  * Shifts remaining elements to fill the gap. The removed element is returned
  * in newly allocated memory, which must be freed by the caller.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param index Index of the element to remove.
  * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
  */
-JARRAY_RETURN array_remove_at(JArray *self, size_t index) {
+JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
     if (self->state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (index >= self->length)
         return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
@@ -235,12 +235,12 @@ JARRAY_RETURN array_remove_at(JArray *self, size_t index) {
 /**
  * @brief Removes the last element from the array.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
  */
-JARRAY_RETURN array_remove(JArray *self) {
+JARRAY_RETURN array_remove(JARRAY *self) {
     if (self->state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot remove from empty array");
@@ -252,11 +252,11 @@ JARRAY_RETURN array_remove(JArray *self) {
 /**
  * @brief Initializes an array with the given element size.
  *
- * @param array Pointer to the JArray instance to initialize.
+ * @param array Pointer to the JARRAY instance to initialize.
  * @param elem_size Size of each element in bytes.
  * @return JARRAY_RETURN containing a pointer to the initialized array.
  */
-JARRAY_RETURN array_init(JArray *array, size_t elem_size) {
+JARRAY_RETURN array_init(JARRAY *array, size_t elem_size) {
     array->data = NULL;
     array->length = 0;
     array->elem_size = elem_size;
@@ -276,13 +276,13 @@ JARRAY_RETURN array_init(JArray *array, size_t elem_size) {
 /**
  * @brief Initializes an array with pre-existing data.
  *
- * @param array Pointer to the JArray instance to initialize.
+ * @param array Pointer to the JARRAY instance to initialize.
  * @param data Pointer to the data buffer.
  * @param length Number of elements in the data buffer.
  * @param elem_size Size of each element in bytes.
  * @return JARRAY_RETURN containing a pointer to the initialized array.
  */
-JARRAY_RETURN array_init_with_data(JArray *array, void *data, size_t length, size_t elem_size) {
+JARRAY_RETURN array_init_with_data(JARRAY *array, void *data, size_t length, size_t elem_size) {
     array->data = data;
     array->length = length;
     array->elem_size = elem_size;
@@ -304,14 +304,14 @@ JARRAY_RETURN array_init_with_data(JArray *array, void *data, size_t length, siz
  *
  * Creates a new array containing only the elements that satisfy the predicate.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param predicate Function that returns true for elements to keep.
  * @param ctx Pointer to context of predicate
- * @return JARRAY_RETURN containing a pointer to the new filtered JArray, or an error.
+ * @return JARRAY_RETURN containing a pointer to the new filtered JARRAY, or an error.
  */
-JARRAY_RETURN array_filter(JArray *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
+JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     size_t count = 0;
     for (size_t i = 0; i < self->length; i++) {
@@ -319,7 +319,7 @@ JARRAY_RETURN array_filter(JArray *self, bool (*predicate)(const void *elem, con
         if (predicate(elem, ctx)) count++;
     }
 
-    JArray *result = malloc(sizeof(JArray));
+    JARRAY *result = malloc(sizeof(JARRAY));
     result->length = count;
     result->elem_size = self->elem_size;
     result->state = INITIALIZED;
@@ -345,12 +345,12 @@ JARRAY_RETURN array_filter(JArray *self, bool (*predicate)(const void *elem, con
 /**
  * @brief Prints the contents of the array using a user-defined callback.
  *
- * @param array Pointer to the JArray instance.
+ * @param array Pointer to the JARRAY instance.
  * @return JARRAY_RETURN containing a pointer to the array, or an error.
  */
-JARRAY_RETURN array_print(JArray *array) {
+JARRAY_RETURN array_print(JARRAY *array) {
     if (array->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
     for (size_t i = 0; i < array->length; i++) {
@@ -371,14 +371,14 @@ JARRAY_RETURN array_print(JArray *array) {
  *
  * Uses the specified sorting algorithm and the user-provided compare function.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param method Sorting method to use (QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT).
- * @return JARRAY_RETURN containing a pointer to the new sorted JArray, or an error.
+ * @return JARRAY_RETURN containing a pointer to the new sorted JARRAY, or an error.
  */
-JARRAY_RETURN array_sort(JArray *self, SORT_METHOD method) {
+JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method) {
     int (*compare)(const void*, const void*) = self->user_implementation.compare;
     if (self->state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot sort an empty array");
@@ -470,7 +470,7 @@ JARRAY_RETURN array_sort(JArray *self, SORT_METHOD method) {
  * predicate function. If the predicate returns true for an element, the search stops,
  * and that element is returned. If no element satisfies the predicate, an error is returned.
  *
- * @param self       Pointer to the JArray structure.
+ * @param self       Pointer to the JARRAY structure.
  * @param predicate  Function pointer to a predicate function that takes a `const void*` 
  *                   (pointer to the element) and returns a boolean indicating whether
  *                   the element matches the desired condition.
@@ -482,9 +482,9 @@ JARRAY_RETURN array_sort(JArray *self, SORT_METHOD method) {
  *              - ARRAY_UNINITIALIZED: The array has not been initialized.
  *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
  */
-JARRAY_RETURN array_find_first(struct JArray *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
+JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot find element in an empty array");
     JARRAY_RETURN ret;
@@ -502,15 +502,15 @@ JARRAY_RETURN array_find_first(struct JArray *self, bool (*predicate)(const void
 
 /**
  * @brief Gets the data in array self.
- * @param self Pointer to the JArray structure.
+ * @param self Pointer to the JARRAY structure.
  * @return JARRAY_RETURN
  *         - On success: `.has_value = true` and `.value` points to the data.
  *         - On failure: `.has_value = false` and `.error` contains error information:
  *              - ARRAY_UNINITIALIZED: The array has not been initialized.
  */
-JARRAY_RETURN array_data(struct JArray *self) {
+JARRAY_RETURN array_data(struct JARRAY *self) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     JARRAY_RETURN ret;
 
     void *copy = NULL;
@@ -529,19 +529,19 @@ JARRAY_RETURN array_data(struct JArray *self) {
 
 
 /**
- * @brief Create a subarray from a given JArray.
+ * @brief Create a subarray from a given JARRAY.
  * 
- * @details Allocates a new JArray containing elements from `low_index` to `high_index` (inclusive) of the original array.
- * Copies the relevant elements into the new JArray. The caller is responsible for freeing the subarray's data.
+ * @details Allocates a new JARRAY containing elements from `low_index` to `high_index` (inclusive) of the original array.
+ * Copies the relevant elements into the new JARRAY. The caller is responsible for freeing the subarray's data.
  * 
- * @param self Pointer to the original JArray.
+ * @param self Pointer to the original JARRAY.
  * @param low_index Starting index of the subarray (inclusive).
  * @param high_index Ending index of the subarray (inclusive).
  * @return JARRAY_RETURN On success, contains a pointer to the new subarray. On failure, contains an error code and message.
  */
-JARRAY_RETURN array_subarray(struct JArray *self, size_t low_index, size_t high_index){
+JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_t high_index){
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized\n");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot determine a sub array with an empty array\n");
     if (low_index > high_index)
@@ -555,8 +555,8 @@ JARRAY_RETURN array_subarray(struct JArray *self, size_t low_index, size_t high_
         high_index = self->length - 1;
     size_t sub_length = high_index - low_index + 1;
 
-    // Allocate the JArray struct itself
-    JArray *ret_array = malloc(sizeof(JArray));
+    // Allocate the JARRAY struct itself
+    JARRAY *ret_array = malloc(sizeof(JARRAY));
     if (!ret_array)
         return create_return_error(DATA_NULL, "Failed to allocate memory for subarray struct\n");
 
@@ -580,7 +580,7 @@ JARRAY_RETURN array_subarray(struct JArray *self, size_t low_index, size_t high_
     JARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
-    ret.value = ret_array; // directly store pointer to new JArray
+    ret.value = ret_array; // directly store pointer to new JARRAY
     return ret;
 }
 
@@ -588,9 +588,9 @@ JARRAY_RETURN array_subarray(struct JArray *self, size_t low_index, size_t high_
  * @brief Sets the element at the given index in the array.
  * @return JARRAY_RETURN with success or error.
  */
-JARRAY_RETURN array_set(struct JArray *self, size_t index, const void *elem) {
+JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *elem) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized\n");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
 
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot set element in an empty array");
@@ -645,21 +645,21 @@ static void quicksort_indexes(size_t *indexes, int *data, size_t left, size_t ri
  *
  * Error cases handled:
  *   - Empty array → returns `EMPTY_ARRAY` error.
- *   - JArray not initialized → returns `ARRAY_UNINITIALIZED` error.
+ *   - JARRAY not initialized → returns `ARRAY_UNINITIALIZED` error.
  *   - Memory allocation failure → returns `DATA_NULL` error.
  *   - No matches found → returns `ELEMENT_NOT_FOUND` error.
  *
- * @param self Pointer to the JArray structure.
+ * @param self Pointer to the JARRAY structure.
  * @param elem Pointer to the target value to find (currently assumes `int` type).
  * @return JARRAY_RETURN containing either:
  *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
  *         - or error code if no match or failure occurs.
  */
-JARRAY_RETURN array_find_indexes(struct JArray *self, const void *elem) {
+JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     if (self->length == 0)
         return create_return_error(EMPTY_ARRAY, "Cannot search in empty array");
     if (self->state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->user_implementation.is_equal == NULL) {
         return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
     }
@@ -692,14 +692,14 @@ JARRAY_RETURN array_find_indexes(struct JArray *self, const void *elem) {
  *
  * Iterates over each element and calls the provided callback with the element and context.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param callback Function to call for each element.
  * @param ctx Context pointer passed to the callback.
  * @return JARRAY_RETURN containing success or error information.
  */
-JARRAY_RETURN array_for_each(struct JArray *self, void (*callback)(void *elem, void *ctx), void *ctx) {
+JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (!callback) 
         return create_return_error(INVALID_ARGUMENT, "Callback function is null");
     if (self->length == 0)
@@ -722,12 +722,12 @@ JARRAY_RETURN array_for_each(struct JArray *self, void (*callback)(void *elem, v
  *
  * Resets the array to an empty state without freeing the underlying data buffer.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @return JARRAY_RETURN containing success or error information.
  */
-JARRAY_RETURN array_clear(struct JArray *self) {
+JARRAY_RETURN array_clear(struct JARRAY *self) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->data == NULL) 
         return create_return_error(DATA_NULL, "Data field of array is null");
     // Free existing data
@@ -743,20 +743,20 @@ JARRAY_RETURN array_clear(struct JArray *self) {
 }
 
 /**
- * @brief Clones the array, creating a new JArray with the same elements.
+ * @brief Clones the array, creating a new JARRAY with the same elements.
  *
- * Allocates a new JArray and copies all elements from the original array.
+ * Allocates a new JARRAY and copies all elements from the original array.
  *
- * @param self Pointer to the JArray instance to clone.
- * @return JARRAY_RETURN containing a pointer to the cloned JArray, or an error.
+ * @param self Pointer to the JARRAY instance to clone.
+ * @return JARRAY_RETURN containing a pointer to the cloned JARRAY, or an error.
  */
-JARRAY_RETURN array_clone(struct JArray *self) {
+JARRAY_RETURN array_clone(struct JARRAY *self) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->length == 0) 
         return create_return_error(EMPTY_ARRAY, "Cannot clone an empty array");
 
-    JArray *clone = malloc(sizeof(JArray));
+    JARRAY *clone = malloc(sizeof(JARRAY));
     if (!clone) 
         return create_return_error(DATA_NULL, "Memory allocation failed for clone");
 
@@ -783,14 +783,14 @@ JARRAY_RETURN array_clone(struct JArray *self) {
  *
  * Resizes the array to accommodate the new elements and copies them into the array.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param data Pointer to the data buffer containing elements to add.
  * @param length Number of elements in the data buffer.
  * @return JARRAY_RETURN containing success or error information.
  */
-JARRAY_RETURN array_add_all(JArray *self, const void *data, size_t count) {
+JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!data || count == 0) 
         return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
@@ -815,13 +815,13 @@ JARRAY_RETURN array_add_all(JArray *self, const void *data, size_t count) {
  *
  * Uses the user-defined equality function to compare elements.
  *
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param elem Pointer to the element to check for.
  * @return JARRAY_RETURN containing true if found, false otherwise, or an error.
  */
-JARRAY_RETURN array_contains(struct JArray *self, const void *elem) {
+JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->length == 0) 
         return create_return_error(EMPTY_ARRAY, "Cannot check containment in an empty array");
@@ -850,19 +850,19 @@ JARRAY_RETURN array_contains(struct JArray *self, const void *elem) {
 /**
  * @brief Removes all occurrences of elements also contained in the provided data buffer.
  * This function iterates over the array and removes elements that match any in the provided data.
- * @param self Pointer to the JArray instance.
+ * @param self Pointer to the JARRAY instance.
  * @param data Pointer to the data buffer containing elements to remove.
  * @return JARRAY_RETURN containing success or error information.
  */
-JARRAY_RETURN array_remove_all(JArray *self, const void *data, size_t count) {
+JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t count) {
     if (self->state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JArray not initialized");
+        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!data || count == 0) 
         return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
 
 
-    JArray temp_array;
+    JARRAY temp_array;
     array_init(&temp_array, sizeof(size_t));
     for (size_t i = 0; i < count; i++) {
         const void *elem = (const char*)data + i * self->elem_size;

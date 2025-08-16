@@ -40,7 +40,7 @@ bool test_ctx_func(const void *x, const void *ctx){
 
 int main(void) {
     JARRAY_RETURN ret;
-    JArray array;
+    JARRAY array;
 
     // --- Init ---
     ret = jarray.init(&array, sizeof(int));
@@ -73,7 +73,7 @@ int main(void) {
     printf("\nFiltering even numbers:\n");
     ret = jarray.filter(&array, is_even, NULL);
     CHECK_RET(ret);
-    JArray* evens = RET_GET_POINTER(JArray, ret);
+    JARRAY* evens = RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(evens);
     CHECK_RET_FREE(ret);
     jarray.free(evens); // free filtered array
@@ -82,7 +82,7 @@ int main(void) {
     TEST_CTX ctx = {3, 9};
     ret = jarray.filter(&array, test_ctx_func, &ctx);
     CHECK_RET(ret);
-    JArray* filtered = RET_GET_POINTER(JArray, ret);
+    JARRAY* filtered = RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(filtered);
     CHECK_RET_FREE(ret);
     jarray.free(evens); // free filtered array
@@ -116,7 +116,7 @@ int main(void) {
     printf("\nSubarray [0..3]:\n");
     ret = jarray.subarray(&array, 0, 3);
     CHECK_RET(ret);
-    JArray* sub = RET_GET_POINTER(JArray, ret);
+    JARRAY* sub = RET_GET_POINTER(JARRAY, ret);
     CHECK_RET_FREE(jarray.print(sub));
     jarray.free(sub);
 
@@ -148,7 +148,7 @@ int main(void) {
     printf("\nCloning array:\n");
     ret = jarray.clone(&array);
     CHECK_RET(ret);
-    JArray* clone = RET_GET_POINTER(JArray, ret);
+    JARRAY* clone = RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(clone);
     CHECK_RET_FREE(ret);
 
