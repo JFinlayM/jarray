@@ -161,7 +161,7 @@ int main(void) {
 
     // --- Add all ---
     printf("\nAdding all elements from original array to clone:\n");
-    ret = jarray.add_all(clone, array.data, array.length);
+    ret = jarray.add_all(clone, array._data, array._length);
     CHECK_RET_FREE(ret);
     ret = jarray.print(clone);
     CHECK_RET_FREE(ret);
@@ -176,7 +176,7 @@ int main(void) {
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
     jarray.add(&array, TO_POINTER(int, 17)); // add 17 to original array for testing
-    ret = jarray.remove_all(&array, clone->data, clone->length);
+    ret = jarray.remove_all(&array, RET_GET_POINTER(void*, jarray.data(clone)), RET_GET_VALUE(size_t, jarray.length(clone)));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array); // Should only display 17
     CHECK_RET_FREE(ret);
