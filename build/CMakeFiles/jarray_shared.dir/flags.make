@@ -4,7 +4,7 @@
 # compile C with /usr/bin/cc
 C_DEFINES = -Djarray_shared_EXPORTS
 
-C_INCLUDES = -I"/home/jonathan/Documents/Projets de codage/C/Tests"
+C_INCLUDES = -I"/home/jonathan/Documents/Projets de codage/C/jarray"
 
 C_FLAGS =  -Wall -Wextra -pedantic -std=gnu11 -fPIC
 
