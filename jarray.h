@@ -373,6 +373,21 @@ extern JARRAY_INTERFACE jarray;
 
 #define GET_VALUE(type, val) (*(type*)val)
 
+static inline void* direct_input_impl(size_t size, void *value) {
+    void *p = malloc(size);
+    if (p) memcpy(p, value, size);
+    return p;
+}
+
+/**
+ * @brief Creates a pointer to a value of type `type` from a value.
+ * @param type The type of the value to create a pointer to.
+ * @param val The value to create a pointer from.
+ * @return A pointer to the value of type `type`.
+ */
+#define DIRECT_INPUT(type, val) ((type*) direct_input_impl(sizeof(type), &(type){val}))
+
+
 /**
  * @brief Extracts the value from a JARRAY_RETURN, and frees the data pointed by .value if not NULL.
  * @param type The type of the value to extract.
@@ -406,14 +421,6 @@ extern JARRAY_INTERFACE jarray;
  * @return The extracted pointer of type `type*`.
  */
 #define RET_GET_POINTER(type, JARRAY_RETURN) ((type*)(JARRAY_RETURN).value)
-
-/**
- * @brief Converts a value to a pointer of the specified type.
- * @param type The type to convert to.
- * @param value The value to convert.
- * @return A pointer of type `type*` pointing to the value.
- */
-#define TO_POINTER(type, value) (&(type){value})
 
 /**
  * @bried Extract the value from a JARRAY_RETURN, and returns a default value if the JARRAY_RETURN has no value.

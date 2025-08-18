@@ -889,7 +889,7 @@ static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
             JARRAY_RETURN ret;
             ret.has_value = true;
             ret.has_error = false;
-            ret.value = TO_POINTER(bool, true); // return pointer to the found element
+            ret.value = DIRECT_INPUT(bool, true); // return pointer to the found element
             return ret;
         }
     }
@@ -897,7 +897,7 @@ static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
     JARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
-    ret.value = TO_POINTER(bool, false); // return pointer to false if not found
+    ret.value = DIRECT_INPUT(bool, false); // return pointer to false if not found
     return ret;
 }
 
@@ -974,7 +974,7 @@ static JARRAY_RETURN array_length(struct JARRAY *self) {
     JARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
-    ret.value = TO_POINTER(size_t, self->_length);
+    ret.value = DIRECT_INPUT(size_t, self->_length);
     return ret;
 }
 

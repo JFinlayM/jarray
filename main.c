@@ -65,14 +65,14 @@ int main(void) {
     // --- Adding elements ---
     printf("\nAdding numbers 1..10:\n");
     for (int i = 1; i <= 10; i++) {
-        ret = jarray.add(&array, TO_POINTER(int, i));
+        ret = jarray.add(&array, DIRECT_INPUT(int, i));
         CHECK_RET_FREE(ret);
     }
 
     printf("Insert 11 at index 0, and 12 at index 5\n");
-    ret = jarray.add_at(&array, 0, TO_POINTER(int, 11));
+    ret = jarray.add_at(&array, 0, DIRECT_INPUT(int, 11));
     CHECK_RET_FREE(ret);
-    ret = jarray.add_at(&array, 5, TO_POINTER(int, 12));
+    ret = jarray.add_at(&array, 5, DIRECT_INPUT(int, 12));
     CHECK_RET_FREE(ret);
 
     printf("Full array: ");
@@ -133,14 +133,14 @@ int main(void) {
 
     // --- Modify ---
     printf("\nSet index 1 to 12:\n");
-    ret = jarray.set(&array, 1, TO_POINTER(int, 12));
+    ret = jarray.set(&array, 1, DIRECT_INPUT(int, 12));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array);
     CHECK_RET_FREE(ret);
 
     // --- Find indexes ---
     printf("\nFinding indexes of 12:\n");
-    ret = jarray.find_indexes(&array, TO_POINTER(int, 12));
+    ret = jarray.find_indexes(&array, DIRECT_INPUT(int, 12));
     CHECK_RET(ret);
     size_t *indexes = RET_GET_POINTER(size_t, ret);
 
@@ -179,14 +179,14 @@ int main(void) {
 
     // --- Contains ---
     printf("\nChecking if clone contains 5: ");
-    ret = jarray.contains(clone, TO_POINTER(int, 5));
+    ret = jarray.contains(clone, DIRECT_INPUT(int, 5));
     CHECK_RET(ret);
     bool contains = RET_GET_VALUE(bool, ret);
     printf("%s\n", contains ? "Yes" : "No");
 
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
-    jarray.add(&array, TO_POINTER(int, 17)); // add 17 to original array for testing
+    jarray.add(&array, DIRECT_INPUT(int, 17)); // add 17 to original array for testing
     ret = jarray.remove_all(&array, RET_GET_POINTER(void*, jarray.data(clone)), RET_GET_VALUE(size_t, jarray.length(clone)));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array); // Should only display 17
