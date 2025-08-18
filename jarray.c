@@ -59,12 +59,12 @@ static void print_array_err(const JARRAY_RETURN ret, const char *file, int line)
     if (ret.has_value) return;
     if (!ret.has_error) return;
     if (ret.error.error_code < 0 || ret.error.error_code >= sizeof(enum_to_string) / sizeof(enum_to_string[0]) || enum_to_string[ret.error.error_code] == NULL) {
-        fprintf(stderr, "[\033[31mUnknown error: %d\033[0m] file %s, line %d", ret.error.error_code, file, line);
+        fprintf(stderr, "%s:%d [\033[31mUnknown error: %d\033[0m] : ", file, line, ret.error.error_code);
     } else {
-        fprintf(stderr, "[\033[31mError: %s\033[0m] file %s, line %d", enum_to_string[ret.error.error_code], file, line);
+        fprintf(stderr, "%s:%d [\033[31mError: %s\033[0m] : ", file, line, enum_to_string[ret.error.error_code]);
     }
     if (ret.error.error_msg) {
-        fprintf(stderr, "\t%s\n", ret.error.error_msg);
+        fprintf(stderr, "%s\n", ret.error.error_msg);
     }
     free((void*)ret.error.error_msg);
 }

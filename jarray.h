@@ -430,14 +430,14 @@ extern JARRAY_INTERFACE jarray;
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return; }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return 1; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists. Then returns.
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET_FREE(ret) \
-    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return; }
+    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return 1; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
