@@ -29,6 +29,16 @@ bool is_equal_int(const void *a, const void *b) {
     return GET_VALUE(const int, a) == GET_VALUE(const int, b);
 }
 
+bool print_error_callback(const JARRAY_RETURN_ERROR error) {
+    if (error.error_msg) {
+        fprintf(stderr, "[\033[31mError: %s\033[0m]\n", error.error_msg);
+        free(error.error_msg); // Free the error message after printing
+    } else {
+        fprintf(stderr, "[\033[31mError code: %d\033[0m]\n", error.error_code);
+    }
+    return true; // Indicate that the error was handled
+}
+
 typedef struct TEST_CTX {
     int sn;
     int hn;
@@ -46,6 +56,7 @@ int main(void) {
     ret = jarray.init(&array, sizeof(int));
     CHECK_RET_FREE(ret);
     array.user_implementation.print_element_callback = print_int;
+    //array.user_implementation.print_error_callback = print_error_callback;
     array.user_implementation.compare = compare_int;
     array.user_implementation.is_equal = is_equal_int;
 

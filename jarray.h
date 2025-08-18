@@ -52,20 +52,7 @@ typedef struct JARRAY_RETURN_ERROR {
     char* error_msg;
 } JARRAY_RETURN_ERROR;
 
-/**
- * @brief JARRAY_RETURN structure.
- * This structure is used to return results from JARRAY functions.
- * It can contain either a pointer to the value or an error code and message.
- * The members should not be accessed directly; instead, use the provided macros for safe access.
- */
-typedef struct JARRAY_RETURN {
-    union {
-        void* value;
-        JARRAY_RETURN_ERROR error;
-    };
-    bool has_value;
-    bool has_error;
-} JARRAY_RETURN;
+
 
 /**
  * @brief User-defined function implementations for JARRAY.
@@ -73,8 +60,13 @@ typedef struct JARRAY_RETURN {
  * These functions can be set by the user to customize the behavior of the JARRAY. These functions are used by the JARRAY_INTERFACE to perform operations on the elements.
  */
 typedef struct USER_FUNCTION_IMPLEMENTATION {
+    // Function to print an element. This function is mandatory if you want to use the jarray.print function.
     void (*print_element_callback)(const void*);
+    // Function to print error. This function is NOT mandatory but you can override the default one with it if you want to.
+    void (*print_error_callback)(const JARRAY_RETURN_ERROR);
+    // Function to compare two elements. This function is mandatory if you want to use the jarray.sort function.
     int (*compare)(const void*, const void*);
+    // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.find_indexes functions.
     bool (*is_equal)(const void*, const void*);
 } USER_FUNCTION_IMPLEMENTATION;
 
@@ -114,6 +106,21 @@ typedef struct JARRAY {
     USER_FUNCTION_IMPLEMENTATION user_implementation;
 } JARRAY;
 
+/**
+ * @brief JARRAY_RETURN structure.
+ * This structure is used to return results from JARRAY functions.
+ * It can contain either a pointer to the value or an error code and message.
+ * The members should not be accessed directly; instead, use the provided macros for safe access.
+ */
+typedef struct JARRAY_RETURN {
+    union {
+        void* value;
+        JARRAY_RETURN_ERROR error;
+    };
+    bool has_value;
+    bool has_error;
+    JARRAY* ret_source;
+} JARRAY_RETURN;
 
 typedef enum SORT_METHOD {
     QSORT = 0,
@@ -130,7 +137,7 @@ typedef struct JARRAY_INTERFACE {
     *
     * @param ret The JARRAY_RETURN to inspect.
     */
-    void (*print_array_err)(JARRAY_RETURN ret);
+    void (*print_array_err)(const JARRAY_RETURN ret, const char *file, int line);
     void (*free)(JARRAY *array);
     /**
      * @brief Filters an array using a predicate function.
@@ -423,14 +430,14 @@ extern JARRAY_INTERFACE jarray;
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret); return; }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists. Then returns.
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET_FREE(ret) \
-    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret);  return; }
+    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
@@ -438,7 +445,7 @@ extern JARRAY_INTERFACE jarray;
  * @return true if the JARRAY_RETURN has an error, false otherwise.
  */
 #define CHECK_RET_CONTINUE(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret); }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
@@ -446,7 +453,7 @@ extern JARRAY_INTERFACE jarray;
  * @return true if the JARRAY_RETURN has an error, false otherwise.
  */
 #define CHECK_RET_CONTINUE_FREE(ret) \
-    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret); }
+    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
 
 /**
  * @brief Frees the value in a JARRAY_RETURN if it has a value.

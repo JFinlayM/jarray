@@ -51,13 +51,17 @@ static const int type_preset_to_size[] = {
  *
  * @param ret The JARRAY_RETURN to inspect.
  */
-static void print_array_err(JARRAY_RETURN ret) {
+static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
+    if (ret.ret_source->user_implementation.print_error_callback) {
+        ret.ret_source->user_implementation.print_error_callback(ret.error);
+        return;
+    }
     if (ret.has_value) return;
     if (!ret.has_error) return;
     if (ret.error.error_code < 0 || ret.error.error_code >= sizeof(enum_to_string) / sizeof(enum_to_string[0]) || enum_to_string[ret.error.error_code] == NULL) {
-        fprintf(stderr, "[\033[31mUnknown error code: %d\033[0m]", ret.error.error_code);
+        fprintf(stderr, "[\033[31mUnknown error: %d\033[0m] file %s, line %d", ret.error.error_code, file, line);
     } else {
-        fprintf(stderr, "[\033[31mError: %s\033[0m]", enum_to_string[ret.error.error_code]);
+        fprintf(stderr, "[\033[31mError: %s\033[0m] file %s, line %d", enum_to_string[ret.error.error_code], file, line);
     }
     if (ret.error.error_msg) {
         fprintf(stderr, "\t%s\n", ret.error.error_msg);
@@ -94,10 +98,11 @@ static void array_free(JARRAY *array) {
  * @param ... Arguments to be formatted into the message.
  * @return JARRAY_RETURN containing the error code and dynamically allocated error message.
  */
-static JARRAY_RETURN create_return_error(JARRAY_ERROR error_code, const char* fmt, ...) {
+static JARRAY_RETURN create_return_error(JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
     JARRAY_RETURN ret;
     ret.has_value = false;
     ret.has_error = true;
+    ret.ret_source = ret_source;
     va_list args;
     va_start(args, fmt);
 
@@ -129,13 +134,13 @@ static JARRAY_RETURN create_return_error(JARRAY_ERROR error_code, const char* fm
  */
 static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!self->_data) 
-        return create_return_error(DATA_NULL, "Data field of array is null");
+        return create_return_error(self, DATA_NULL, "Data field of array is null");
 
     if (index >= self->_length) 
-        return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu is out of bound", index);
+        return create_return_error(self, INDEX_OUT_OF_BOUND, "Index %zu is out of bound", index);
 
     JARRAY_RETURN ret;
     ret.has_value = true;
@@ -155,11 +160,11 @@ static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
  */
 static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
     if (!new_data) 
-        return create_return_error(DATA_NULL, "Memory allocation failed in add");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed in add");
 
     self->_data = new_data;
     memcpy((char*)self->_data + self->_length * self->_elem_size, elem, self->_elem_size);
@@ -184,14 +189,14 @@ static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
  */
 static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) {
     if (self->_state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (index > self->_length)
-        return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
+        return create_return_error(self, INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
 
     void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
     if (!new_data)
-        return create_return_error(DATA_NULL, "Memory allocation failed in add_at");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed in add_at");
 
     self->_data = new_data;
 
@@ -223,14 +228,14 @@ static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) 
  */
 static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
     if (self->_state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (index >= self->_length)
-        return create_return_error(INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
+        return create_return_error(self, INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
 
     void *removed_elem = malloc(self->_elem_size);
     if (!removed_elem)
-        return create_return_error(DATA_NULL, "Memory allocation failed in remove_at");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed in remove_at");
     memcpy(removed_elem, (char*)self->_data + index * self->_elem_size, self->_elem_size);
 
     memmove(
@@ -264,10 +269,10 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
  */
 static JARRAY_RETURN array_remove(JARRAY *self) {
     if (self->_state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot remove from empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot remove from empty array");
 
     size_t last_index = self->_length - 1;
     return array_remove_at(self, last_index);
@@ -287,6 +292,7 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     array->_state = INITIALIZED;
     
     array->user_implementation.print_element_callback = NULL;
+    array->user_implementation.print_error_callback = NULL;
     array->user_implementation.compare = NULL;
     array->user_implementation.is_equal = NULL;
 
@@ -359,7 +365,7 @@ static JARRAY_RETURN array_init_with_data_preset(JARRAY *array, void *data, size
  */
 static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     size_t count = 0;
     for (size_t i = 0; i < self->_length; i++) {
@@ -398,9 +404,9 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
  */
 static JARRAY_RETURN array_print(JARRAY *array) {
     if (array->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(array, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (array->user_implementation.print_element_callback == NULL)
-        return create_return_error(PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
+        return create_return_error(array, PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
     for (size_t i = 0; i < array->_length; i++) {
         void *elem = (char*)array->_data + i * array->_elem_size;
         array->user_implementation.print_element_callback(elem);
@@ -426,17 +432,17 @@ static JARRAY_RETURN array_print(JARRAY *array) {
 static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method) {
     int (*compare)(const void*, const void*) = self->user_implementation.compare;
     if (self->_state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot sort an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot sort an empty array");
 
     if (compare == NULL)
-        return create_return_error(COMPARE_CALLBACK_UNINTIALIZED, "Compare callback not set");
+        return create_return_error(self, COMPARE_CALLBACK_UNINTIALIZED, "Compare callback not set");
 
     void *copy_data = malloc(self->_length * self->_elem_size);
     if (!copy_data)
-        return create_return_error(DATA_NULL, "Memory allocation failed in array_sort");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed in array_sort");
 
     memcpy(copy_data, self->_data, self->_length * self->_elem_size);
 
@@ -499,7 +505,7 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method) {
 
         default:
             free(copy_data);
-            return create_return_error(INDEX_OUT_OF_BOUND, "Sort method %d not implemented", method);
+            return create_return_error(self, INDEX_OUT_OF_BOUND, "Sort method %d not implemented", method);
     }
 
     self->_data = copy_data;
@@ -532,9 +538,9 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method) {
  */
 static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot find element in an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot find element in an empty array");
     JARRAY_RETURN ret;
     for (size_t i = 0; i < self->_length; i++) {
         void *elem = (char*)self->_data + i * self->_elem_size;
@@ -545,7 +551,7 @@ static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(con
             return ret;
         }
     }
-    return create_return_error(ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
+    return create_return_error(self, ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
 }
 
 /**
@@ -558,14 +564,14 @@ static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(con
  */
 static JARRAY_RETURN array_data(struct JARRAY *self) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     JARRAY_RETURN ret;
 
     void *copy = NULL;
     if (self->_length > 0) {
         copy = malloc(self->_length * self->_elem_size);
         if (!copy)
-            return create_return_error(DATA_NULL, "Failed to allocate _data copy");
+            return create_return_error(self, DATA_NULL, "Failed to allocate _data copy");
         memcpy(copy, self->_data, self->_length * self->_elem_size);
     }
 
@@ -589,13 +595,13 @@ static JARRAY_RETURN array_data(struct JARRAY *self) {
  */
 static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_t high_index){
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot determine a sub array with an empty array\n");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot determine a sub array with an empty array\n");
     if (low_index > high_index)
-        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher than high_index. It is also possible that low_index < 0 which would also trigger this error\n");
+        return create_return_error(self, INVALID_ARGUMENT, "low_index cannot be higher than high_index. It is also possible that low_index < 0 which would also trigger this error\n");
     if (low_index >= self->_length)
-        return create_return_error(INVALID_ARGUMENT, "low_index cannot be higher or equal than the _length of array\n");
+        return create_return_error(self, INVALID_ARGUMENT, "low_index cannot be higher or equal than the _length of array\n");
     
 
     // Clamp high_index to last element if it's out of bounds
@@ -606,7 +612,7 @@ static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_
     // Allocate the JARRAY struct itself
     JARRAY *ret_array = malloc(sizeof(JARRAY));
     if (!ret_array)
-        return create_return_error(DATA_NULL, "Failed to allocate memory for subarray struct\n");
+        return create_return_error(self, DATA_NULL, "Failed to allocate memory for subarray struct\n");
 
     ret_array->_state = INITIALIZED;
     ret_array->_elem_size = self->_elem_size;
@@ -615,7 +621,7 @@ static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_
     ret_array->user_implementation = self->user_implementation;
     if (!ret_array->_data) {
         free(ret_array);
-        return create_return_error(DATA_NULL, "Failed to allocate memory for subarray _data\n");
+        return create_return_error(self, DATA_NULL, "Failed to allocate memory for subarray _data\n");
     }
 
     // Copy relevant elements
@@ -638,13 +644,13 @@ static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_
  */
 static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *elem) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized\n");
 
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot set element in an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot set element in an empty array");
 
     if (index >= self->_length)
-        return create_return_error(INVALID_ARGUMENT, "Index cannot be higher or equal to the _length of array\n");
+        return create_return_error(self, INVALID_ARGUMENT, "Index cannot be higher or equal to the _length of array\n");
 
     // Copy the new element into the array at the given index
     memcpy((char*)self->_data + index * self->_elem_size, elem, self->_elem_size);
@@ -705,15 +711,15 @@ static void quicksort_indexes(size_t *indexes, int *_data, size_t left, size_t r
  */
 static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot search in empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot search in empty array");
     if (self->_state != INITIALIZED)
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->user_implementation.is_equal == NULL) {
-        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+        return create_return_error(self, IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
     }
     size_t *indexes = malloc(self->_length * sizeof(size_t));
     if (!indexes) {
-        return create_return_error(DATA_NULL, "Memory allocation failed for indexes array");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed for indexes array");
     }
     int count = 0;
     for (size_t i = 0; i < self->_length; i++) {
@@ -724,7 +730,7 @@ static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     }
     if (count == 0) {
         free(indexes);
-        return create_return_error(ELEMENT_NOT_FOUND, "No matching elements found");
+        return create_return_error(self, ELEMENT_NOT_FOUND, "No matching elements found");
     }
     indexes[0] = count; // Store the count of matches at the first index
 
@@ -747,11 +753,11 @@ static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
  */
 static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (!callback) 
-        return create_return_error(INVALID_ARGUMENT, "Callback function is null");
+        return create_return_error(self, INVALID_ARGUMENT, "Callback function is null");
     if (self->_length == 0)
-        return create_return_error(EMPTY_ARRAY, "Cannot iterate over an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot iterate over an empty array");
 
     for (size_t i = 0; i < self->_length; i++) {
         void *elem = (char*)self->_data + i * self->_elem_size;
@@ -775,9 +781,9 @@ static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *
  */
 static JARRAY_RETURN array_clear(struct JARRAY *self) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->_data == NULL) 
-        return create_return_error(DATA_NULL, "Data field of array is null");
+        return create_return_error(self, DATA_NULL, "Data field of array is null");
     // Free existing _data
     free(self->_data);
     self->_data = NULL;
@@ -800,13 +806,13 @@ static JARRAY_RETURN array_clear(struct JARRAY *self) {
  */
 static JARRAY_RETURN array_clone(struct JARRAY *self) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
     if (self->_length == 0) 
-        return create_return_error(EMPTY_ARRAY, "Cannot clone an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot clone an empty array");
 
     JARRAY *clone = malloc(sizeof(JARRAY));
     if (!clone) 
-        return create_return_error(DATA_NULL, "Memory allocation failed for clone");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed for clone");
 
     clone->_length = self->_length;
     clone->_elem_size = self->_elem_size;
@@ -814,7 +820,7 @@ static JARRAY_RETURN array_clone(struct JARRAY *self) {
     clone->_data = malloc(self->_length * self->_elem_size);
     if (!clone->_data) {
         free(clone);
-        return create_return_error(DATA_NULL, "Memory allocation failed for clone _data");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed for clone _data");
     }
     memcpy(clone->_data, self->_data, self->_length * self->_elem_size);
     clone->user_implementation = self->user_implementation;
@@ -838,14 +844,14 @@ static JARRAY_RETURN array_clone(struct JARRAY *self) {
  */
 static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!data || count == 0) 
-        return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
+        return create_return_error(self, INVALID_ARGUMENT, "Data is null or count is zero");
 
     void *new_data = realloc(self->_data, (self->_length + count) * self->_elem_size);
     if (!new_data) 
-        return create_return_error(DATA_NULL, "Memory allocation failed in add_all");
+        return create_return_error(self, DATA_NULL, "Memory allocation failed in add_all");
 
     self->_data = new_data;
     memcpy((char*)self->_data + self->_length * self->_elem_size, data, count * self->_elem_size);
@@ -869,13 +875,13 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
  */
 static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (self->_length == 0) 
-        return create_return_error(EMPTY_ARRAY, "Cannot check containment in an empty array");
+        return create_return_error(self, EMPTY_ARRAY, "Cannot check containment in an empty array");
 
     if (self->user_implementation.is_equal == NULL) 
-        return create_return_error(IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+        return create_return_error(self, IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
 
     for (size_t i = 0; i < self->_length; i++) {
         void *current_elem = (char*)self->_data + i * self->_elem_size;
@@ -904,10 +910,10 @@ static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
  */
 static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t count) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     if (!data || count == 0) 
-        return create_return_error(INVALID_ARGUMENT, "Data is null or count is zero");
+        return create_return_error(self, INVALID_ARGUMENT, "Data is null or count is zero");
 
 
     JARRAY temp_array;
@@ -924,7 +930,7 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
             return ret; // Some other error
         } 
         else if (!ret.has_value) {
-            return create_return_error(INVALID_ARGUMENT, "Unexpected return value from find_indexes");
+            return create_return_error(self, INVALID_ARGUMENT, "Unexpected return value from find_indexes");
         }
 
         size_t *indexes = (size_t*)ret.value;
@@ -963,7 +969,7 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
 
 static JARRAY_RETURN array_length(struct JARRAY *self) {
     if (self->_state != INITIALIZED) 
-        return create_return_error(ARRAY_UNINITIALIZED, "JARRAY not initialized");
+        return create_return_error(self, ARRAY_UNINITIALIZED, "JARRAY not initialized");
 
     JARRAY_RETURN ret;
     ret.has_value = true;
