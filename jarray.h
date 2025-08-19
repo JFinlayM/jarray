@@ -389,14 +389,6 @@ static inline void* direct_input_impl(size_t size, void *value) {
  */
 #define DIRECT_INPUT(type, val) ((type*) direct_input_impl(sizeof(type), &(type){val}))
 
-static inline void* ret_get_value_free_impl(size_t size, JARRAY_RETURN ret) {
-    if (ret.value == NULL) return NULL;
-    void *p = malloc(size);
-    memcpy(p, ret.value, size);
-    free(ret.value);
-    ret.value = NULL; // Clear the value to avoid double free
-    return p;
-}
 
 /**
  * @brief Extracts the value from a JARRAY_RETURN, and frees the data pointed by .value if not NULL.

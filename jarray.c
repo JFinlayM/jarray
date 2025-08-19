@@ -47,9 +47,9 @@ static const int type_preset_to_size[] = {
 /**
  * @brief Prints an error message from an JARRAY_RETURN.
  *
- * If the JARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
- *
  * @param ret The JARRAY_RETURN to inspect.
+ * @param file string of the name of the file where an the error was picked up by CHECK_RET for example.
+ * @param line line where the CHECK_RET was called.
  */
 static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
     if (ret.ret_source->user_implementation.print_error_callback) {
