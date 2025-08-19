@@ -3,6 +3,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
 
 /**
  * @file jarray.h
@@ -387,24 +389,23 @@ static inline void* direct_input_impl(size_t size, void *value) {
  */
 #define DIRECT_INPUT(type, val) ((type*) direct_input_impl(sizeof(type), &(type){val}))
 
+static inline void* ret_get_value_free_impl(size_t size, JARRAY_RETURN ret) {
+    if (ret.value == NULL) return NULL;
+    void *p = malloc(size);
+    memcpy(p, ret.value, size);
+    free(ret.value);
+    ret.value = NULL; // Clear the value to avoid double free
+    return p;
+}
 
 /**
  * @brief Extracts the value from a JARRAY_RETURN, and frees the data pointed by .value if not NULL.
  * @param type The type of the value to extract.
- * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the value from.
+ * @param ret The JARRAY_RETURN structure to extract the value from.
  * @return The extracted value of type `type`.
  */
-#define RET_GET_VALUE_FREE(type, JARRAY_RETURN) \
-    ({ type _tmp = *(type*)(JARRAY_RETURN).value; free((JARRAY_RETURN).value); _tmp; })
-
-/**
- * @brief Extracts the pointer from a JARRAY_RETURN.
- * @param type The type of the pointer to extract.
- * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the pointer from.
- * @return The extracted pointer of type `type*`.
- */
-#define RET_GET_POINTER_OWNED(type, JARRAY_RETURN) \
-    ({ type* _tmp = (type*)(JARRAY_RETURN).value; (JARRAY_RETURN).value = NULL; _tmp; })
+#define RET_GET_VALUE_FREE(type, ret) \
+    ({ type _tmp = *(type*)(ret).value; FREE_RET(ret); _tmp; })
 
 /**
  * @brief Extracts the value from a JARRAY_RETURN without freeing it. It is the caller's responsibility to free the .value if needed.
@@ -414,13 +415,20 @@ static inline void* direct_input_impl(size_t size, void *value) {
  */
 #define RET_GET_VALUE(type, JARRAY_RETURN) (*(type*)(JARRAY_RETURN).value)
 
+static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
+    if (ret.value == NULL) return NULL;
+    void *p = ret.value;
+    ret.value = NULL; // Clear the value to avoid double free
+    return p;
+}
+
 /**
  * @brief Extracts the pointer from a JARRAY_RETURN without freeing it. It is the caller's responsibility to free the pointer if needed.
  * @param type The type of the pointer to extract.
  * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the pointer from.
  * @return The extracted pointer of type `type*`.
  */
-#define RET_GET_POINTER(type, JARRAY_RETURN) ((type*)(JARRAY_RETURN).value)
+#define RET_GET_POINTER(type, JARRAY_RETURN) ((type*)ret_get_pointer_impl(JARRAY_RETURN))
 
 /**
  * @bried Extract the value from a JARRAY_RETURN, and returns a default value if the JARRAY_RETURN has no value.
@@ -444,7 +452,8 @@ static inline void* direct_input_impl(size_t size, void *value) {
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET_FREE(ret) \
-    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return 1; }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return 1; } \
+    FREE_RET(ret);
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
@@ -460,14 +469,39 @@ static inline void* direct_input_impl(size_t size, void *value) {
  * @return true if the JARRAY_RETURN has an error, false otherwise.
  */
 #define CHECK_RET_CONTINUE_FREE(ret) \
-    if ((ret).has_value) free((ret).value); if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); } \
+    FREE_RET(ret);
 
 /**
- * @brief Frees the value in a JARRAY_RETURN if it has a value.
- * @param ret The JARRAY_RETURN structure to free.
+ * @brief Frees only the value in a JARRAY_RETURN if it has a value.
+ */
+#define FREE_RET_VALUE(ret) \
+    do { \
+        if ((ret).has_value && (ret).value != NULL) { \
+            free((ret).value); \
+            (ret).value = NULL; \
+        } \
+    } while(0)
+
+/**
+ * @brief Frees only the error message in a JARRAY_RETURN if it exists.
+ */
+#define FREE_RET_ERROR(ret) \
+    do { \
+        if ((ret).has_error && (ret).error.error_msg != NULL) { \
+            free((ret).error.error_msg); \
+            (ret).error.error_msg = NULL; \
+        } \
+    } while(0)
+
+/**
+ * @brief Frees both the value and error message in a JARRAY_RETURN.
  */
 #define FREE_RET(ret) \
-    if ((ret).has_value && (ret).value != NULL) { free((ret).value); (ret).value = NULL; }
+    do { \
+        FREE_RET_VALUE(ret); \
+        FREE_RET_ERROR(ret); \
+    } while(0)
 
 #define MAX(a, b) a > b ? a : b
 

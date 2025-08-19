@@ -2,7 +2,19 @@
     "files.associations": {
         "stdio.h": "c",
         "optional": "c",
-        "format": "c"
+        "format": "c",
+        "array": "c",
+        "charconv": "c",
+        "chrono": "c",
+        "compare": "c",
+        "functional": "c",
+        "memory_resource": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "variant": "c",
+        "complex": "c"
     }
       
 }

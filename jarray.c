@@ -1,7 +1,5 @@
 #include "jarray.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
 #include <math.h>
 
@@ -25,6 +23,7 @@ static const char *enum_to_string[] = {
 };
 
 /// Size mapping for each TYPE_PRESET to its corresponding size in bytes.
+/*
 static const int type_preset_to_size[] = {
     [BOOL]                  = sizeof(bool),
     [CHAR]                  = sizeof(char),
@@ -42,6 +41,7 @@ static const int type_preset_to_size[] = {
     [DOUBLE]                = sizeof(double),
     [LONG_DOUBLE]           = sizeof(long double)
 };
+*/
 
 
 /**
@@ -105,16 +105,16 @@ static JARRAY_RETURN create_return_error(JARRAY* ret_source, JARRAY_ERROR error_
     ret.ret_source = ret_source;
     va_list args;
     va_start(args, fmt);
-
-    char *buf = malloc(256);
+    size_t len = 100*sizeof(char);
+    char *buf = (char*)malloc(len);
     if (!buf) {
-        ret.error.error_msg = "Memory allocation failed";
+        ret.error.error_msg = "Error message buffer memory allocation failed";
         ret.error.error_code = ARRAY_UNINITIALIZED;
         va_end(args);
         return ret;
     }
 
-    vsnprintf(buf, 256, fmt, args);
+    vsnprintf(buf, len, fmt, args);
     va_end(args);
 
     ret.error.error_code = error_code;
@@ -303,6 +303,7 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     return ret;
 }
 
+/*
 static JARRAY_RETURN array_init_preset(JARRAY *array, TYPE_PRESET type_preset){
     JARRAY_RETURN ret;
     if (type_preset == CUSTOM) {
@@ -314,6 +315,7 @@ static JARRAY_RETURN array_init_preset(JARRAY *array, TYPE_PRESET type_preset){
     }
     return array_init(array, type_preset_to_size[type_preset]);
 }
+*/
 
 /**
  * @brief Initializes an array with pre-existing _data.
@@ -341,6 +343,7 @@ static JARRAY_RETURN array_init_with_data(JARRAY *array, void *data, size_t leng
     return ret;
 }
 
+/*
 static JARRAY_RETURN array_init_with_data_preset(JARRAY *array, void *data, size_t length, TYPE_PRESET type_preset){
     JARRAY_RETURN ret;
     if (type_preset == CUSTOM) {
@@ -352,6 +355,7 @@ static JARRAY_RETURN array_init_with_data_preset(JARRAY *array, void *data, size
     }
     return array_init_with_data(array, data, length, type_preset_to_size[type_preset]);
 }
+*/
 
 /**
  * @brief Filters an array using a predicate function.
@@ -660,38 +664,6 @@ static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *el
     ret.has_error = false;
     ret.value = NULL;
     return ret;
-}
-
-
-static void swap_size_t(size_t *a, size_t *b) {
-    size_t tmp = *a;
-    *a = *b;
-    *b = tmp;
-}
-
-static int distance_int(const int *_data, size_t index, int target) {
-    return abs(_data[index] - target);
-}
-
-static void quicksort_indexes(size_t *indexes, int *_data, size_t left, size_t right, int target) {
-    if (left >= right) return;
-
-    size_t i = left, j = right;
-    int pivot = distance_int(_data, indexes[(left + right) / 2], target);
-
-    while (i <= j) {
-        while (distance_int(_data, indexes[i], target) < pivot) i++;
-        while (distance_int(_data, indexes[j], target) > pivot) j--;
-
-        if (i <= j) {
-            swap_size_t(&indexes[i], &indexes[j]);
-            i++;
-            if (j > 0) j--;
-        }
-    }
-
-    if (j > left) quicksort_indexes(indexes, _data, left, j, target);
-    if (i < right) quicksort_indexes(indexes, _data, i, right, target);
 }
 
 /**

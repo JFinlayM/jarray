@@ -10,7 +10,7 @@ bool is_even(const void *x, const void *ctx) {
     return GET_VALUE(const int, x) % 2 == 0;
 }
 
-void modulo3(void *x, const void *ctx) {
+void modulo3(void *x, void *ctx) {
     (void)ctx;
     GET_VALUE(int, x) %= 3;
 }
@@ -29,14 +29,9 @@ bool is_equal_int(const void *a, const void *b) {
     return GET_VALUE(const int, a) == GET_VALUE(const int, b);
 }
 
-bool print_error_callback(const JARRAY_RETURN_ERROR error) {
-    if (error.error_msg) {
-        fprintf(stderr, "[\033[31mError: %s\033[0m]\n", error.error_msg);
-        free(error.error_msg); // Free the error message after printing
-    } else {
-        fprintf(stderr, "[\033[31mError code: %d\033[0m]\n", error.error_code);
-    }
-    return true; // Indicate that the error was handled
+void print_error_callback(const JARRAY_RETURN_ERROR error) {
+    fprintf(stderr, "[\033[31mError: %s\033[0m]\n", error.error_msg);
+    free(error.error_msg); // Free the error message after printing
 }
 
 typedef struct TEST_CTX {
@@ -128,7 +123,8 @@ int main(void) {
     ret = jarray.subarray(&array, 0, 3);
     CHECK_RET(ret);
     JARRAY* sub = RET_GET_POINTER(JARRAY, ret);
-    CHECK_RET_FREE(jarray.print(sub));
+    ret = jarray.print(sub);
+    CHECK_RET_FREE(ret);
     jarray.free(sub);
 
     // --- Modify ---
@@ -183,10 +179,13 @@ int main(void) {
     CHECK_RET(ret);
     bool contains = RET_GET_VALUE(bool, ret);
     printf("%s\n", contains ? "Yes" : "No");
+    FREE_RET(ret);
 
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
     jarray.add(&array, DIRECT_INPUT(int, 17)); // add 17 to original array for testing
+    ret = jarray.data(clone);
+    CHECK_RET_FREE(ret);
     ret = jarray.remove_all(&array, RET_GET_POINTER(void*, jarray.data(clone)), RET_GET_VALUE(size_t, jarray.length(clone)));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array); // Should only display 17
