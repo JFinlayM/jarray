@@ -21,28 +21,18 @@
  * Each error code corresponds to a specific issue that can arise during operations on the JARRAY.
  */
 typedef enum {
-    INDEX_OUT_OF_BOUND = 0,
-    ARRAY_UNINITIALIZED,
-    DATA_NULL,
-    PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
-    COMPARE_CALLBACK_UNINTIALIZED,
-    IS_EQUAL_CALLBACK_UNINTIALIZED,
-    EMPTY_ARRAY,
-    ELEMENT_NOT_FOUND,
-    INVALID_ARGUMENT,
-    UNIMPLEMENTED_FUNCTION,
+    JARRAY_INDEX_OUT_OF_BOUND = 0,
+    JARRAY_UNINITIALIZED,
+    JARRAY_DATA_NULL,
+    JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
+    JARRAY_COMPARE_CALLBACK_UNINTIALIZED,
+    JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED,
+    JARRAY_EMPTY,
+    JARRAY_ELEMENT_NOT_FOUND,
+    JARRAY_INVALID_ARGUMENT,
+    JARRAY_UNIMPLEMENTED_FUNCTION,
 } JARRAY_ERROR;
 
-/**
- * @brief JARRAY_STATE_T enum.
- * This enum represents the state of the JARRAY.
- * This enum is not usefull for now, but it is here for future use.
- * It indicates whether the JARRAY has been initialized or not.
- */
-typedef enum {
-    UNINITIALIZED = 0,
-    INITIALIZED
-} JARRAY_STATE_T;
 
 /**
  * @brief JARRAY_RETURN_ERROR structure.
@@ -61,7 +51,7 @@ typedef struct JARRAY_RETURN_ERROR {
  * This structure contains pointers to user-defined functions for printing, comparing, and checking equality of elements.
  * These functions can be set by the user to customize the behavior of the JARRAY. These functions are used by the JARRAY_INTERFACE to perform operations on the elements.
  */
-typedef struct USER_FUNCTION_IMPLEMENTATION {
+typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
     // Function to print an element. This function is mandatory if you want to use the jarray.print function.
     void (*print_element_callback)(const void*);
     // Function to print error. This function is NOT mandatory but you can override the default one with it if you want to.
@@ -70,7 +60,7 @@ typedef struct USER_FUNCTION_IMPLEMENTATION {
     int (*compare)(const void*, const void*);
     // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.find_indexes functions.
     bool (*is_equal)(const void*, const void*);
-} USER_FUNCTION_IMPLEMENTATION;
+} JARRAY_USER_FUNCTION_IMPLEMENTATION;
 
 // TYPE_PRESET is not to be used for now
 typedef enum TYPE_PRESET {
@@ -102,10 +92,9 @@ typedef enum TYPE_PRESET {
 typedef struct JARRAY {
     void *_data;
     size_t _elem_size;
-    JARRAY_STATE_T _state;
     size_t _length;
     TYPE_PRESET _type_preset;
-    USER_FUNCTION_IMPLEMENTATION user_implementation;
+    JARRAY_USER_FUNCTION_IMPLEMENTATION user_implementation;
 } JARRAY;
 
 /**
@@ -373,9 +362,9 @@ extern JARRAY_INTERFACE jarray;
 /* ----- MACROS WITH AUTO-FREE ----- */
 
 
-#define GET_VALUE(type, val) (*(type*)val)
+#define JARRAY_GET_VALUE(type, val) (*(type*)val)
 
-static inline void* direct_input_impl(size_t size, void *value) {
+static inline void* jarray_direct_input_impl(size_t size, void *value) {
     void *p = malloc(size);
     if (p) memcpy(p, value, size);
     return p;
@@ -387,7 +376,7 @@ static inline void* direct_input_impl(size_t size, void *value) {
  * @param val The value to create a pointer from.
  * @return A pointer to the value of type `type`.
  */
-#define DIRECT_INPUT(type, val) ((type*) direct_input_impl(sizeof(type), &(type){val}))
+#define JARRAY_DIRECT_INPUT(type, val) ((type*) jarray_direct_input_impl(sizeof(type), &(type){val}))
 
 
 /**
@@ -396,8 +385,8 @@ static inline void* direct_input_impl(size_t size, void *value) {
  * @param ret The JARRAY_RETURN structure to extract the value from.
  * @return The extracted value of type `type`.
  */
-#define RET_GET_VALUE_FREE(type, ret) \
-    ({ type _tmp = *(type*)(ret).value; FREE_RET(ret); _tmp; })
+#define JARRAY_RET_GET_VALUE_FREE(type, ret) \
+    ({ type _tmp = *(type*)(ret).value; JARRAY_FREE_RET(ret); _tmp; })
 
 /**
  * @brief Extracts the value from a JARRAY_RETURN without freeing it. It is the caller's responsibility to free the .value if needed.
@@ -405,9 +394,9 @@ static inline void* direct_input_impl(size_t size, void *value) {
  * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the value from.
  * @return The extracted value of type `type`.
  */
-#define RET_GET_VALUE(type, JARRAY_RETURN) (*(type*)(JARRAY_RETURN).value)
+#define JARRAY_RET_GET_VALUE(type, JARRAY_RETURN) (*(type*)(JARRAY_RETURN).value)
 
-static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
+static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
     if (ret.value == NULL) return NULL;
     void *p = ret.value;
     ret.value = NULL; // Clear the value to avoid double free
@@ -420,7 +409,7 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the pointer from.
  * @return The extracted pointer of type `type*`.
  */
-#define RET_GET_POINTER(type, JARRAY_RETURN) ((type*)ret_get_pointer_impl(JARRAY_RETURN))
+#define JARRAY_RET_GET_POINTER(type, JARRAY_RETURN) ((type*)jarray_ret_get_pointer_impl(JARRAY_RETURN))
 
 /**
  * @bried Extract the value from a JARRAY_RETURN, and returns a default value if the JARRAY_RETURN has no value.
@@ -429,30 +418,30 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param default_value The default value to return if the JARRAY_RETURN has no value.
  * @return The extracted value of type `type`, or the default value if the JARRAY_RETURN has no value.
  */
-#define RET_GET_VALUE_SAFE(type, JARRAY_RETURN, default_value) \
+#define JARRAY_RET_GET_VALUE_SAFE(type, JARRAY_RETURN, default_value) \
     ((JARRAY_RETURN).has_value ? *(type*)((JARRAY_RETURN).value) : (default_value))
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so. Then returns.
  * @param ret The JARRAY_RETURN structure to check.
  */
-#define CHECK_RET(ret) \
+#define JARRAY_CHECK_RET(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return EXIT_FAILURE; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists. Then returns.
  * @param ret The JARRAY_RETURN structure to check.
  */
-#define CHECK_RET_FREE(ret) \
-    FREE_RET_VALUE(ret);    \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); FREE_RET_ERROR(ret); return EXIT_FAILURE; } \
+#define JARRAY_CHECK_RET_FREE(ret) \
+    JARRAY_FREE_RET_VALUE(ret);    \
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); JARRAY_FREE_RET_ERROR(ret); return EXIT_FAILURE; } \
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
  * @param ret The JARRAY_RETURN structure to check.
  * @return true if the JARRAY_RETURN has an error, false otherwise.
  */
-#define CHECK_RET_CONTINUE(ret) \
+#define JARRAY_CHECK_RET_CONTINUE(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
 
 /**
@@ -460,14 +449,14 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param ret The JARRAY_RETURN structure to check.
  * @return true if the JARRAY_RETURN has an error, false otherwise.
  */
-#define CHECK_RET_CONTINUE_FREE(ret) \
+#define JARRAY_CHECK_RET_CONTINUE_FREE(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); } \
-    FREE_RET(ret);
+    JARRAY_FREE_RET(ret);
 
 /**
  * @brief Frees only the value in a JARRAY_RETURN if it has a value.
  */
-#define FREE_RET_VALUE(ret) \
+#define JARRAY_FREE_RET_VALUE(ret) \
     do { \
         if ((ret).has_value && (ret).value != NULL) { \
             free((ret).value); \
@@ -478,7 +467,7 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
 /**
  * @brief Frees only the error message in a JARRAY_RETURN if it exists.
  */
-#define FREE_RET_ERROR(ret) \
+#define JARRAY_FREE_RET_ERROR(ret) \
     do { \
         if ((ret).has_error && (ret).error.error_msg != NULL) { \
             free((ret).error.error_msg); \
@@ -489,10 +478,10 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
 /**
  * @brief Frees both the value and error message in a JARRAY_RETURN.
  */
-#define FREE_RET(ret) \
+#define JARRAY_FREE_RET(ret) \
     do { \
-        FREE_RET_VALUE(ret); \
-        FREE_RET_ERROR(ret); \
+        JARRAY_FREE_RET_VALUE(ret); \
+        JARRAY_FREE_RET_ERROR(ret); \
     } while(0)
 
 #define MAX(a, b) a > b ? a : b
