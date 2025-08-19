@@ -136,8 +136,8 @@ CMakeFiles/jarray_shared.dir/clean:
 # Target rules for target CMakeFiles/lib.dir
 
 # All Build rule for target.
-CMakeFiles/lib.dir/all: CMakeFiles/jarray_shared.dir/all
 CMakeFiles/lib.dir/all: CMakeFiles/jarray.dir/all
+CMakeFiles/lib.dir/all: CMakeFiles/jarray_shared.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/lib.dir/build.make CMakeFiles/lib.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/lib.dir/build.make CMakeFiles/lib.dir/build
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/jonathan/Documents/Projets de codage/C/jarray/build/CMakeFiles" --progress-num= "Built target lib"

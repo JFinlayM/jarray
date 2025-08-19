@@ -177,15 +177,11 @@ int main(void) {
     printf("\nChecking if clone contains 5: ");
     ret = jarray.contains(clone, DIRECT_INPUT(int, 5));
     CHECK_RET(ret);
-    bool contains = RET_GET_VALUE(bool, ret);
-    printf("%s\n", contains ? "Yes" : "No");
-    FREE_RET(ret);
+    printf("%s\n", RET_GET_VALUE_FREE(bool, ret) ? "Yes" : "No");
 
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
     jarray.add(&array, DIRECT_INPUT(int, 17)); // add 17 to original array for testing
-    ret = jarray.data(clone);
-    CHECK_RET_FREE(ret);
     ret = jarray.remove_all(&array, RET_GET_POINTER(void*, jarray.data(clone)), RET_GET_VALUE(size_t, jarray.length(clone)));
     CHECK_RET_FREE(ret);
     ret = jarray.print(&array); // Should only display 17

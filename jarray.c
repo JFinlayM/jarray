@@ -66,7 +66,6 @@ static void print_array_err(const JARRAY_RETURN ret, const char *file, int line)
     if (ret.error.error_msg) {
         fprintf(stderr, "%s\n", ret.error.error_msg);
     }
-    free((void*)ret.error.error_msg);
 }
 
 /**

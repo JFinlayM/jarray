@@ -445,15 +445,15 @@ static inline void* ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return 1; }
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return EXIT_FAILURE; }
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists. Then returns.
  * @param ret The JARRAY_RETURN structure to check.
  */
 #define CHECK_RET_FREE(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__);  return 1; } \
-    FREE_RET(ret);
+    FREE_RET_VALUE(ret);    \
+    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); FREE_RET_ERROR(ret); return EXIT_FAILURE; } \
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
