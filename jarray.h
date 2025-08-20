@@ -122,141 +122,160 @@ typedef enum SORT_METHOD {
 
 typedef struct JARRAY_INTERFACE {    
     /**
-    * @brief Prints an error message from an JARRAY_RETURN.
-    *
-    * If the JARRAY_RETURN contains an error, prints it in red and frees the allocated message string.
-    *
-    * @param ret The JARRAY_RETURN to inspect.
-    */
+     * @brief Prints an error message for a JARRAY_RETURN.
+     * 
+     * @note
+     * Uses the `print_error_callback` if defined, otherwise prints to stderr.
+     * This function does not allocate memory or return values.
+     * 
+     * @param ret JARRAY_RETURN containing the error to print.
+     * @param file Source file where the error occurred.
+     * @param line Line number of the error.
+     */
     void (*print_array_err)(const JARRAY_RETURN ret, const char *file, int line);
+    /**
+     * @brief Frees a JARRAY instance and its internal data buffer.
+     *
+     * @note 
+     * Clears all allocated memory in the JARRAY and resets its internal state.
+     * Does not free the JARRAY pointer itself (caller must free if dynamically allocated).
+     *
+     * @param array Pointer to the JARRAY to free.
+     */
     void (*free)(JARRAY *array);
     /**
-     * @brief Filters an array using a predicate function.
+     * @brief Filters elements based on a predicate.
      *
-     * Creates a new array containing only the elements that satisfy the predicate.
+     * @note
+     * Allocates a new JARRAY for the filtered elements.
+     * Caller is responsible for freeing the new JARRAY and its `_data` via `jarray.free` function.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param predicate Function that returns true for elements to keep.
-     * @return JARRAY_RETURN containing a pointer to the new filtered JARRAY, or an error.
+     * @param self Pointer to JARRAY.
+     * @param predicate Function returning true for elements to keep.
+     * @param ctx Context pointer passed to predicate.
+     * @return JARRAY_RETURN containing the new filtered JARRAY or an error.
      */
     JARRAY_RETURN (*filter)(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
-     * @brief Retrieves an element at the specified index.
+     * @brief Retrieves a pointer to the element at a given index.
      *
-     * Returns a pointer to the element inside the array's data buffer.
-     * The pointer is valid as long as the array is not reallocated or freed.
+     * @note
+     * The pointer points directly inside the array's internal buffer.
+     * The caller must NOT free this pointer. If the array is reallocated or freed,
+     * the pointer becomes invalid.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param index Index of the element to retrieve.
-     * @return JARRAY_RETURN containing a pointer to the element, or an error if out of bounds.
+     * @param self Pointer to JARRAY.
+     * @param index Index of the element.
+     * @return JARRAY_RETURN containing:
+     *   - `.value` pointing to the element (do NOT free),
+     *   - or error if out-of-bounds or array not initialized.
      */
     JARRAY_RETURN (*at)(struct JARRAY *self, size_t index);
     /**
      * @brief Appends an element to the end of the array.
      *
-     * Resizes the array by one element and copies the provided data into the new slot.
+     * @note
+     * Resizes the internal buffer if size increases beyond the load factor and copies the element into it.
+     * The element data is copied; the caller retains ownership of the original.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param elem Pointer to the element to add.
-     * @return JARRAY_RETURN containing a pointer to the newly added element, or an error.
+     * @param self Pointer to JARRAY.
+     * @param elem Pointer to element data to append.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*add)(struct JARRAY *self, const void * elem);
     /**
      * @brief Removes the last element from the array.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
+     * @note
+     * Returns a newly allocated copy of the removed element. Caller must free `.value`.
+     *
+     * @param self Pointer to JARRAY.
+     * @return JARRAY_RETURN containing the removed element or an error.
      */
     JARRAY_RETURN (*remove)(struct JARRAY *self);
     /**
-     * @brief Removes an element at a specific index from the array.
+     * @brief Removes an element at a specific index.
      *
-     * Shifts remaining elements to fill the gap. The removed element is returned
-     * in newly allocated memory, which must be freed by the caller.
+     * @note
+     * Allocates a new buffer for the removed element and returns it.
+     * Caller MUST free the returned `.value`.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param index Index of the element to remove.
-     * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
+     * @param self Pointer to JARRAY.
+     * @param index Index of element to remove.
+     * @return JARRAY_RETURN containing the removed element or an error.
      */
     JARRAY_RETURN (*remove_at)(struct JARRAY *self, size_t index);
     /**
-     * @brief Inserts an element at a specific index in the array.
+     * @brief Inserts an element at a specific index, shifting elements to the right.
      *
-     * Shifts elements to the right to make space for the new element.
+     * @note
+     * The element is copied into the array. The caller retains ownership of the original.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param index Index where the element should be inserted.
-     * @param elem Pointer to the element to insert.
-     * @return JARRAY_RETURN containing a pointer to the inserted element, or an error.
+     * @param self Pointer to JARRAY.
+     * @param index Index to insert at.
+     * @param elem Pointer to element to insert.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*add_at)(struct JARRAY *self, size_t index, const void * elem);
     /**
-     * @brief Initializes an array with the given element size.
+     * @brief Initializes a JARRAY with a given element size.
      *
-     * @param array Pointer to the JARRAY instance to initialize.
-     * @param elem_size Size of each element in bytes.
-     * @return JARRAY_RETURN containing a pointer to the initialized array.
+     * @note
+     * Sets initial state and nullifies user callbacks.
+     *
+     * @param array Pointer to JARRAY.
+     * @param elem_size Size of one element in bytes.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*init)(struct JARRAY *array, size_t elem_size);
     /**
-     * @brief Initializes an array with pre-existing data.
+     * @brief Prints all elements using the user-defined callback.
      *
-     * @param array Pointer to the JARRAY instance to initialize.
-     * @param data Pointer to the data buffer.
-     * @param length Number of elements in the data buffer.
-     * @param elem_size Size of each element in bytes.
-     * @return JARRAY_RETURN containing a pointer to the initialized array.
-     */
-    JARRAY_RETURN (*init_with_data)(struct JARRAY *array, void *data, size_t length, size_t elem_size);
-    /**
-     * @brief Prints the contents of the array using a user-defined callback.
+     * @note
+     * Callback `print_element_callback` must be set, otherwise an error is returned.
      *
-     * @param array Pointer to the JARRAY instance.
-     * @return JARRAY_RETURN containing a pointer to the array, or an error.
+     * @param array Pointer to JARRAY.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*print)(struct JARRAY *self);
     /**
-     * @brief Sorts the array and returns a new sorted copy.
+     * @brief Sorts a copy of the array using a specified method.
      *
-     * Uses the specified sorting algorithm and the user-provided compare function.
+     * @note
+     * The internal data buffer is replaced with a newly allocated sorted buffer.
+     * Callback `compare` must be set, otherwise an error is returned.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param method Sorting method to use (QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT).
-     * @return JARRAY_RETURN containing a pointer to the new sorted JARRAY, or an error.
+     * @param self Pointer to JARRAY.
+     * @param method Sorting method enum.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*sort)(struct JARRAY *self, SORT_METHOD method);
     /**
-     * @brief Finds the first element in the array that satisfies a given predicate.
+     * @brief Finds the first element satisfying a predicate.
      *
-     * This function iterates over each element of the array and applies the provided
-     * predicate function. If the predicate returns true for an element, the search stops,
-     * and that element is returned. If no element satisfies the predicate, an error is returned.
+     * @note
+     * Returns a pointer to internal data; do NOT free.
      *
-     * @param self       Pointer to the JARRAY structure.
-     * @param predicate  Function pointer to a predicate function that takes a `const void*` 
-     *                   (pointer to the element) and returns a boolean indicating whether
-     *                   the element matches the desired condition.
-     *
-     * @return JARRAY_RETURN
-     *         - On success: `.has_value = true` and `.value` points to the matching element.
-     *         - On failure: `.has_value = false` and `.error` contains error information:
-     *              - ARRAY_UNINITIALIZED: The array has not been initialized.
-     *              - ELEMENT_NOT_FOUND: No element satisfies the predicate.
+     * @param self Pointer to JARRAY.
+     * @param predicate Function to check elements.
+     * @param ctx Context pointer for predicate.
+     * @return JARRAY_RETURN pointing to matching element or an error.
      */
     JARRAY_RETURN (*find_first)(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
-     * @brief Gets the data in array self.
-     * @param self Pointer to the JARRAY structure.
-     * @return JARRAY_RETURN
-     *         - On success: `.has_value = true` and `.value` points to the data.
-     *         - On failure: `.has_value = false` and `.error` contains error information:
-     *              - ARRAY_UNINITIALIZED: The array has not been initialized.
+     * @brief Returns a copy of the internal `_data`.
+     *
+     * @note
+     * Allocates memory; caller must free `.value`.
+     *
+     * @param self Pointer to JARRAY.
+     * @return JARRAY_RETURN containing copy of data or error.
      */
     JARRAY_RETURN (*data)(struct JARRAY *self);
     /**
      * @brief Create a subarray from a given JARRAY.
      * 
-     * @details Allocates a new JARRAY containing elements from `low_index` to `high_index` (inclusive) of the original array.
+     * @note Allocates a new JARRAY containing elements from `low_index` to `high_index` (inclusive) of the original array.
      * Copies the relevant elements into the new JARRAY. The caller is responsible for freeing the subarray's data.
      * 
      * @param self Pointer to the original JARRAY.
@@ -266,85 +285,93 @@ typedef struct JARRAY_INTERFACE {
      */
     JARRAY_RETURN (*subarray)(struct JARRAY *self, size_t low_index, size_t high_index);
     /**
-     * @brief Sets the element at the given index in the array.
-     * @return JARRAY_RETURN with success or error.
+     * @brief Sets the element at a given index.
+     *
+     * @note
+     * Copies data into internal buffer. Caller retains ownership of original.
+     *
+     * @param self Pointer to JARRAY.
+     * @param index Index to set.
+     * @param elem Pointer to element data.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*set)(struct JARRAY *self, size_t index, const void *elem);
     /**
-     * @brief Find all indexes in the array whose values match a target value, sorted by distance.
+     * @brief Finds all indexes matching an element using `is_equal`.
      *
-     * This function searches for all elements in the array `self` that are equal to `elem` (by value).
-     * It works in several steps:
+     * @note
+     * Allocates array of size_t containing count + indexes. Caller must free `.value`.
      *
-     * Error cases handled:
-     *   - Empty array → returns `EMPTY_ARRAY` error.
-     *   - JARRAY not initialized → returns `ARRAY_UNINITIALIZED` error.
-     *   - Memory allocation failure → returns `DATA_NULL` error.
-     *   - No matches found → returns `ELEMENT_NOT_FOUND` error.
-     *
-     * @param self Pointer to the JARRAY structure.
-     * @param elem Pointer to the target value to find (currently assumes `int` type).
-     * @return JARRAY_RETURN containing either:
-     *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
-     *         - or error code if no match or failure occurs.
+     * @param self Pointer to JARRAY.
+     * @param elem Pointer to element to find.
+     * @return JARRAY_RETURN containing allocated indexes or error.
      */
     JARRAY_RETURN (*find_indexes)(struct JARRAY *self, const void *elem);
     /**
-     * @brief Applies a callback function to each element in the array.
+     * @brief Applies a callback to each element.
      *
-     * Iterates over each element and calls the provided callback with the element and context.
+     * @note
+     * Callback `callback` must be non-null. Iterates over all elements.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param callback Function to call for each element.
-     * @param ctx Context pointer passed to the callback.
-     * @return JARRAY_RETURN containing success or error information.
+     * @param self Pointer to JARRAY.
+     * @param callback Function to apply to each element.
+     * @param ctx Context pointer.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*for_each)(struct JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx);
     /**
-     * @brief Clears the array, removing all elements.
+     * @brief Clears the array, freeing internal `_data`.
      *
-     * Resets the array to an empty state without freeing the underlying data buffer.
+     * @note
+     * After clearing, array length is 0. Internal `_data` buffer is freed.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @return JARRAY_RETURN containing success or error information.
+     * @param self Pointer to JARRAY.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*clear)(struct JARRAY *self);
     /**
-     * @brief Clones the array, creating a new JARRAY with the same elements.
+     * @brief Clones the array.
      *
-     * Allocates a new JARRAY and copies all elements from the original array.
+     * @note
+     * Allocates new JARRAY and copies all elements. Caller must free returned JARRAY and `_data`.
      *
-     * @param self Pointer to the JARRAY instance to clone.
-     * @return JARRAY_RETURN containing a pointer to the cloned JARRAY, or an error.
+     * @param self Pointer to JARRAY.
+     * @return JARRAY_RETURN containing new clone or error.
      */
     JARRAY_RETURN (*clone)(struct JARRAY *self);
     /**
-     * @brief Adds multiple elements to the array from a data buffer.
+     * @brief Adds multiple elements from a data buffer.
      *
-     * Resizes the array to accommodate the new elements and copies them into the array.
+     * @note
+     * Resizes internal array if needed and copies elements.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param data Pointer to the data buffer containing elements to add.
-     * @param length Number of elements in the data buffer.
-     * @return JARRAY_RETURN containing success or error information.
+     * @param self Pointer to JARRAY.
+     * @param data Pointer to data buffer.
+     * @param count Number of elements.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*add_all)(struct JARRAY *self, const void *data, size_t length);
     /**
-     * @brief Checks if the array contains a specific element.
+     * @brief Checks if the array contains an element.
      *
-     * Uses the user-defined equality function to compare elements.
+     * @note
+     * Uses `is_equal` callback. Returns a pointer to a bool (true/false) using `JARRAY_DIRECT_INPUT`.
      *
-     * @param self Pointer to the JARRAY instance.
-     * @param elem Pointer to the element to check for.
-     * @return JARRAY_RETURN containing true if found, false otherwise, or an error.
+     * @param self Pointer to JARRAY.
+     * @param elem Pointer to element to search.
+     * @return JARRAY_RETURN containing result or error.
      */
     JARRAY_RETURN (*contains)(struct JARRAY *self, const void *elem);
     /**
-     * @brief Removes all occurrences of elements also contained in the provided data buffer.
-     * This function iterates over the array and removes elements that match any in the provided data.
-     * @param self Pointer to the JARRAY instance.
-     * @param data Pointer to the data buffer containing elements to remove.
-     * @return JARRAY_RETURN containing success or error information.
+     * @brief Removes all elements present in a data buffer.
+     *
+     * @note
+     * Iterates over array and removes matching elements. Freed memory of removed elements is managed internally.
+     *
+     * @param self Pointer to JARRAY.
+     * @param data Pointer to elements to remove.
+     * @param count Number of elements.
+     * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*remove_all)(struct JARRAY *self, const void *data, size_t length);
     /**
@@ -361,41 +388,76 @@ extern JARRAY_INTERFACE jarray;
 
 /* ----- MACROS WITH AUTO-FREE ----- */
 
-
+/**
+ * @brief Extracts the value from a pointer returned by JARRAY.
+ *
+ * @param type The type of the value stored in the pointer.
+ * @param val Pointer to the value.
+ * @return The value pointed by val, cast to type `type`.
+ *
+ * @note Does NOT free the pointer.
+ */
 #define JARRAY_GET_VALUE(type, val) (*(type*)val)
 
+/**
+ * @brief Allocates memory and copies a value into it.
+ *
+ * @param size Size of the value in bytes.
+ * @param value Pointer to the value to copy.
+ * @return Pointer to the newly allocated copy, or NULL if allocation fails.
+ *
+ * @note Caller is responsible for freeing the returned pointer.
+ */
 static inline void* jarray_direct_input_impl(size_t size, void *value) {
     void *p = malloc(size);
     if (p) memcpy(p, value, size);
     return p;
 }
 
+
 /**
- * @brief Creates a pointer to a value of type `type` from a value.
- * @param type The type of the value to create a pointer to.
- * @param val The value to create a pointer from.
- * @return A pointer to the value of type `type`.
+ * @brief Creates a pointer to a temporary value of a given type.
+ *
+ * @param type Type of the value.
+ * @param val Value to copy into allocated memory.
+ * @return Pointer to the allocated copy of the value.
+ *
+ * @note Caller must free the returned pointer if needed.
  */
 #define JARRAY_DIRECT_INPUT(type, val) ((type*) jarray_direct_input_impl(sizeof(type), &(type){val}))
 
 
 /**
- * @brief Extracts the value from a JARRAY_RETURN, and frees the data pointed by .value if not NULL.
- * @param type The type of the value to extract.
+ * @brief Extracts the value from a JARRAY_RETURN and frees its internal pointer.
+ *
+ * @param type Type of the value to extract.
  * @param ret The JARRAY_RETURN structure to extract the value from.
  * @return The extracted value of type `type`.
+ *
+ * @note Frees the internal .value pointer automatically.
  */
 #define JARRAY_RET_GET_VALUE_FREE(type, ret) \
     ({ type _tmp = *(type*)(ret).value; JARRAY_FREE_RET(ret); _tmp; })
 
 /**
- * @brief Extracts the value from a JARRAY_RETURN without freeing it. It is the caller's responsibility to free the .value if needed.
- * @param type The type of the value to extract.
+ * @brief Extracts the value from a JARRAY_RETURN without freeing it.
+ *
+ * @param type Type of the value to extract.
  * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the value from.
  * @return The extracted value of type `type`.
+ *
+ * @note Caller must free .value manually if needed.
  */
 #define JARRAY_RET_GET_VALUE(type, JARRAY_RETURN) (*(type*)(JARRAY_RETURN).value)
 
+/**
+ * @brief Helper to extract the internal pointer from a JARRAY_RETURN.
+ *
+ * @param ret JARRAY_RETURN to extract from.
+ * @return Pointer stored in ret.value, or NULL if ret.value is NULL.
+ *
+ * @note Sets ret.value to NULL to prevent double-free.
+ */
 static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
     if (ret.value == NULL) return NULL;
     void *p = ret.value;
@@ -404,57 +466,66 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
 }
 
 /**
- * @brief Extracts the pointer from a JARRAY_RETURN without freeing it. It is the caller's responsibility to free the pointer if needed.
- * @param type The type of the pointer to extract.
- * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the pointer from.
- * @return The extracted pointer of type `type*`.
+ * @brief Extracts the pointer from a JARRAY_RETURN without freeing.
+ *
+ * @param type Type of the pointer.
+ * @param JARRAY_RETURN JARRAY_RETURN to extract from.
+ * @return Pointer of type `type*`.
+ *
+ * @note Caller is responsible for freeing the returned pointer.
  */
 #define JARRAY_RET_GET_POINTER(type, JARRAY_RETURN) ((type*)jarray_ret_get_pointer_impl(JARRAY_RETURN))
 
 /**
- * @bried Extract the value from a JARRAY_RETURN, and returns a default value if the JARRAY_RETURN has no value.
- * @param type The type of the value to extract.
- * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the value from.
- * @param default_value The default value to return if the JARRAY_RETURN has no value.
- * @return The extracted value of type `type`, or the default value if the JARRAY_RETURN has no value.
+ * @brief Extracts value from a JARRAY_RETURN or returns a default if empty.
+ *
+ * @param type Type of the value.
+ * @param JARRAY_RETURN JARRAY_RETURN to extract from.
+ * @param default_value Value to return if JARRAY_RETURN has no value.
+ * @return Value from JARRAY_RETURN or default_value.
  */
 #define JARRAY_RET_GET_VALUE_SAFE(type, JARRAY_RETURN, default_value) \
     ((JARRAY_RETURN).has_value ? *(type*)((JARRAY_RETURN).value) : (default_value))
 
 /**
- * @brief Checks if a JARRAY_RETURN has an error and prints it if so. Then returns.
- * @param ret The JARRAY_RETURN structure to check.
+ * @brief Checks if a JARRAY_RETURN has an error, prints it, and returns EXIT_FAILURE.
+ *
+ * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return EXIT_FAILURE; }
 
 /**
- * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists. Then returns.
- * @param ret The JARRAY_RETURN structure to check.
+ * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and returns EXIT_FAILURE.
+ *
+ * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET_FREE(ret) \
     JARRAY_FREE_RET_VALUE(ret);    \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); JARRAY_FREE_RET_ERROR(ret); return EXIT_FAILURE; } \
 
 /**
- * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
- * @param ret The JARRAY_RETURN structure to check.
- * @return true if the JARRAY_RETURN has an error, false otherwise.
+ * @brief Checks if a JARRAY_RETURN has an error, prints it, and continues execution.
+ *
+ * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET_CONTINUE(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
 
+
 /**
- * @brief Checks if a JARRAY_RETURN has an error and prints it if so, freeing the .value if it exists.
- * @param ret The JARRAY_RETURN structure to check.
- * @return true if the JARRAY_RETURN has an error, false otherwise.
+ * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and continues execution.
+ *
+ * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET_CONTINUE_FREE(ret) \
     if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); } \
     JARRAY_FREE_RET(ret);
 
 /**
- * @brief Frees only the value in a JARRAY_RETURN if it has a value.
+ * @brief Frees only the .value in a JARRAY_RETURN if it exists.
+ *
+ * @param ret JARRAY_RETURN to free value from.
  */
 #define JARRAY_FREE_RET_VALUE(ret) \
     do { \
@@ -466,6 +537,8 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
 
 /**
  * @brief Frees only the error message in a JARRAY_RETURN if it exists.
+ *
+ * @param ret JARRAY_RETURN to free error from.
  */
 #define JARRAY_FREE_RET_ERROR(ret) \
     do { \
@@ -475,8 +548,11 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
         } \
     } while(0)
 
+
 /**
- * @brief Frees both the value and error message in a JARRAY_RETURN.
+ * @brief Frees both the .value and the error in a JARRAY_RETURN.
+ *
+ * @param ret JARRAY_RETURN to fully free.
  */
 #define JARRAY_FREE_RET(ret) \
     do { \

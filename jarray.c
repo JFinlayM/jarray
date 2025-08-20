@@ -337,6 +337,7 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
 static JARRAY_RETURN array_print(JARRAY *array) {
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(array, JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
+        printf("JARRAY [size: %zu] =>\n", array->_length);
     for (size_t i = 0; i < array->_length; i++) {
         void *elem = (char*)array->_data + i * array->_elem_size;
         array->user_implementation.print_element_callback(elem);
@@ -855,7 +856,6 @@ JARRAY_INTERFACE jarray = {
     .add_at = array_add_at,
     .print = array_print,
     .init = array_init,
-    .init_with_data = array_init_with_data,
     .print_array_err = print_array_err,
     .free = array_free,
     .sort = array_sort,
