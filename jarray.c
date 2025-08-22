@@ -841,6 +841,43 @@ static JARRAY_RETURN array_length(struct JARRAY *self) {
     return ret;
 }
 
+static JARRAY_RETURN array_reduce(struct JARRAY *self, void *(*reducer)(const void *accumulator, const void *elem, const void *ctx), const void *initial_value, const void *ctx) {
+    if (!reducer) 
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function is null");
+    if (self->_length == 0)
+        return create_return_error(self, JARRAY_EMPTY, "Cannot reduce an empty array");
+
+    void *accumulator = malloc(self->_elem_size);
+    if (!accumulator)
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for accumulator");
+
+    size_t start_index;
+    if (initial_value) {
+        memcpy(accumulator, initial_value, self->_elem_size);
+        start_index = 0;
+    } else {
+        memcpy(accumulator, self->_data, self->_elem_size);
+        start_index = 1;
+    }
+
+    for (size_t i = start_index; i < self->_length; i++) {
+        void *elem = (char*)self->_data + i * self->_elem_size;
+        void *new_accumulator = reducer(accumulator, elem, ctx);
+        if (!new_accumulator) {
+            free(accumulator);
+            return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function returned null");
+        }
+        memcpy(accumulator, new_accumulator, self->_elem_size);
+        free(new_accumulator);
+    }
+
+    JARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = accumulator;
+    return ret;
+}
+
 
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
@@ -868,4 +905,5 @@ JARRAY_INTERFACE jarray = {
     .contains = array_contains,
     .remove_all = array_remove_all,
     .length = array_length,
+    .reduce = array_reduce
 };

@@ -43,6 +43,13 @@ bool test_ctx_func(const void *x, const void *ctx){
     return (JARRAY_GET_VALUE(const int, x) < JARRAY_GET_VALUE(TEST_CTX, ctx).sn || JARRAY_GET_VALUE(const int, x) > JARRAY_GET_VALUE(TEST_CTX, ctx).hn);
 }
 
+void *sum(const void *accumulator, const void *elem, const void *ctx) {
+    (void)ctx;
+    int *result = malloc(sizeof(int));
+    *result = JARRAY_GET_VALUE(const int, accumulator) + JARRAY_GET_VALUE(const int, elem);
+    return result;
+}
+
 int main(void) {
     JARRAY_RETURN ret;
     JARRAY array;
@@ -180,6 +187,12 @@ int main(void) {
     ret = jarray.print(clone);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
+    // --- Reduce ---
+    printf("\nReducing clone array (sum of elements): ");
+    ret = jarray.reduce(clone, sum, JARRAY_DIRECT_INPUT(int, 10), NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
+
     // --- Contains ---
     printf("\nChecking if clone contains 5: ");
     ret = jarray.contains(clone, JARRAY_DIRECT_INPUT(int, 5));
@@ -200,5 +213,5 @@ int main(void) {
     jarray.free(&array);
 
     printf("\n=== END DEMO ===\n");
-    return 0;
+    return EXIT_SUCCESS;
 }

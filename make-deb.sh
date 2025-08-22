@@ -26,13 +26,11 @@ Package: $PKGNAME
 Architecture: any
 Depends: \${shlibs:Depends}, \${misc:Depends}
 Description: Dynamic array library for C
- Jarray is a lightweight and efficient C library that provides
- a dynamic array implementation with support for resizing,
- cloning, iteration, and safe memory handling.
- .
+ Jarray is a C library that provides
+ a dynamic array implementation with support cloning, sorting, filtering...
  This package contains the static and shared libraries, along
  with the development header files required to build software
- against jarray.
+ against jarray. Note that I'm a beginner programmer, so don't take this code too seriously. This is a learning project!
 EOF
 
 # ===== FICHIER rules =====

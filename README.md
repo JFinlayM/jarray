@@ -4,10 +4,18 @@
 
 A flexible dynamic array library for C with filtering, sorting, searching, and more.
 
+## Building
+
+```bash
+sudo dpkg -i libjarray-dev_1.0.0-1_amd64.deb
+sudo apt-get install -f
+gcc main.c -o main -ljarray
+```
+
 ## Quick Start
 
 ```c
-#include "jarray.h"
+#include <jarray.h>
 
 void print_int(const void *x) {
     printf("%d ", JARRAY_GET_VALUE(const int, x));
@@ -145,37 +153,3 @@ JARRAY_CHECK_RET_FREE(ret);      // Print error, free array, return true if erro
 3. **Free returned arrays/data** to prevent memory leaks
 4. **Use JARRAY_DIRECT_INPUT** for cleaner code
 5. **Don't modify array during iteration**
-6. **Check for empty arrays** before operations
-
-## Common Patterns
-
-### Safe cleanup pattern:
-```c
-JARRAY *filtered = NULL;
-ret = jarray.filter(&array, predicate, NULL);
-if (ret.has_error) goto cleanup;
-filtered = JARRAY_RET_GET_POINTER(JARRAY, ret);
-
-// ... use filtered ...
-
-cleanup:
-if (filtered) jarray.free(filtered);
-```
-
-### Transform pipeline:
-```c
-// Original -> Filter -> Sort -> Process
-ret = jarray.filter(&original, is_positive, NULL);
-JARRAY *positive = JARRAY_RET_GET_POINTER(JARRAY, ret);
-jarray.sort(positive, QSORT);
-// ... process sorted positive numbers ...
-jarray.free(positive);
-```
-
-## Building
-
-```bash
-sudo dpkg -i libjarray-dev_1.0.0-1_amd64.deb
-sudo apt-get install -f
-gcc main.c -o main -ljarray
-```

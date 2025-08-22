@@ -388,12 +388,26 @@ typedef struct JARRAY_INTERFACE {
      */
     JARRAY_RETURN (*remove_all)(struct JARRAY *self, const void *data, size_t length);
     /**
-     * @brief Returns the number of elements in the array.
-     *
+     * @brief Returns the number of elements in the array. 
+     * @note Or just access the _length member directly if you want to.
      * @param self Pointer to the JARRAY instance.
      * @return JARRAY_RETURN containing the length of the array, or an error.
      */
     JARRAY_RETURN (*length)(struct JARRAY *self);
+    /**
+     * @brief Reduces the array to a single value using a reducer function.
+     *
+     * @note
+     * Allocates memory for the reduced value; caller must free `.value`.
+     *
+     * @param self Pointer to JARRAY.
+     * @param reducer Function to combine elements.
+     * @param initial_value Pointer to initial accumulator value.
+     * @param ctx Context pointer for reducer.
+     * @return JARRAY_RETURN containing reduced value or error.
+     */
+    JARRAY_RETURN (*reduce)(struct JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
+
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
