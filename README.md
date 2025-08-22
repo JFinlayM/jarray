@@ -23,7 +23,7 @@ int main() {
     
     // Initialize
     ret = jarray.init(&array, sizeof(int));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     
     // Set callbacks
     array.user_implementation.print_element_callback = print_int;
@@ -32,7 +32,7 @@ int main() {
     // Add elements
     for (int i = 1; i <= 5; i++) {
         ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        JARRAY_CHECK_RET_FREE(ret);
+        if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     }
     
     jarray.print(&array); // Output: 1 2 3 4 5
@@ -46,6 +46,7 @@ int main() {
 ### Basic Operations
 ```c
 jarray.init(&array, sizeof(int))           // Initialize array
+jarray.init_with_data(&array, data, 10, sizeof(int)); // Initialize array with data
 jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42))  // Add element
 jarray.at(&array, index)                   // Get element at index
 jarray.set(&array, index, &value)          // Set element
@@ -133,8 +134,8 @@ array.user_implementation.is_equal = equal_func;               // For contains()
 
 Use these macros for automatic error checking:
 ```c
-JARRAY_CHECK_RET(ret);           // Print error, return 1 if error or continue
-JARRAY_CHECK_RET_FREE(ret);      // Print error, free array, return 1 if error or continue
+JARRAY_CHECK_RET(ret);           // Print error, return true if error
+JARRAY_CHECK_RET_FREE(ret);      // Print error, free array, return true if error
 ```
 
 ## Best Practices

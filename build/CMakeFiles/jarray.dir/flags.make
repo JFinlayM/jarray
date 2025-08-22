@@ -6,5 +6,5 @@ C_DEFINES =
 
 C_INCLUDES = -I"/home/jonathan/Documents/Projets de codage/C/jarray"
 
-C_FLAGS =  -Wall -Wextra -pedantic -std=gnu11
+C_FLAGS =  -Wall -Wextra -std=gnu11
 

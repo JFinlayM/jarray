@@ -399,7 +399,46 @@ typedef struct JARRAY_INTERFACE {
 extern JARRAY_INTERFACE jarray;
 
 
-/* ----- MACROS WITH AUTO-FREE ----- */
+/* ----- MACROS ----- */
+
+/**
+ * @brief Frees only the .value in a JARRAY_RETURN if it exists.
+ *
+ * @param ret JARRAY_RETURN to free value from.
+ */
+#define JARRAY_FREE_RET_VALUE(ret) \
+    do { \
+        if ((ret).has_value && (ret).value != NULL) { \
+            free((ret).value); \
+            (ret).value = NULL; \
+        } \
+    } while(0)
+
+/**
+ * @brief Frees only the error message in a JARRAY_RETURN if it exists.
+ *
+ * @param ret JARRAY_RETURN to free error from.
+ */
+#define JARRAY_FREE_RET_ERROR(ret) \
+    do { \
+        if ((ret).has_error && (ret).error.error_msg != NULL) { \
+            free((ret).error.error_msg); \
+            (ret).error.error_msg = NULL; \
+        } \
+    } while(0)
+
+
+/**
+ * @brief Frees both the .value and the error in a JARRAY_RETURN.
+ *
+ * @param ret JARRAY_RETURN to fully free.
+ */
+#define JARRAY_FREE_RET(ret) \
+    do { \
+        JARRAY_FREE_RET_VALUE(ret); \
+        JARRAY_FREE_RET_ERROR(ret); \
+    } while(0)
+
 
 /**
  * @brief Extracts the value from a pointer returned by JARRAY.
@@ -506,7 +545,14 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); return EXIT_FAILURE; }
+    ({ \
+        bool ret_val = false; \
+        if ((ret).has_error) { \
+            jarray.print_array_err((ret), __FILE__, __LINE__); \
+            ret_val = true; \
+        } \
+        ret_val; \
+    })
 
 /**
  * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and returns EXIT_FAILURE.
@@ -514,64 +560,24 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
  * @param ret JARRAY_RETURN to check.
  */
 #define JARRAY_CHECK_RET_FREE(ret) \
-    JARRAY_FREE_RET_VALUE(ret);    \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); JARRAY_FREE_RET_ERROR(ret); return EXIT_FAILURE; } \
+    ({ \
+        bool ret_val = false; \
+        if ((ret).has_error) { \
+            jarray.print_array_err((ret), __FILE__, __LINE__); \
+            ret_val = true; \
+        } \
+        JARRAY_FREE_RET(ret); \
+        ret_val; \
+    })
 
-/**
- * @brief Checks if a JARRAY_RETURN has an error, prints it, and continues execution.
- *
- * @param ret JARRAY_RETURN to check.
- */
-#define JARRAY_CHECK_RET_CONTINUE(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); }
 
-
-/**
- * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and continues execution.
- *
- * @param ret JARRAY_RETURN to check.
- */
-#define JARRAY_CHECK_RET_CONTINUE_FREE(ret) \
-    if ((ret).has_error) { jarray.print_array_err(ret, __FILE__, __LINE__); } \
-    JARRAY_FREE_RET(ret);
-
-/**
- * @brief Frees only the .value in a JARRAY_RETURN if it exists.
- *
- * @param ret JARRAY_RETURN to free value from.
- */
-#define JARRAY_FREE_RET_VALUE(ret) \
+#define JARRAY_CKECK_RET_FREE_RET(ret) \
     do { \
-        if ((ret).has_value && (ret).value != NULL) { \
-            free((ret).value); \
-            (ret).value = NULL; \
+        if (jarray_check_ret_free(ret, __FILE__, __LINE__)) { \
+            return EXIT_FAILURE; \
         } \
     } while(0)
 
-/**
- * @brief Frees only the error message in a JARRAY_RETURN if it exists.
- *
- * @param ret JARRAY_RETURN to free error from.
- */
-#define JARRAY_FREE_RET_ERROR(ret) \
-    do { \
-        if ((ret).has_error && (ret).error.error_msg != NULL) { \
-            free((ret).error.error_msg); \
-            (ret).error.error_msg = NULL; \
-        } \
-    } while(0)
-
-
-/**
- * @brief Frees both the .value and the error in a JARRAY_RETURN.
- *
- * @param ret JARRAY_RETURN to fully free.
- */
-#define JARRAY_FREE_RET(ret) \
-    do { \
-        JARRAY_FREE_RET_VALUE(ret); \
-        JARRAY_FREE_RET_ERROR(ret); \
-    } while(0)
 
 #define MAX(a, b) a > b ? a : b
 

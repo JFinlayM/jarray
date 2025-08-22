@@ -49,7 +49,7 @@ int main(void) {
 
     // --- Init ---
     ret = jarray.init(&array, sizeof(int));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
 
     printf("\n=== DEMO: jarray ===\n");
@@ -59,28 +59,27 @@ int main(void) {
     int *data_start = malloc(10 * sizeof(int));
     for (int i = 1; i <= 10; i++) {
         //ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        //JARRAY_CHECK_RET_FREE(ret);
+        //if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
         data_start[i-1] = i;
    }
    ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
-   JARRAY_CHECK_RET_FREE(ret);
+   if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
    free(data_start); // data copied into array, can free original
 
    array.user_implementation.print_element_callback = print_int;
-   array.user_implementation.print_error_callback = print_error_callback;
    array.user_implementation.compare = compare_int;
    array.user_implementation.is_equal = is_equal_int;
 
     printf("Insert 11 at index 0, and 12 at index 5\n");
     ret = jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.add_at(&array, 5, JARRAY_DIRECT_INPUT(int, 12));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     printf("Full array: ");
     ret = jarray.print(&array);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
 
     // --- Filtering ---
@@ -89,7 +88,7 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     JARRAY* evens = JARRAY_RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(evens);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     jarray.free(evens); // free filtered array
 
     printf("\nFiltering numbers between 3 and 9:\n");
@@ -98,14 +97,14 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     JARRAY* filtered = JARRAY_RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(filtered);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     jarray.free(evens); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
     ret = jarray.sort(&array, QSORT);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Accessing ---
     printf("\nAccess element at index 3: ");
@@ -132,15 +131,15 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     JARRAY* sub = JARRAY_RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(sub);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     jarray.free(sub);
 
     // --- Modify ---
     printf("\nSet index 1 to 12:\n");
     ret = jarray.set(&array, 1, JARRAY_DIRECT_INPUT(int, 12));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Find indexes ---
     printf("\nFinding indexes of 12:\n");
@@ -155,9 +154,9 @@ int main(void) {
     // --- For each ---
     printf("\nFor each element, modulo 3:\n");
     ret = jarray.for_each(&array, modulo3, NULL);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Clone ---
     printf("\nCloning array:\n");
@@ -165,21 +164,21 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     JARRAY* clone = JARRAY_RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(clone);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Clear ---
     printf("\nClearing clone array:\n");
     ret = jarray.clear(clone);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(clone);
-    JARRAY_CHECK_RET_CONTINUE_FREE(ret); // should print empty array
+    JARRAY_CHECK_RET_FREE(ret); // should print empty array
 
     // --- Add all ---
     printf("\nAdding all elements from original array to clone:\n");
     ret = jarray.add_all(clone, array._data, array._length);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(clone);
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Contains ---
     printf("\nChecking if clone contains 5: ");
@@ -191,9 +190,9 @@ int main(void) {
     printf("\nRemoving all elements that are in clone from original array:\n");
     jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
     ret = jarray.remove_all(&array, JARRAY_RET_GET_POINTER(void*, jarray.data(clone)), JARRAY_RET_GET_VALUE(size_t, jarray.length(clone)));
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array); // Should only display 17
-    JARRAY_CHECK_RET_FREE(ret);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
 
     // --- Cleanup ---
