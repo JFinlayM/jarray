@@ -50,19 +50,27 @@ int main(void) {
     // --- Init ---
     ret = jarray.init(&array, sizeof(int));
     JARRAY_CHECK_RET_FREE(ret);
-    array.user_implementation.print_element_callback = print_int;
-    //array.user_implementation.print_error_callback = print_error_callback;
-    array.user_implementation.compare = compare_int;
-    array.user_implementation.is_equal = is_equal_int;
+
 
     printf("\n=== DEMO: jarray ===\n");
 
     // --- Adding elements ---
     printf("\nAdding numbers 1..10:\n");
+    int *data_start = malloc(10 * sizeof(int));
     for (int i = 1; i <= 10; i++) {
-        ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        JARRAY_CHECK_RET_FREE(ret);
-    }
+        //ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
+        //JARRAY_CHECK_RET_FREE(ret);
+        data_start[i-1] = i;
+   }
+   ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
+   JARRAY_CHECK_RET_FREE(ret);
+
+   free(data_start); // data copied into array, can free original
+
+   array.user_implementation.print_element_callback = print_int;
+   array.user_implementation.print_error_callback = print_error_callback;
+   array.user_implementation.compare = compare_int;
+   array.user_implementation.is_equal = is_equal_int;
 
     printf("Insert 11 at index 0, and 12 at index 5\n");
     ret = jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));

@@ -229,6 +229,19 @@ typedef struct JARRAY_INTERFACE {
      */
     JARRAY_RETURN (*init)(struct JARRAY *array, size_t elem_size);
     /**
+     * @brief Initializes a JARRAY with pre-existing data.
+     *
+     * @note
+     * Copies the provided data into the JARRAY. The caller retains ownership of the original data.
+     *
+     * @param array Pointer to JARRAY.
+     * @param data Pointer to existing data buffer.
+     * @param length Number of elements in the data buffer.
+     * @param elem_size Size of one element in bytes.
+     * @return JARRAY_RETURN indicating success or error.
+     */
+    JARRAY_RETURN (*init_with_data)(struct JARRAY *array,const void *data, size_t length, size_t elem_size);
+    /**
      * @brief Prints all elements using the user-defined callback.
      *
      * @note

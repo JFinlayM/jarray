@@ -263,21 +263,17 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     return ret;
 }
 
-/**
- * @brief Initializes an array with pre-existing _data.
- *
- * @param array Pointer to the JARRAY instance to initialize.
- * @param _data Pointer to the _data buffer.
- * @param _length Number of elements in the _data buffer.
- * @param _elem_size Size of each element in bytes.
- * @return JARRAY_RETURN containing a pointer to the initialized array.
- */
-static JARRAY_RETURN array_init_with_data(JARRAY *array, void *data, size_t length, size_t elem_size) {
-    array->_data = data;
+JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_t length, size_t elem_size){
+    array->_data = malloc(length * elem_size);
+    if (!array->_data)
+        return create_return_error(array, JARRAY_DATA_NULL, "Memory allocation failed in init_with_data");
+
+    memcpy(array->_data, data, length * elem_size);
     array->_length = length;
     array->_elem_size = elem_size;
 
     array->user_implementation.print_element_callback = NULL;
+    array->user_implementation.print_error_callback = NULL;
     array->user_implementation.compare = NULL;
     array->user_implementation.is_equal = NULL;
 
@@ -856,6 +852,7 @@ JARRAY_INTERFACE jarray = {
     .add_at = array_add_at,
     .print = array_print,
     .init = array_init,
+    .init_with_data = array_init_with_data,
     .print_array_err = print_array_err,
     .free = array_free,
     .sort = array_sort,
