@@ -18,6 +18,7 @@ gcc main.c -o main -ljarray
 
 ```c
 #include <jarray.h>
+#include <stdio.h>
 
 void print_int(const void *x) {
     printf("%d ", JARRAY_GET_VALUE(const int, x));
@@ -38,6 +39,7 @@ int main() {
     // Or JARRAY_CHECK_RET(ret) if you need the return value later
     // Or nothing but that creates memory leaks
 
+*
     // Set callbacks
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.compare = compare_int;
@@ -48,11 +50,19 @@ int main() {
         if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     }
     
-    jarray.print(&array); // Output: 1 2 3 4 5
+    jarray.print(&array);
     jarray.free(&array);
     return 0;
 }
 ```
+### Output
+
+```bash
+JARRAY [size: 5] =>
+1 2 3 4 5 
+```
+
+
 
 ## Core Functions
 
@@ -86,23 +96,12 @@ jarray.subarray(&array, start, end);                // Extract subarray
 jarray.find_first(&array, predicate, ctx);          // First match by predicate
 jarray.find_indexes(&array, &value);                // All indexes of a value
 jarray.contains(&array, &value);                    // True/false if value exists
+jarray.reverse(&array);                             // Reverse array
+jarray.any(&array, predicate, ctx);                 // True/false if any element matches predicate
 jarray.for_each(&array, callback, ctx);             // Apply function to each element
 jarray.reduce(&array, reducer, &initial, ctx);      // Reduce to single value
 jarray.join(&array, separator);                     // Join as string (requires element_to_string callback)
 ```
-
-## Memory Management Rules
-
-| Function                            | Must Free Result?                  | How to Free?           |
-| ----------------------------------- | ---------------------------------  | ---------------------- |
-| `at()`, `find_first()`              | ❌ No (points inside array)        | —                      |
-| `filter()`, `clone()`, `subarray()` | ✅ Yes                             | `jarray.free(&result)` |
-| `data()`, `find_indexes()`          | ✅ Yes                             | `free(result)`         |
-| `remove()`, `remove_at()`           | ✅ Yes (copy returned)             | `free(result)`         |
-| `reduce()`                          | ✅ Yes (if it allocates new value) | `free(result)`         |
-| `join()`                            | ✅ Yes                             | `free(result)`         |
-| `contains()`, `length()`, `clear()` | ❌ No                              | —                      |
-
 
 ## Examples
 
@@ -159,6 +158,8 @@ jarray.sort(&array, QSORT, compare_func);
 Set these before using related functions:
 ```c
 array.user_implementation.print_element_callback = print_func;  // For print()
+array.user_implementation.print_error_override = error_func; // For error printing
+array.user_implementation.print_array_override = print_array_func; // For print() override
 array.user_implementation.element_to_string = to_string_func; // For join()
 array.user_implementation.compare = compare_func;              // For sort()
 array.user_implementation.is_equal = equal_func;               // For contains(), find_indexes()

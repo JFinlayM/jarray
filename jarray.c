@@ -24,8 +24,8 @@ static const char *enum_to_string[] = {
 };
 
 static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
-    if (ret.ret_source->user_implementation.print_error_callback) {
-        ret.ret_source->user_implementation.print_error_callback(ret.error);
+    if (ret.ret_source->user_implementation.print_error_override) {
+        ret.ret_source->user_implementation.print_error_override(ret.error);
         return;
     }
     if (ret.has_value) return;
@@ -49,7 +49,7 @@ static void array_free(JARRAY *array) {
     memset(&array->user_implementation, 0, sizeof(array->user_implementation));
 }
 
-static JARRAY_RETURN create_return_error(JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
+static JARRAY_RETURN create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
     JARRAY_RETURN ret;
     ret.has_value = false;
     ret.has_error = true;
@@ -175,7 +175,9 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     array->_elem_size = _elem_size;
     
     array->user_implementation.print_element_callback = NULL;
-    array->user_implementation.print_error_callback = NULL;
+    array->user_implementation.element_to_string = NULL;
+    array->user_implementation.print_array_override = NULL;
+    array->user_implementation.print_error_override = NULL;
     array->user_implementation.compare = NULL;
     array->user_implementation.is_equal = NULL;
 
@@ -196,7 +198,9 @@ static JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_
     array->_elem_size = elem_size;
 
     array->user_implementation.print_element_callback = NULL;
-    array->user_implementation.print_error_callback = NULL;
+    array->user_implementation.element_to_string = NULL;
+    array->user_implementation.print_array_override = NULL;
+    array->user_implementation.print_error_override = NULL;
     array->user_implementation.compare = NULL;
     array->user_implementation.is_equal = NULL;
 
@@ -237,9 +241,18 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
     return ret;
 }
 
-static JARRAY_RETURN array_print(JARRAY *array) {
+static JARRAY_RETURN array_print(const JARRAY *array) {
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(array, JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
+    if (array->user_implementation.print_array_override) {
+        array->user_implementation.print_array_override(array);
+        JARRAY_RETURN ret;
+        ret.has_value = false;
+        ret.has_error = false;
+        ret.value = NULL;
+        return ret;
+    }
+
     printf("JARRAY [size: %zu] =>\n", array->_length);
     for (size_t i = 0; i < array->_length; i++) {
         void *elem = (char*)array->_data + i * array->_elem_size;
@@ -340,7 +353,7 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
     return ret;
 }
 
-static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
+static JARRAY_RETURN array_find_first(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot find element in an empty array");
     JARRAY_RETURN ret;
@@ -356,7 +369,7 @@ static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(con
     return create_return_error(self, JARRAY_ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
 }
 
-static JARRAY_RETURN array_data(struct JARRAY *self) {
+static JARRAY_RETURN array_data(JARRAY *self) {
     JARRAY_RETURN ret;
 
     void *copy = NULL;
@@ -373,14 +386,13 @@ static JARRAY_RETURN array_data(struct JARRAY *self) {
     return ret;
 }
 
-static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_t high_index){
+static JARRAY_RETURN array_subarray(JARRAY *self, size_t low_index, size_t high_index){
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot determine a sub array with an empty array\n");
     if (low_index > high_index)
-        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index cannot be higher than high_index. It is also possible that low_index < 0 which would also trigger this error\n");
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index (%zu) cannot be higher than high_index (%zu). It is also possible that low_index < 0 which would also trigger this error\n", low_index, high_index);
     if (low_index >= self->_length)
-        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index cannot be higher or equal than the _length of array\n");
-    
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index (%zu) cannot be higher or equal than the _length of array (%zu)\n", low_index, self->_length);
 
     // Clamp high_index to last element if it's out of bounds
     if (high_index >= self->_length)
@@ -415,7 +427,7 @@ static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_
     return ret;
 }
 
-static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *elem) {
+static JARRAY_RETURN array_set(JARRAY *self, size_t index, const void *elem) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot set element in an empty array");
 
@@ -432,7 +444,7 @@ static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *el
     return ret;
 }
 
-static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
+static JARRAY_RETURN array_find_indexes(JARRAY *self, const void *elem) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot search in empty array");
     if (self->user_implementation.is_equal == NULL) {
@@ -462,7 +474,7 @@ static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     return ret;
 }
 
-static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
+static JARRAY_RETURN array_for_each(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
     if (!callback) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Callback function is null");
     if (self->_length == 0)
@@ -480,7 +492,7 @@ static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *
     return ret;
 }
 
-static JARRAY_RETURN array_clear(struct JARRAY *self) {
+static JARRAY_RETURN array_clear(JARRAY *self) {
     if (self->_data == NULL) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
     // Free existing _data
@@ -495,7 +507,7 @@ static JARRAY_RETURN array_clear(struct JARRAY *self) {
     return ret;
 }
 
-static JARRAY_RETURN array_clone(struct JARRAY *self) {
+static JARRAY_RETURN array_clone(JARRAY *self) {
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot clone an empty array");
 
@@ -539,7 +551,7 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
     return ret;
 }
 
-static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
+static JARRAY_RETURN array_contains(JARRAY *self, const void *elem) {
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot check containment in an empty array");
 
@@ -624,7 +636,7 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
     return ok;
 }
 
-static JARRAY_RETURN array_length(struct JARRAY *self) {
+static JARRAY_RETURN array_length(JARRAY *self) {
     JARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
@@ -632,7 +644,7 @@ static JARRAY_RETURN array_length(struct JARRAY *self) {
     return ret;
 }
 
-static JARRAY_RETURN array_reduce(struct JARRAY *self, void *(*reducer)(const void *accumulator, const void *elem, const void *ctx), const void *initial_value, const void *ctx) {
+static JARRAY_RETURN array_reduce(JARRAY *self, void *(*reducer)(const void *accumulator, const void *elem, const void *ctx), const void *initial_value, const void *ctx) {
     if (!reducer) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function is null");
     if (self->_length == 0)
@@ -669,7 +681,7 @@ static JARRAY_RETURN array_reduce(struct JARRAY *self, void *(*reducer)(const vo
     return ret;
 }
 
-static JARRAY_RETURN array_concat(struct JARRAY *arr1, struct JARRAY *arr2) {
+static JARRAY_RETURN array_concat(JARRAY *arr1, JARRAY *arr2) {
     if (arr1->_elem_size != arr2->_elem_size) {
         return create_return_error(NULL, JARRAY_INVALID_ARGUMENT, "Element sizes do not match for concatenation");
     }
@@ -698,7 +710,7 @@ static JARRAY_RETURN array_concat(struct JARRAY *arr1, struct JARRAY *arr2) {
     return ret;
 }
 
-static JARRAY_RETURN array_join(struct JARRAY *self, const char *separator) {
+static JARRAY_RETURN array_join(JARRAY *self, const char *separator) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot join elements of an empty array");
 
@@ -748,6 +760,54 @@ static JARRAY_RETURN array_join(struct JARRAY *self, const char *separator) {
     return ret;
 }
 
+static JARRAY_RETURN array_reverse(JARRAY *self) {
+    if (self->_length == 0)
+        return create_return_error(self, JARRAY_EMPTY, "Cannot reverse an empty array");
+
+    size_t n = self->_length;
+    void *temp = malloc(self->_elem_size);
+    if (!temp)
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed during reverse");
+    for (size_t i = 0; i < n / 2; i++) {
+        void *a = (char*)self->_data + i * self->_elem_size;
+        void *b = (char*)self->_data + (n - i - 1) * self->_elem_size;
+        memcpy(temp, a, self->_elem_size);
+        memcpy(a, b, self->_elem_size);
+        memcpy(b, temp, self->_elem_size);
+    }
+    free(temp);
+
+    JARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_any(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
+    if (self->_length == 0)
+        return create_return_error(self, JARRAY_EMPTY, "Cannot check any on an empty array");
+    if (!predicate)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Predicate function is null");
+
+    for (size_t i = 0; i < self->_length; i++) {
+        void *elem = (char*)self->_data + i * self->_elem_size;
+        if (predicate(elem, ctx)) {
+            JARRAY_RETURN ret;
+            ret.has_value = true;
+            ret.has_error = false;
+            ret.value = JARRAY_DIRECT_INPUT(bool, true);
+            return ret;
+        }
+    }
+
+    JARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = JARRAY_DIRECT_INPUT(bool, false);
+    return ret;
+}
+
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
     .filter = array_filter,
@@ -777,4 +837,6 @@ JARRAY_INTERFACE jarray = {
     .reduce = array_reduce,
     .concat = array_concat,
     .join = array_join,
+    .reverse = array_reverse,
+    .any = array_any,
 };

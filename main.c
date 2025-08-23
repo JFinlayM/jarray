@@ -39,9 +39,22 @@ bool is_equal_int(const void *a, const void *b) {
     return JARRAY_GET_VALUE(const int, a) == JARRAY_GET_VALUE(const int, b);
 }
 
-void print_error_callback(const JARRAY_RETURN_ERROR error) {
+void print_error_override(const JARRAY_RETURN_ERROR error) {
     fprintf(stderr, "[\033[31mError: %s\033[0m]\n", error.error_msg);
     free(error.error_msg); // Free the error message after printing
+}
+void print_array_override(const JARRAY *array) {
+    printf("Custom print of JARRAY [size: %zu]: ", array->_length);
+    for (size_t i = 0; i < array->_length; i++) {
+        void *elem = (char*)array->_data + i * array->_elem_size;
+        printf("%d ", JARRAY_GET_VALUE(const int, elem));
+    }
+    printf("\n");
+}
+
+bool sup_8(const void *x, const void *ctx) {
+    (void)ctx;
+    return JARRAY_GET_VALUE(const int, x) > 8;
 }
 
 typedef struct TEST_CTX {
@@ -75,19 +88,17 @@ int main(void) {
     printf("\nAdding numbers 1..10:\n");
     int *data_start = malloc(10 * sizeof(int));
     for (int i = 1; i <= 10; i++) {
-        //ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        //if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
         data_start[i-1] = i;
-   }
-   ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
-   if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    }
+    ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
-   free(data_start); // data copied into array, can free original
+    free(data_start); // data copied into array, can free original
 
-   array.user_implementation.print_element_callback = print_int;
+    array.user_implementation.print_element_callback = print_int;
     array.user_implementation.element_to_string = int_to_string;
-   array.user_implementation.compare = compare_int;
-   array.user_implementation.is_equal = is_equal_int;
+    array.user_implementation.compare = compare_int;
+    array.user_implementation.is_equal = is_equal_int;
 
     printf("Insert 11 at index 0, and 12 at index 5\n");
     ret = jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));
@@ -245,9 +256,20 @@ int main(void) {
     jarray.print(conc);
     jarray.free(conc);
 
+    // --- Reverse ---
+    printf("\nReversing clone array:\n");
+    ret = jarray.reverse(clone);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    ret = jarray.print(clone);
+    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+
+    // --- Any ---
+    printf("\nChecking if any element in clone is > 8: ");
+    ret = jarray.any(clone, sup_8, NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("%s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "Yes" : "No");
 
     // --- Cleanup ---
-    printf("\nFreeing array...\n");
     jarray.free(&array);
     jarray.free(clone);
 
