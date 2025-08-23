@@ -262,6 +262,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param method Sorting method enum.
+     * @param custom_compare Optional custom compare function (overrides user callback if provided).
      * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*sort)(struct JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*));

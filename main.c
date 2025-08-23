@@ -199,7 +199,7 @@ int main(void) {
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     // --- Join ---
-    printf("\nJoining elements of clone array with ', ' separator:\n");
+    printf("\nJoining elements of clone array with '-' separator:\n");
     ret = jarray.join(clone, "-");
     JARRAY_CHECK_RET(ret);
     char *joined_str = JARRAY_RET_GET_POINTER(char, ret);

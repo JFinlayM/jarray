@@ -2,7 +2,9 @@
 
 **Note**: I'm a beginner programmer, so don't take this code too seriously. This is a learning project!
 
-A flexible dynamic array library for C with filtering, sorting, searching, and more.
+A dynamic array library for C with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
+It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
+The functions are inspired by higher-level languages like JavaScript and Java but hopefully quicker...
 
 ## Building
 
@@ -107,17 +109,18 @@ jarray.join(&array, separator);                     // Join as string (requires 
 ### Filtering and Searching
 ```c
 bool is_even(const void *x, const void *ctx) {
+    (void)ctx; // Unused here
     return JARRAY_GET_VALUE(const int, x) % 2 == 0;
 }
 
 // Filter
-ret = jarray.filter(&array, is_even, NULL);
+ret = jarray.filter(&array, is_even, NULL); // No context needed here -> NULL
 JARRAY *evens = JARRAY_RET_GET_POINTER(JARRAY, ret);
 jarray.print(evens);
 jarray.free(evens);
 
 // Find first
-ret = jarray.find_first(&array, is_even, NULL);
+ret = jarray.find_first(&array, is_even, NULL); // No context needed here -> NULL
 if (!ret.has_error) {
     printf("First even: %d\n", JARRAY_RET_GET_VALUE(int, ret));
 }

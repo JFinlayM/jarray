@@ -23,13 +23,6 @@ static const char *enum_to_string[] = {
     [JARRAY_UNIMPLEMENTED_FUNCTION]                = "Function not implemented",
 };
 
-/**
- * @brief Prints an error message from an JARRAY_RETURN.
- *
- * @param ret The JARRAY_RETURN to inspect.
- * @param file string of the name of the file where an the error was picked up by CHECK_RET for example.
- * @param line line where the CHECK_RET was called.
- */
 static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
     if (ret.ret_source->user_implementation.print_error_callback) {
         ret.ret_source->user_implementation.print_error_callback(ret.error);
@@ -47,13 +40,6 @@ static void print_array_err(const JARRAY_RETURN ret, const char *file, int line)
     }
 }
 
-/**
- * @brief Frees the memory allocated for an JARRAY.
- *
- * This function frees the _data buffer and resets the JARRAY's _state.
- *
- * @param array Pointer to the JARRAY instance to free.
- */
 static void array_free(JARRAY *array) {
     if (!array) return;
     free(array->_data);
@@ -63,18 +49,6 @@ static void array_free(JARRAY *array) {
     memset(&array->user_implementation, 0, sizeof(array->user_implementation));
 }
 
-
-/**
- * @brief Creates an JARRAY_RETURN object representing an error, with a formatted message.
- *
- * Allocates memory for the error message so that it can persist after the function returns.
- * The caller is responsible for freeing the allocated error message string.
- *
- * @param error_code The JARRAY_ERROR code to store.
- * @param fmt Format string for the error message (printf-style).
- * @param ... Arguments to be formatted into the message.
- * @return JARRAY_RETURN containing the error code and dynamically allocated error message.
- */
 static JARRAY_RETURN create_return_error(JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
     JARRAY_RETURN ret;
     ret.has_value = false;
@@ -99,16 +73,6 @@ static JARRAY_RETURN create_return_error(JARRAY* ret_source, JARRAY_ERROR error_
     return ret;
 }
 
-/**
- * @brief Retrieves an element at the specified index.
- *
- * Returns a pointer to the element inside the array's _data buffer.
- * The pointer is valid as long as the array is not reallocated or freed.
- *
- * @param self Pointer to the JARRAY instance.
- * @param index Index of the element to retrieve.
- * @return JARRAY_RETURN containing a pointer to the element, or an error if out of bounds.
- */
 static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
     if (!self->_data) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
@@ -123,15 +87,6 @@ static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
     return ret;
 }
 
-/**
- * @brief Appends an element to the end of the array.
- *
- * Resizes the array by one element and copies the provided _data into the new slot.
- *
- * @param self Pointer to the JARRAY instance.
- * @param elem Pointer to the element to add.
- * @return JARRAY_RETURN containing a pointer to the newly added element, or an error.
- */
 static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
     if (!new_data) 
@@ -148,16 +103,6 @@ static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     return ret;
 }
 
-/**
- * @brief Inserts an element at a specific index in the array.
- *
- * Shifts elements to the right to make space for the new element.
- *
- * @param self Pointer to the JARRAY instance.
- * @param index Index where the element should be inserted.
- * @param elem Pointer to the element to insert.
- * @return JARRAY_RETURN containing a pointer to the inserted element, or an error.
- */
 static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) {
     if (index > self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
@@ -184,16 +129,6 @@ static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) 
     return ret;
 }
 
-/**
- * @brief Removes an element at a specific index from the array.
- *
- * Shifts remaining elements to fill the gap. The removed element is returned
- * in newly allocated memory, which must be freed by the caller.
- *
- * @param self Pointer to the JARRAY instance.
- * @param index Index of the element to remove.
- * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
- */
 static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
     if (index >= self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
@@ -226,12 +161,6 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
     return ret;
 }
 
-/**
- * @brief Removes the last element from the array.
- *
- * @param self Pointer to the JARRAY instance.
- * @return JARRAY_RETURN containing a pointer to the removed element, or an error.
- */
 static JARRAY_RETURN array_remove(JARRAY *self) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot remove from empty array");
@@ -240,13 +169,6 @@ static JARRAY_RETURN array_remove(JARRAY *self) {
     return array_remove_at(self, last_index);
 }
 
-/**
- * @brief Initializes an array with the given element size.
- *
- * @param array Pointer to the JARRAY instance to initialize.
- * @param _elem_size Size of each element in bytes.
- * @return JARRAY_RETURN containing a pointer to the initialized array.
- */
 static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     array->_data = NULL;
     array->_length = 0;
@@ -264,7 +186,7 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     return ret;
 }
 
-JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_t length, size_t elem_size){
+static JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_t length, size_t elem_size){
     array->_data = malloc(length * elem_size);
     if (!array->_data)
         return create_return_error(array, JARRAY_DATA_NULL, "Memory allocation failed in init_with_data");
@@ -285,16 +207,6 @@ JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_t lengt
     return ret;
 }
 
-/**
- * @brief Filters an array using a predicate function.
- *
- * Creates a new array containing only the elements that satisfy the predicate.
- *
- * @param self Pointer to the JARRAY instance.
- * @param predicate Function that returns true for elements to keep.
- * @param ctx Pointer to context of predicate
- * @return JARRAY_RETURN containing a pointer to the new filtered JARRAY, or an error.
- */
 static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
 
     size_t count = 0;
@@ -325,12 +237,6 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
     return ret;
 }
 
-/**
- * @brief Prints the contents of the array using a user-defined callback.
- *
- * @param array Pointer to the JARRAY instance.
- * @return JARRAY_RETURN containing a pointer to the array, or an error.
- */
 static JARRAY_RETURN array_print(JARRAY *array) {
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(array, JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
@@ -348,15 +254,6 @@ static JARRAY_RETURN array_print(JARRAY *array) {
     return ret;
 }
 
-/**
- * @brief Sorts the array and returns a new sorted copy.
- *
- * Uses the specified sorting algorithm and the user-provided compare function.
- *
- * @param self Pointer to the JARRAY instance.
- * @param method Sorting method to use (QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT).
- * @return JARRAY_RETURN containing a pointer to the new sorted JARRAY, or an error.
- */
 static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*)) {
     int (*compare)(const void*, const void*) = custom_compare ? custom_compare : self->user_implementation.compare;
 
@@ -443,25 +340,6 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
     return ret;
 }
 
-/**
- * @brief Finds the first element in the array that satisfies a given predicate.
- *
- * This function iterates over each element of the array and applies the provided
- * predicate function. If the predicate returns true for an element, the search stops,
- * and that element is returned. If no element satisfies the predicate, an error is returned.
- *
- * @param self       Pointer to the JARRAY structure.
- * @param predicate  Function pointer to a predicate function that takes a `const void*` 
- *                   (pointer to the element) and returns a boolean indicating whether
- *                   the element matches the desired condition.
- * @param ctx        Pointer to context
- *
- * @return JARRAY_RETURN
- *         - On success: `.has_value = true` and `.value` points to the matching element.
- *         - On failure: `.has_value = false` and `.error` contains error information:
- *              - JARRAY_UNINITIALIZED: The array has not been initialized.
- *              - JARRAY_ELEMENT_NOT_FOUND: No element satisfies the predicate.
- */
 static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot find element in an empty array");
@@ -478,14 +356,6 @@ static JARRAY_RETURN array_find_first(struct JARRAY *self, bool (*predicate)(con
     return create_return_error(self, JARRAY_ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
 }
 
-/**
- * @brief Gets the _data in array self.
- * @param self Pointer to the JARRAY structure.
- * @return JARRAY_RETURN
- *         - On success: `.has_value = true` and `.value` points to the _data.
- *         - On failure: `.has_value = false` and `.error` contains error information:
- *              - JARRAY_UNINITIALIZED: The array has not been initialized.
- */
 static JARRAY_RETURN array_data(struct JARRAY *self) {
     JARRAY_RETURN ret;
 
@@ -503,18 +373,6 @@ static JARRAY_RETURN array_data(struct JARRAY *self) {
     return ret;
 }
 
-
-/**
- * @brief Create a subarray from a given JARRAY.
- * 
- * @details Allocates a new JARRAY containing elements from `low_index` to `high_index` (inclusive) of the original array.
- * Copies the relevant elements into the new JARRAY. The caller is responsible for freeing the subarray's _data.
- * 
- * @param self Pointer to the original JARRAY.
- * @param low_index Starting index of the subarray (inclusive).
- * @param high_index Ending index of the subarray (inclusive).
- * @return JARRAY_RETURN On success, contains a pointer to the new subarray. On failure, contains an error code and message.
- */
 static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_t high_index){
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot determine a sub array with an empty array\n");
@@ -557,10 +415,6 @@ static JARRAY_RETURN array_subarray(struct JARRAY *self, size_t low_index, size_
     return ret;
 }
 
-/**
- * @brief Sets the element at the given index in the array.
- * @return JARRAY_RETURN with success or error.
- */
 static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *elem) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot set element in an empty array");
@@ -578,21 +432,6 @@ static JARRAY_RETURN array_set(struct JARRAY *self, size_t index, const void *el
     return ret;
 }
 
-/**
- * @brief Find all indexes in the array whose values match a target value.
- *
- * Error cases handled:
- *   - Empty array → returns `JARRAY_EMPTY` error.
- *   - JARRAY not initialized → returns `JARRAY_UNINITIALIZED` error.
- *   - Memory allocation failure → returns `JARRAY_DATA_NULL` error.
- *   - No matches found → returns `JARRAY_ELEMENT_NOT_FOUND` error.
- *
- * @param self Pointer to the JARRAY structure.
- * @param elem Pointer to the target value to find (currently assumes `int` type).
- * @return JARRAY_RETURN containing either:
- *         - `value` → `size_t[]` where first element is match count, followed by match indexes.
- *         - or error code if no match or failure occurs.
- */
 static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot search in empty array");
@@ -623,16 +462,6 @@ static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     return ret;
 }
 
-/**
- * @brief Applies a callback function to each element in the array.
- *
- * Iterates over each element and calls the provided callback with the element and context.
- *
- * @param self Pointer to the JARRAY instance.
- * @param callback Function to call for each element.
- * @param ctx Context pointer passed to the callback.
- * @return JARRAY_RETURN containing success or error information.
- */
 static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
     if (!callback) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Callback function is null");
@@ -651,14 +480,6 @@ static JARRAY_RETURN array_for_each(struct JARRAY *self, void (*callback)(void *
     return ret;
 }
 
-/**
- * @brief Clears the array, removing all elements.
- *
- * Resets the array to an empty _state without freeing the underlying _data buffer.
- *
- * @param self Pointer to the JARRAY instance.
- * @return JARRAY_RETURN containing success or error information.
- */
 static JARRAY_RETURN array_clear(struct JARRAY *self) {
     if (self->_data == NULL) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
@@ -674,14 +495,6 @@ static JARRAY_RETURN array_clear(struct JARRAY *self) {
     return ret;
 }
 
-/**
- * @brief Clones the array, creating a new JARRAY with the same elements.
- *
- * Allocates a new JARRAY and copies all elements from the original array.
- *
- * @param self Pointer to the JARRAY instance to clone.
- * @return JARRAY_RETURN containing a pointer to the cloned JARRAY, or an error.
- */
 static JARRAY_RETURN array_clone(struct JARRAY *self) {
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot clone an empty array");
@@ -707,16 +520,6 @@ static JARRAY_RETURN array_clone(struct JARRAY *self) {
     return ret;
 }
 
-/**
- * @brief Adds multiple elements to the array from a _data buffer.
- *
- * Resizes the array to accommodate the new elements and copies them into the array.
- *
- * @param self Pointer to the JARRAY instance.
- * @param _data Pointer to the _data buffer containing elements to add.
- * @param _length Number of elements in the _data buffer.
- * @return JARRAY_RETURN containing success or error information.
- */
 static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count) {
     if (!data || count == 0) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
@@ -736,15 +539,6 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
     return ret;
 }
 
-/**
- * @brief Checks if the array contains a specific element.
- *
- * Uses the user-defined equality function to compare elements.
- *
- * @param self Pointer to the JARRAY instance.
- * @param elem Pointer to the element to check for.
- * @return JARRAY_RETURN containing true if found, false otherwise, or an error.
- */
 static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot check containment in an empty array");
@@ -776,13 +570,6 @@ static int compare_size_t(const void *a, const void *b) {
     return (val_a > val_b) - (val_a < val_b);
 }
 
-/**
- * @brief Removes all occurrences of elements also contained in the provided data buffer.
- * This function iterates over the array and removes elements that match any in the provided _data.
- * @param self Pointer to the JARRAY instance.
- * @param _data Pointer to the _data buffer containing elements to remove.
- * @return JARRAY_RETURN containing success or error information.
- */
 static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t count) {
 
     if (!data || count == 0) 
@@ -807,7 +594,6 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
 
         size_t *indexes = (size_t*)ret.value;
         size_t match_count = indexes[0];
-        printf("Found %zu matches for element %zu\n", match_count, i);
         array_clear(&temp_array); // Clear temp array for new indexes
         // Store only the real indexes
         for (size_t j = 0; j < match_count; j++) {
@@ -912,15 +698,6 @@ static JARRAY_RETURN array_concat(struct JARRAY *arr1, struct JARRAY *arr2) {
     return ret;
 }
 
-/**
- * @brief Joins the string representations of all elements into a single string, separated by a specified delimiter.
- * 
- * @note Uses the `element_to_string` callback to convert each element to a string. Allocates memory for the resulting string; caller must free `.value`.
- * 
- * @param self Pointer to the JARRAY instance.
- * @param separator String to insert between elements.
- * @return JARRAY_RETURN On success, contains a pointer to the joined string. On failure, contains an error code and message.
- */
 static JARRAY_RETURN array_join(struct JARRAY *self, const char *separator) {
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot join elements of an empty array");
