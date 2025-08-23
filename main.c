@@ -20,6 +20,16 @@ void print_int(const void *x) {
     printf("%d ", JARRAY_GET_VALUE(const int, x));
 }
 
+char *int_to_string(const void *x) {
+    int value = JARRAY_GET_VALUE(const int, x);
+    // Allocate enough space for the string representation
+    char *str = malloc(12); // Enough for 32-bit int
+    if (str) {
+        snprintf(str, 12, "%d", value);
+    }
+    return str;
+}
+
 // Compare two ints
 int compare_int(const void *a, const void *b) {
     return JARRAY_GET_VALUE(const int, a) - JARRAY_GET_VALUE(const int, b);
@@ -75,6 +85,7 @@ int main(void) {
    free(data_start); // data copied into array, can free original
 
    array.user_implementation.print_element_callback = print_int;
+    array.user_implementation.element_to_string = int_to_string;
    array.user_implementation.compare = compare_int;
    array.user_implementation.is_equal = is_equal_int;
 
@@ -108,7 +119,7 @@ int main(void) {
     jarray.free(evens); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
-    ret = jarray.sort(&array, QSORT);
+    ret = jarray.sort(&array, QSORT, NULL);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
@@ -187,9 +198,18 @@ int main(void) {
     ret = jarray.print(clone);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
+    // --- Join ---
+    printf("\nJoining elements of clone array with ', ' separator:\n");
+    ret = jarray.join(clone, "-");
+    JARRAY_CHECK_RET(ret);
+    char *joined_str = JARRAY_RET_GET_POINTER(char, ret);
+    printf("Joined string: %s\n", joined_str);
+    joined_str = NULL;
+    JARRAY_FREE_RET(ret);
+
     // --- Reduce ---
     printf("\nReducing clone array (sum of elements): ");
-    ret = jarray.reduce(clone, sum, JARRAY_DIRECT_INPUT(int, 10), NULL);
+    ret = jarray.reduce(clone, sum, NULL, NULL);
     JARRAY_CHECK_RET(ret);
     printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
 
@@ -202,10 +222,26 @@ int main(void) {
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
     jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
-    ret = jarray.remove_all(&array, JARRAY_RET_GET_POINTER(void*, jarray.data(clone)), JARRAY_RET_GET_VALUE(size_t, jarray.length(clone)));
+    ret = jarray.data(clone);
+    if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
+    void *data_clone = JARRAY_RET_GET_POINTER(void*, ret);
+    ret = jarray.length(clone);
+    if (JARRAY_CHECK_RET(ret)) {
+        free(data_clone);
+        return EXIT_FAILURE;
+    }
+    size_t count = JARRAY_RET_GET_VALUE(size_t, ret);
+    ret = jarray.remove_all(&array, data_clone, count);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array); // Should only display 17
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+
+    // --- Concat ---
+    printf("Concat array and clone array:\n");
+    ret = jarray.concat(&array, clone);
+    if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
+    JARRAY *conc = JARRAY_RET_GET_POINTER(JARRAY, ret);
+    jarray.print(conc);
 
 
     // --- Cleanup ---

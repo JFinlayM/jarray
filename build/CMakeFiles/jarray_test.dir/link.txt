@@ -1,1 +1,1 @@
-/usr/bin/cc  -Wall -Wextra CMakeFiles/jarray_test.dir/main.c.o -o jarray_test  libjarray.a 
+/usr/bin/cc  -g -Wall -Wextra CMakeFiles/jarray_test.dir/main.c.o -o jarray_test  libjarray.a 

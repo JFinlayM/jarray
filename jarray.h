@@ -25,6 +25,7 @@ typedef enum {
     JARRAY_UNINITIALIZED,
     JARRAY_DATA_NULL,
     JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
+    JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED,
     JARRAY_COMPARE_CALLBACK_UNINTIALIZED,
     JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED,
     JARRAY_EMPTY,
@@ -54,6 +55,7 @@ typedef struct JARRAY_RETURN_ERROR {
 typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
     // Function to print an element. This function is mandatory if you want to use the jarray.print function.
     void (*print_element_callback)(const void*);
+    char *(*element_to_string)(const void*); // Function to convert an element to a string. This function is NOT mandatory but can be useful for functions like join.
     // Function to print error. This function is NOT mandatory but you can override the default one with it if you want to.
     void (*print_error_callback)(const JARRAY_RETURN_ERROR);
     // Function to compare two elements. This function is mandatory if you want to use the jarray.sort function.
@@ -262,7 +264,7 @@ typedef struct JARRAY_INTERFACE {
      * @param method Sorting method enum.
      * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*sort)(struct JARRAY *self, SORT_METHOD method);
+    JARRAY_RETURN (*sort)(struct JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*));
     /**
      * @brief Finds the first element satisfying a predicate.
      *
@@ -407,6 +409,26 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN containing reduced value or error.
      */
     JARRAY_RETURN (*reduce)(struct JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
+    /**
+     * @brief Concatenates two JARRAYs of the same element type.
+     * 
+     * @note Allocates a new JARRAY containing elements from both input arrays. The caller is responsible for freeing the concatenated array's data.
+     * 
+     * @param arr1 Pointer to the first JARRAY.
+     * @param arr2 Pointer to the second JARRAY.
+     * @return JARRAY_RETURN On success, contains a pointer to the new concatenated array. On failure, contains an error code and message.
+     */
+    JARRAY_RETURN (*concat)(struct JARRAY *arr1, struct JARRAY *arr2);
+    /**
+     * @brief Joins the string representations of all elements into a single string, separated by a specified delimiter.
+     * 
+     * @note Uses the `element_to_string` callback to convert each element to a string. Allocates memory for the resulting string; caller must free `.value`.
+     * 
+     * @param self Pointer to the JARRAY instance.
+     * @param separator String to insert between elements.
+     * @return JARRAY_RETURN On success, contains a pointer to the joined string. On failure, contains an error code and message.
+     */
+    JARRAY_RETURN (*join)(struct JARRAY *self, const char *separator);
 
 } JARRAY_INTERFACE;
 
@@ -565,6 +587,7 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
             jarray.print_array_err((ret), __FILE__, __LINE__); \
             ret_val = true; \
         } \
+        JARRAY_FREE_RET_ERROR(ret); \
         ret_val; \
     })
 

@@ -14,6 +14,7 @@ static const char *enum_to_string[] = {
     [JARRAY_UNINITIALIZED]                   = "JARRAY uninitialized",
     [JARRAY_DATA_NULL]                             = "Data is null",
     [JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED]   = "Print callback not set",
+    [JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED] = "Element to string callback not set",
     [JARRAY_EMPTY]                           = "Empty jarray",
     [JARRAY_INVALID_ARGUMENT]                      = "Invalid argument",
     [JARRAY_COMPARE_CALLBACK_UNINTIALIZED]         = "Compare callback not set",
@@ -356,8 +357,8 @@ static JARRAY_RETURN array_print(JARRAY *array) {
  * @param method Sorting method to use (QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT).
  * @return JARRAY_RETURN containing a pointer to the new sorted JARRAY, or an error.
  */
-static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method) {
-    int (*compare)(const void*, const void*) = self->user_implementation.compare;
+static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*)) {
+    int (*compare)(const void*, const void*) = custom_compare ? custom_compare : self->user_implementation.compare;
 
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot sort an empty array");
@@ -605,7 +606,7 @@ static JARRAY_RETURN array_find_indexes(struct JARRAY *self, const void *elem) {
     int count = 0;
     for (size_t i = 0; i < self->_length; i++) {
         if (self->user_implementation.is_equal((char*)self->_data + i * self->_elem_size, elem)) {
-            indexes[i+1] = count; // Store the index of the matching element
+            indexes[count+1] = i; // Store the index of the matching element
             count++;
         }
     }
@@ -769,6 +770,12 @@ static JARRAY_RETURN array_contains(struct JARRAY *self, const void *elem) {
     return ret;
 }
 
+static int compare_size_t(const void *a, const void *b) {
+    size_t val_a = *(const size_t*)a;
+    size_t val_b = *(const size_t*)b;
+    return (val_a > val_b) - (val_a < val_b);
+}
+
 /**
  * @brief Removes all occurrences of elements also contained in the provided data buffer.
  * This function iterates over the array and removes elements that match any in the provided _data.
@@ -780,7 +787,6 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
 
     if (!data || count == 0) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
-
 
     JARRAY temp_array;
     array_init(&temp_array, sizeof(size_t));
@@ -808,13 +814,12 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
             array_add(&temp_array, &indexes[j + 1]); // j+1 because indexes[0] is count
         }
 
-        // Sort indexes ascending, so we can remove from the end
-        array_sort(&temp_array, QSORT);
-
+        // Sort indexes ascending, so we can remove from 
+        array_sort(&temp_array, QSORT, compare_size_t);
         // Remove in reverse order to avoid shifting
         for (size_t j = match_count; j > 0; j--) {
             size_t idx;
-            JARRAY_RETURN ret_at = array_at(&temp_array, j-1); // j-1 is safe now
+            JARRAY_RETURN ret_at = array_at(&temp_array, j-1);
             if (ret_at.has_error) {
                 free(indexes);
                 return ret_at; // Error retrieving index
@@ -878,6 +883,93 @@ static JARRAY_RETURN array_reduce(struct JARRAY *self, void *(*reducer)(const vo
     return ret;
 }
 
+static JARRAY_RETURN array_concat(struct JARRAY *arr1, struct JARRAY *arr2) {
+    if (arr1->_elem_size != arr2->_elem_size) {
+        return create_return_error(NULL, JARRAY_INVALID_ARGUMENT, "Element sizes do not match for concatenation");
+    }
+
+    JARRAY *new_array = malloc(sizeof(JARRAY));
+    if (!new_array) {
+        return create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array");
+    }
+
+    new_array->_elem_size = arr1->_elem_size;
+    new_array->_length = arr1->_length + arr2->_length;
+    new_array->_data = malloc(new_array->_length * new_array->_elem_size);
+    if (!new_array->_data) {
+        free(new_array);
+        return create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array data");
+    }
+
+    memcpy(new_array->_data, arr1->_data, arr1->_length * arr1->_elem_size);
+    memcpy((char*)new_array->_data + arr1->_length * arr1->_elem_size, arr2->_data, arr2->_length * arr2->_elem_size);
+    new_array->user_implementation = arr1->user_implementation;
+
+    JARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = new_array; // caller must free
+    return ret;
+}
+
+/**
+ * @brief Joins the string representations of all elements into a single string, separated by a specified delimiter.
+ * 
+ * @note Uses the `element_to_string` callback to convert each element to a string. Allocates memory for the resulting string; caller must free `.value`.
+ * 
+ * @param self Pointer to the JARRAY instance.
+ * @param separator String to insert between elements.
+ * @return JARRAY_RETURN On success, contains a pointer to the joined string. On failure, contains an error code and message.
+ */
+static JARRAY_RETURN array_join(struct JARRAY *self, const char *separator) {
+    if (self->_length == 0)
+        return create_return_error(self, JARRAY_EMPTY, "Cannot join elements of an empty array");
+
+    if (self->user_implementation.element_to_string == NULL)
+        return create_return_error(self, JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED, "element_to_string callback not set");
+
+    size_t total_length = 0;
+    char **string_representations = malloc(self->_length * sizeof(char*));
+    if (!string_representations)
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for string representations");
+
+    for (size_t i = 0; i < self->_length; i++) {
+        void *elem = (char*)self->_data + i * self->_elem_size;
+        char *str = self->user_implementation.element_to_string(elem);
+        if (!str) {
+            for (size_t j = 0; j < i; j++) free(string_representations[j]);
+            free(string_representations);
+            return create_return_error(self, JARRAY_DATA_NULL, "element_to_string callback returned null");
+        }
+        string_representations[i] = str;
+        total_length += strlen(str);
+    }
+
+    if (!separator) separator = "";
+    size_t separator_length = strlen(separator);
+    total_length += separator_length * (self->_length - 1) + 1; // for separators and null terminator
+
+    char *result = malloc(total_length);
+    if (!result) {
+        for (size_t i = 0; i < self->_length; i++) free(string_representations[i]);
+        free(string_representations);
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for result string");
+    }
+
+    result[0] = '\0';
+    for (size_t i = 0; i < self->_length; i++) {
+        strcat(result, string_representations[i]);
+        if (i < self->_length - 1) strcat(result, separator);
+        free(string_representations[i]);
+    }
+    free(string_representations);
+
+    JARRAY_RETURN ret;
+    ret.has_value = true;
+    ret.has_error = false;
+    ret.value = result; // caller must free
+    return ret;
+}
 
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
@@ -905,5 +997,7 @@ JARRAY_INTERFACE jarray = {
     .contains = array_contains,
     .remove_all = array_remove_all,
     .length = array_length,
-    .reduce = array_reduce
+    .reduce = array_reduce,
+    .concat = array_concat,
+    .join = array_join,
 };

@@ -6,5 +6,5 @@ C_DEFINES = -Djarray_shared_EXPORTS
 
 C_INCLUDES = -I"/home/jonathan/Documents/Projets de codage/C/jarray"
 
-C_FLAGS =  -Wall -Wextra -std=gnu11 -fPIC
+C_FLAGS =  -g -Wall -Wextra -std=gnu11 -fPIC
 
