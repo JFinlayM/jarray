@@ -116,7 +116,7 @@ int main(void) {
     JARRAY* filtered = JARRAY_RET_GET_POINTER(JARRAY, ret);
     ret = jarray.print(filtered);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    jarray.free(evens); // free filtered array
+    jarray.free(filtered); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
     ret = jarray.sort(&array, QSORT, NULL);
@@ -232,6 +232,7 @@ int main(void) {
     }
     size_t count = JARRAY_RET_GET_VALUE(size_t, ret);
     ret = jarray.remove_all(&array, data_clone, count);
+    free(data_clone);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array); // Should only display 17
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
@@ -242,11 +243,13 @@ int main(void) {
     if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
     JARRAY *conc = JARRAY_RET_GET_POINTER(JARRAY, ret);
     jarray.print(conc);
+    jarray.free(conc);
 
 
     // --- Cleanup ---
-    printf("\nFreeing main array...\n");
+    printf("\nFreeing array...\n");
     jarray.free(&array);
+    jarray.free(clone);
 
     printf("\n=== END DEMO ===\n");
     return EXIT_SUCCESS;
