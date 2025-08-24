@@ -1,2 +1,0 @@
-/usr/bin/ar qc libjarray.a CMakeFiles/jarray.dir/jarray.c.o
-/usr/bin/ranlib libjarray.a
