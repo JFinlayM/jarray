@@ -424,7 +424,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Checks if any element satisfies a predicate.
      *
      * @note
-     * Returns a pointer to a bool (true/false) using `JARRAY_DIRECT_INPUT`.
+     * Returns a pointer to a bool via JARRAY_RETURN
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.

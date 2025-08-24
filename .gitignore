@@ -1,0 +1,7 @@
+/.vscode/
+/debian/
+/build/
+*.o
+*.a
+*.so
+*.exe
