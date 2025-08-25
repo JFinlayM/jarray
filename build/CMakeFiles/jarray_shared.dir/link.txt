@@ -1,1 +1,0 @@
-/usr/bin/cc -fPIC  -g -Wall -Wextra -shared -Wl,-soname,libjarray.so -o libjarray.so CMakeFiles/jarray_shared.dir/jarray.c.o 

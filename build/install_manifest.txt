@@ -1,3 +1,0 @@
-/usr/local/lib/libjarray.a
-/usr/local/lib/libjarray.so
-/usr/local/include/jarray.h
