@@ -82,7 +82,6 @@ int main(void) {
     ret = jarray.init(&array, sizeof(int));
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
-
     printf("\n=== DEMO: jarray ===\n");
 
     // --- Adding elements ---
@@ -93,8 +92,7 @@ int main(void) {
     }
     ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-
-    free(data_start); // data copied into array, can free original
+    data_start = NULL;
 
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.element_to_string = int_to_string;
@@ -110,7 +108,6 @@ int main(void) {
     printf("Full array: ");
     ret = jarray.print(&array);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-
 
     // --- Filtering ---
     printf("\nFiltering even numbers:\n");
@@ -295,7 +292,19 @@ int main(void) {
 
     // --- Fill ---
     printf("\nFilling clone array with fives:\n");
-    ret = jarray.fill(clone, JARRAY_DIRECT_INPUT(int, 5), 0, clone->_length + 3);
+    ret = jarray.fill(clone, JARRAY_DIRECT_INPUT(int, 5), 10, clone->_length + 3);
+    JARRAY_CHECK_RET(ret);
+    jarray.print(clone);
+
+    // --- Shift ---
+    printf("\nShifting clone:\n");
+    ret = jarray.shift(clone);
+    JARRAY_CHECK_RET(ret);
+    jarray.print(clone);
+
+    // --- Shift right ---
+    printf("\nShifting clone to the right and add 3:\n");
+    ret = jarray.shift_right(clone, JARRAY_DIRECT_INPUT(int, 3));
     JARRAY_CHECK_RET(ret);
     jarray.print(clone);
 

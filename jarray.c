@@ -73,7 +73,18 @@ static JARRAY_RETURN create_return_error(const JARRAY* ret_source, JARRAY_ERROR 
     return ret;
 }
 
+static void init_array_callbacks(JARRAY *array){
+    array->user_implementation.print_element_callback = NULL;
+    array->user_implementation.element_to_string = NULL;
+    array->user_implementation.print_array_override = NULL;
+    array->user_implementation.print_error_override = NULL;
+    array->user_implementation.compare = NULL;
+    array->user_implementation.is_equal = NULL;
+}
+
 static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!self->_data) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
 
@@ -88,6 +99,8 @@ static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
 }
 
 static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
     if (!new_data) 
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
@@ -104,6 +117,10 @@ static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
 }
 
 static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!elem)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot insert NULL element");
     if (index > self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
 
@@ -130,6 +147,8 @@ static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) 
 }
 
 static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (index >= self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
 
@@ -162,6 +181,8 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
 }
 
 static JARRAY_RETURN array_remove(JARRAY *self) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot remove from empty array");
 
@@ -170,16 +191,13 @@ static JARRAY_RETURN array_remove(JARRAY *self) {
 }
 
 static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
+    if (!array)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     array->_data = NULL;
     array->_length = 0;
     array->_elem_size = _elem_size;
     
-    array->user_implementation.print_element_callback = NULL;
-    array->user_implementation.element_to_string = NULL;
-    array->user_implementation.print_array_override = NULL;
-    array->user_implementation.print_error_override = NULL;
-    array->user_implementation.compare = NULL;
-    array->user_implementation.is_equal = NULL;
+    init_array_callbacks(array);
 
     JARRAY_RETURN ret;
     ret.has_value = false;
@@ -188,21 +206,40 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
     return ret;
 }
 
-static JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_t length, size_t elem_size){
+static JARRAY_RETURN array_init_with_data_copy(JARRAY *array, const void *data, size_t length, size_t elem_size){
+    if (!array)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!data)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Provided data cannot be NULL");
+
     array->_data = malloc(length * elem_size);
     if (!array->_data)
-        return create_return_error(array, JARRAY_DATA_NULL, "Memory allocation failed in init_with_data");
+        return create_return_error(array, JARRAY_DATA_NULL, "Memory allocation failed in init_with_data_copy");
 
     memcpy(array->_data, data, length * elem_size);
     array->_length = length;
     array->_elem_size = elem_size;
 
-    array->user_implementation.print_element_callback = NULL;
-    array->user_implementation.element_to_string = NULL;
-    array->user_implementation.print_array_override = NULL;
-    array->user_implementation.print_error_override = NULL;
-    array->user_implementation.compare = NULL;
-    array->user_implementation.is_equal = NULL;
+    init_array_callbacks(array);
+
+    JARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_init_with_data(JARRAY *array, void *data, size_t length, size_t elem_size){
+    if (!array)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!data)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Provided data cannot be NULL");
+    
+    array->_data = data;
+    array->_length = length;
+    array->_elem_size = elem_size;
+
+    init_array_callbacks(array);
 
     JARRAY_RETURN ret;
     ret.has_value = false;
@@ -212,6 +249,10 @@ static JARRAY_RETURN array_init_with_data(JARRAY *array, const void *data, size_
 }
 
 static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!predicate)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Predicate cannot be NULL");
 
     size_t count = 0;
     for (size_t i = 0; i < self->_length; i++) {
@@ -242,6 +283,8 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
 }
 
 static JARRAY_RETURN array_print(const JARRAY *array) {
+    if (!array)
+        return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (array->user_implementation.print_element_callback == NULL)
         return create_return_error(array, JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
     if (array->user_implementation.print_array_override) {
@@ -268,13 +311,15 @@ static JARRAY_RETURN array_print(const JARRAY *array) {
 }
 
 static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*)) {
-    int (*compare)(const void*, const void*) = custom_compare ? custom_compare : self->user_implementation.compare;
-
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot sort an empty array");
 
+    int (*compare)(const void*, const void*) = custom_compare ? custom_compare : self->user_implementation.compare;
+
     if (compare == NULL)
-        return create_return_error(self, JARRAY_COMPARE_CALLBACK_UNINTIALIZED, "Compare callback not set");
+        return create_return_error(self, JARRAY_COMPARE_CALLBACK_UNINTIALIZED, "Either compare callback or custom compare function must be set");
 
     void *copy_data = malloc(self->_length * self->_elem_size);
     if (!copy_data)
@@ -354,6 +399,10 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
 }
 
 static JARRAY_RETURN array_find_first(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx){
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!predicate)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Predicate cannot be NULL");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot find element in an empty array");
     JARRAY_RETURN ret;
@@ -370,8 +419,10 @@ static JARRAY_RETURN array_find_first(JARRAY *self, bool (*predicate)(const void
 }
 
 static JARRAY_RETURN array_data(JARRAY *self) {
-    JARRAY_RETURN ret;
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
 
+    JARRAY_RETURN ret;
     void *copy = NULL;
     if (self->_length > 0) {
         copy = malloc(self->_length * self->_elem_size);
@@ -386,18 +437,20 @@ static JARRAY_RETURN array_data(JARRAY *self) {
     return ret;
 }
 
-static JARRAY_RETURN array_subarray(JARRAY *self, size_t low_index, size_t high_index){
+static JARRAY_RETURN array_subarray(JARRAY *self, size_t start, size_t end){
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot determine a sub array with an empty array\n");
-    if (low_index > high_index)
-        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index (%zu) cannot be higher than high_index (%zu). It is also possible that low_index < 0 which would also trigger this error\n", low_index, high_index);
-    if (low_index >= self->_length)
-        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "low_index (%zu) cannot be higher or equal than the _length of array (%zu)\n", low_index, self->_length);
+    if (start > end)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) cannot be higher than end (%zu). It is also possible that start < 0 which would also trigger this error\n", start, end);
+    if (start >= self->_length)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) cannot be higher or equal than the _length of array (%zu)\n", start, self->_length);
 
-    // Clamp high_index to last element if it's out of bounds
-    if (high_index >= self->_length)
-        high_index = self->_length - 1;
-    size_t sub_length = high_index - low_index + 1;
+    // Clamp end to last element if it's out of bounds
+    if (end >= self->_length)
+        end = self->_length - 1;
+    size_t sub_length = end - start + 1;
 
     // Allocate the JARRAY struct itself
     JARRAY *ret_array = malloc(sizeof(JARRAY));
@@ -415,7 +468,7 @@ static JARRAY_RETURN array_subarray(JARRAY *self, size_t low_index, size_t high_
 
     // Copy relevant elements
     for (size_t i = 0; i < sub_length; i++) {
-        void *src = (char*)self->_data + (low_index + i) * self->_elem_size;
+        void *src = (char*)self->_data + (start + i) * self->_elem_size;
         void *dst = (char*)ret_array->_data + i * self->_elem_size;
         memcpy(dst, src, self->_elem_size);
     }
@@ -428,6 +481,8 @@ static JARRAY_RETURN array_subarray(JARRAY *self, size_t low_index, size_t high_
 }
 
 static JARRAY_RETURN array_set(JARRAY *self, size_t index, const void *elem) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot set element in an empty array");
 
@@ -445,6 +500,8 @@ static JARRAY_RETURN array_set(JARRAY *self, size_t index, const void *elem) {
 }
 
 static JARRAY_RETURN array_indexes_of(JARRAY *self, const void *elem) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot search in empty array");
     if (self->user_implementation.is_equal == NULL) {
@@ -475,6 +532,8 @@ static JARRAY_RETURN array_indexes_of(JARRAY *self, const void *elem) {
 }
 
 static JARRAY_RETURN array_for_each(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!callback) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Callback function is null");
     if (self->_length == 0)
@@ -493,6 +552,8 @@ static JARRAY_RETURN array_for_each(JARRAY *self, void (*callback)(void *elem, v
 }
 
 static JARRAY_RETURN array_clear(JARRAY *self) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_data == NULL) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
     // Free existing _data
@@ -508,6 +569,8 @@ static JARRAY_RETURN array_clear(JARRAY *self) {
 }
 
 static JARRAY_RETURN array_clone(JARRAY *self) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot clone an empty array");
 
@@ -552,6 +615,10 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
 }
 
 static JARRAY_RETURN array_contains(JARRAY *self, const void *elem) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!elem)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Array cannot contain a NULL element");
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot check containment in an empty array");
 
@@ -583,7 +650,8 @@ static int compare_size_t(const void *a, const void *b) {
 }
 
 static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t count) {
-
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!data || count == 0) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
 
@@ -637,6 +705,8 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
 }
 
 static JARRAY_RETURN array_length(JARRAY *self) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     JARRAY_RETURN ret;
     ret.has_value = true;
     ret.has_error = false;
@@ -645,6 +715,8 @@ static JARRAY_RETURN array_length(JARRAY *self) {
 }
 
 static JARRAY_RETURN array_reduce(JARRAY *self, void *(*reducer)(const void *accumulator, const void *elem, const void *ctx), const void *initial_value, const void *ctx) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!reducer) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function is null");
     if (self->_length == 0)
@@ -682,6 +754,10 @@ static JARRAY_RETURN array_reduce(JARRAY *self, void *(*reducer)(const void *acc
 }
 
 static JARRAY_RETURN array_concat(JARRAY *arr1, JARRAY *arr2) {
+    if (!arr1)
+        return create_return_error(arr1, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY (arr1)");
+    if (!arr2)
+        return create_return_error(arr2, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY (arr2)");
     if (arr1->_elem_size != arr2->_elem_size) {
         return create_return_error(NULL, JARRAY_INVALID_ARGUMENT, "Element sizes do not match for concatenation");
     }
@@ -711,6 +787,8 @@ static JARRAY_RETURN array_concat(JARRAY *arr1, JARRAY *arr2) {
 }
 
 static JARRAY_RETURN array_join(JARRAY *self, const char *separator) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot join elements of an empty array");
 
@@ -761,6 +839,8 @@ static JARRAY_RETURN array_join(JARRAY *self, const char *separator) {
 }
 
 static JARRAY_RETURN array_reverse(JARRAY *self) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot reverse an empty array");
 
@@ -785,6 +865,8 @@ static JARRAY_RETURN array_reverse(JARRAY *self) {
 }
 
 static JARRAY_RETURN array_any(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot check any on an empty array");
     if (!predicate)
@@ -809,6 +891,8 @@ static JARRAY_RETURN array_any(const JARRAY *self, bool (*predicate)(const void 
 }
 
 static JARRAY_RETURN array_reduce_right(JARRAY *self, void *(*reducer)(const void *accumulator, const void *elem, const void *ctx), const void *initial_value, const void *ctx) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!reducer) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function is null");
     if (self->_length == 0)
@@ -936,7 +1020,47 @@ static JARRAY_RETURN array_fill(JARRAY *self, const void *elem, size_t start, si
     return ret;
 }
 
+static JARRAY_RETURN array_shift(JARRAY *self){
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    memmove(
+        (char*)self->_data,
+        (char*)self->_data + self->_elem_size,
+        (self->_length - 1) * self->_elem_size
+    );
+    void *new_data = realloc(self->_data, (self->_length - 1) * self->_elem_size);
+    if (!new_data)
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_at");
 
+    self->_data = new_data;
+    self->_length--;
+
+    JARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_shift_right(JARRAY *self, const void *elem){
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+    if (!elem)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot insert NULL in a jarray");
+    memmove(
+        (char*)self->_data + self->_elem_size,
+        (char*)self->_data,
+        (self->_length + 1) * self->_elem_size
+    );
+    void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
+    if (!new_data)
+        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_at");
+
+    self->_data = new_data;
+    self->_length++;
+
+    return array_set(self, 0, elem);
+}
 
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
@@ -948,6 +1072,7 @@ JARRAY_INTERFACE jarray = {
     .add_at = array_add_at,
     .print = array_print,
     .init = array_init,
+    .init_with_data_copy = array_init_with_data_copy,
     .init_with_data = array_init_with_data,
     .print_array_err = print_array_err,
     .free = array_free,
@@ -974,4 +1099,6 @@ JARRAY_INTERFACE jarray = {
     .find_first_index = array_find_first_index,
     .find_last_index = array_find_last_index,
     .fill = array_fill,
+    .shift = array_shift,
+    .shift_right = array_shift_right,
 };

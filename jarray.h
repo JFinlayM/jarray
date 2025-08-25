@@ -223,7 +223,20 @@ typedef struct JARRAY_INTERFACE {
      * @param elem_size Size of one element in bytes.
      * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*init_with_data)(JARRAY *array,const void *data, size_t length, size_t elem_size);
+    JARRAY_RETURN (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size);
+    /**
+     * @brief Initializes a JARRAY with pre-existing data.
+     *
+     * @note
+     * Takes ownership of the provided data into the JARRAY. The caller should set data pointer to NULL.
+     *
+     * @param array Pointer to JARRAY.
+     * @param data Pointer to existing data buffer.
+     * @param length Number of elements in the data buffer.
+     * @param elem_size Size of one element in bytes.
+     * @return JARRAY_RETURN indicating success or error.
+     */
+    JARRAY_RETURN (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size);
     /**
      * @brief Prints all elements using the user-defined callback.
      *
@@ -493,6 +506,21 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN pointing to NULL or an error.
      */
     JARRAY_RETURN (*fill)(JARRAY *self, const void *elem, size_t start, size_t end);
+    /**
+     * @brief Shifts the array to the left and discards the first element.
+     * 
+     * @param self Pointer to JARRAY.
+     * @return JARRAY_RETURN pointing to NULL or an error.
+     */
+    JARRAY_RETURN (*shift)(JARRAY *self);
+    /**
+     * @brief Shifts the array to the right and adds elem at index 0.
+     * 
+     * @param self Pointer to JARRAY.
+     * @param elem Element to add.
+     * @return JARRAY_RETURN pointing to NULL or an error.
+     */
+    JARRAY_RETURN (*shift_right)(JARRAY *self, const void *elem);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
