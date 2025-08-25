@@ -75,6 +75,7 @@ void *sum(const void *accumulator, const void *elem, const void *ctx) {
 
 int main(void) {
     JARRAY_RETURN ret;
+    printf("sizeof JARRAY_RETURN : %ld\n", sizeof(ret));
     JARRAY array;
 
     // --- Init ---
@@ -141,8 +142,25 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
 
-    printf("Find first even number: ");
+    // --- Finding ---
+
+    printf("\nFind first even number: ");
     ret = jarray.find_first(&array, is_even, NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+
+    printf("Find index of first even number: ");
+    ret = jarray.find_first_index(&array, is_even, NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+
+    printf("Find last even number: ");
+    ret = jarray.find_last(&array, is_even, NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+
+    printf("Find index of last even number: ");
+    ret = jarray.find_last_index(&array, is_even, NULL);
     JARRAY_CHECK_RET(ret);
     printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
 
@@ -172,7 +190,7 @@ int main(void) {
 
     // --- Find indexes ---
     printf("\nFinding indexes of 12:\n");
-    ret = jarray.find_indexes(&array, JARRAY_DIRECT_INPUT(int, 12));
+    ret = jarray.indexes_of(&array, JARRAY_DIRECT_INPUT(int, 12));
     JARRAY_CHECK_RET(ret);
     size_t *indexes = JARRAY_RET_GET_POINTER(size_t, ret);
 
@@ -224,6 +242,12 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
 
+    // --- Reduce right ---
+    printf("\nReducing clone array from the right (sum of elements): ");
+    ret = jarray.reduce_right(clone, sum, NULL, NULL);
+    JARRAY_CHECK_RET(ret);
+    printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
+
     // --- Contains ---
     printf("\nChecking if clone contains 5: ");
     ret = jarray.contains(clone, JARRAY_DIRECT_INPUT(int, 5));
@@ -268,6 +292,12 @@ int main(void) {
     ret = jarray.any(clone, sup_8, NULL);
     JARRAY_CHECK_RET(ret);
     printf("%s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "Yes" : "No");
+
+    // --- Fill ---
+    printf("\nFilling clone array with fives:\n");
+    ret = jarray.fill(clone, JARRAY_DIRECT_INPUT(int, 5), 0, clone->_length + 3);
+    JARRAY_CHECK_RET(ret);
+    jarray.print(clone);
 
     // --- Cleanup ---
     jarray.free(&array);

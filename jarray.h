@@ -63,7 +63,7 @@ typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
     void (*print_error_override)(const JARRAY_RETURN_ERROR);
     // Function to compare two elements. This function is mandatory if you want to use the jarray.sort function.
     int (*compare)(const void*, const void*);
-    // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.find_indexes functions.
+    // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.indexes_of functions.
     bool (*is_equal)(const void*, const void*);
 } JARRAY_USER_FUNCTION_IMPLEMENTATION;
 
@@ -303,7 +303,7 @@ typedef struct JARRAY_INTERFACE {
      * @param elem Pointer to element to find.
      * @return JARRAY_RETURN containing allocated indexes or error.
      */
-    JARRAY_RETURN (*find_indexes)(JARRAY *self, const void *elem);
+    JARRAY_RETURN (*indexes_of)(JARRAY *self, const void *elem);
     /**
      * @brief Applies a callback to each element.
      *
@@ -432,6 +432,67 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN containing result or error.
      */
     JARRAY_RETURN (*any)(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    /**
+     * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from rigth to left of array.
+     *
+     * @note
+     * Allocates memory for the reduced value; caller must free `.value`.
+     *
+     * @param self Pointer to JARRAY.
+     * @param reducer Function to combine elements.
+     * @param initial_value Pointer to initial accumulator value.
+     * @param ctx Context pointer for reducer.
+     * @return JARRAY_RETURN containing reduced value or error.
+     */
+    JARRAY_RETURN (*reduce_right)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
+    /**
+     * @brief Finds the last element satisfying a predicate.
+     *
+     * @note
+     * Returns a pointer to internal data; do NOT free.
+     *
+     * @param self Pointer to JARRAY.
+     * @param predicate Function to check elements.
+     * @param ctx Context pointer for predicate.
+     * @return JARRAY_RETURN pointing to matching element or an error.
+     */
+    JARRAY_RETURN (*find_last)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    /**
+     * @brief Finds the index of the first element satisfying a predicate.
+     *
+     * @note
+     * Returns a pointer to internal data; do NOT free.
+     *
+     * @param self Pointer to JARRAY.
+     * @param predicate Function to check elements.
+     * @param ctx Context pointer for predicate.
+     * @return JARRAY_RETURN pointing to matching element or an error.
+     */
+    JARRAY_RETURN (*find_first_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    /**
+     * @brief Finds the index of the last element satisfying a predicate.
+     *
+     * @note
+     * Returns a pointer to internal data; do NOT free.
+     *
+     * @param self Pointer to JARRAY.
+     * @param predicate Function to check elements.
+     * @param ctx Context pointer for predicate.
+     * @return JARRAY_RETURN pointing to matching element or an error.
+     */
+    JARRAY_RETURN (*find_last_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    /**
+     * @brief Fills array with the same element. The number of element in the array filled is specified with argument `count`.
+     * 
+     * @note
+     * If `count` is superior than the arrays length then the data is reallocated. If lower, the data not within `count` are not replaced.
+     * @param self Pointer to JARRAY.
+     * @param elem element to insert.
+     * @param start the index where inserting begins.
+     * @param end the index where inserting ends.
+     * @return JARRAY_RETURN pointing to NULL or an error.
+     */
+    JARRAY_RETURN (*fill)(JARRAY *self, const void *elem, size_t start, size_t end);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;

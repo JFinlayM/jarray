@@ -90,17 +90,22 @@ jarray.free(&array);                                // Free memory
 
 ### Advanced Operations
 ```c
-jarray.sort(&array, QSORT, compare);                // Sort (either compare callback in arg or in user_implementation)
-jarray.filter(&array, predicate, ctx);              // Filter by condition (predicate callback and optional context)
-jarray.subarray(&array, start, end);                // Extract subarray
-jarray.find_first(&array, predicate, ctx);          // First match by predicate
-jarray.find_indexes(&array, &value);                // All indexes of a value
-jarray.contains(&array, &value);                    // True/false if value exists
-jarray.reverse(&array);                             // Reverse array
-jarray.any(&array, predicate, ctx);                 // True/false if any element matches predicate
-jarray.for_each(&array, callback, ctx);             // Apply function to each element
-jarray.reduce(&array, reducer, &initial, ctx);      // Reduce to single value
-jarray.join(&array, separator);                     // Join as string (requires element_to_string callback)
+jarray.sort(&array, QSORT, compare);                    // Sort (either compare callback in arg or in user_implementation)
+jarray.filter(&array, predicate, ctx);                  // Filter by condition (predicate callback and optional context)
+jarray.subarray(&array, start, end);                    // Extract subarray
+jarray.find_first(&array, predicate, ctx);              // First match by predicate
+jarray.find_first_index(&array, predicate, ctx);        // Index of first match by predicate
+jarray.find_last(&array, predicate, ctx);               // Last match by predicate
+jarray.find_last_index(&array, predicate, ctx);         // Index of last match by predicate
+jarray.find_indexes(&array, &value);                    // All indexes of a value
+jarray.contains(&array, &value);                        // True/false if value exists
+jarray.reverse(&array);                                 // Reverse array
+jarray.any(&array, predicate, ctx);                     // True/false if any element matches predicate
+jarray.for_each(&array, callback, ctx);                 // Apply function to each element
+jarray.reduce(&array, reducer, &initial, ctx);          // Reduce to single value
+jarray.reduce_right(&array, reducer, &initial, ctx);    // Reduce from the right to single value
+jarray.join(&array, separator);                         // Join as string (requires element_to_string callback)
+jarray.fill(&array, elem, start, end);                  // Fills of elem the jarray from start to end index
 ```
 
 ## Examples
@@ -158,19 +163,31 @@ jarray.sort(&array, QSORT, compare_func);
 Set these before using related functions:
 ```c
 array.user_implementation.print_element_callback = print_func;  // For print()
-array.user_implementation.print_error_override = error_func; // For error printing
-array.user_implementation.print_array_override = print_array_func; // For print() override
 array.user_implementation.element_to_string = to_string_func; // For join()
 array.user_implementation.compare = compare_func;              // For sort()
 array.user_implementation.is_equal = equal_func;               // For contains(), find_indexes()
+```
+
+## Override callbacks
+
+There is some functions that can be overriden. Maybe more will be added later:
+```c
+array.user_implementation.print_error_override = error_func; // For error printing
+array.user_implementation.print_array_override = print_array_func; // For print() override
 ```
 
 ## MACROS
 
 Use these macros for automatic error checking and value extraction:
 ```c
-JARRAY_CHECK_RET(ret);           // Print error, free error, return true if error -> if you ret value later
-JARRAY_CHECK_RET_FREE(ret);      // Print error, free return value and error, return true if error -> if you don't ret value later
-JARRAY_RET_GET_POINTER(type, ret); // Get pointer from return value (after checking no error)
-JARRAY_RET_GET_VALUE(type, ret);   // Get value from return value (after checking no error)
+JARRAY_CHECK_RET(ret);             // Print error, free error, return true if error -> if you need ret value later
+JARRAY_CHECK_RET_FREE(ret);        // Print error, free return value and error, return true if error -> if you don't need ret value later
+JARRAY_GET_VALUE(type, val);       // Extract value from pointer (doesn't free)
+JARRAY_DIRECT_INPUT(type, val);    // Create pointer for input value
+JARRAY_RET_GET_VALUE(type, ret);   // Get value from return (doesn't free)
+JARRAY_RET_GET_VALUE_FREE(type, ret); // Get value and free return
+JARRAY_RET_GET_POINTER(type, ret); // Get pointer from return
+JARRAY_FREE_RET(ret);              // Free both value and error
+JARRAY_FREE_RET_VALUE(ret);        // Free only value
+JARRAY_FREE_RET_ERROR(ret);        // Free only error
 ```
