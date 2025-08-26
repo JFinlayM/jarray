@@ -521,6 +521,19 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN pointing to NULL or an error.
      */
     JARRAY_RETURN (*shift_right)(JARRAY *self, const void *elem);
+    /**
+     * @brief Adds and/or removes array elements.
+     * 
+     * @note If you do not add any elements, you must have NULL as last argument. 
+     * Example: jarray.splice(array, 2, 1, NULL);
+     * 
+     * @param self Pointer to JARRAY.
+     * @param index position to add and/or remove items.
+     * @param count number of element to remove.
+     * @param ... Optionnal: the new elements to be added.
+     * @return JARRAY_RETURN pointing to NULL or an error.
+     */
+    JARRAY_RETURN (*splice)(JARRAY *self, size_t index, size_t count, ...);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;

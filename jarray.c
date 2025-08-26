@@ -995,7 +995,7 @@ static JARRAY_RETURN array_fill(JARRAY *self, const void *elem, size_t start, si
     if (start > end)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) cannot be higher than end (%zu)", start, end);
     if (start >= self->_length)
-        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) must be stricly greater than the length of the jarray (%zu)", start, self->_length);
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) must be stricly lower than the length of the jarray (%zu)", start, self->_length);
     if (!elem)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot insert NULL in a jarray");
     if (end >= self->_length){
@@ -1062,6 +1062,57 @@ static JARRAY_RETURN array_shift_right(JARRAY *self, const void *elem){
     return array_set(self, 0, elem);
 }
 
+static JARRAY_RETURN array_splice_ext(JARRAY *self, size_t index, size_t count, va_list args) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT,
+                                   "Cannot splice a NULL JARRAY");
+    if (index > self->_length)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT,
+                                   "index (%zu) must be <= length (%zu)", index, self->_length);
+
+    JARRAY_RETURN ret;
+
+    // --- Suppression ---
+    for (size_t i = 0; i < count; i++) {
+        ret = array_remove_at(self, index);
+        if (ret.has_error) {
+            if (ret.error.error_code == JARRAY_INDEX_OUT_OF_BOUND) break;
+            else return ret;
+        } else {
+            JARRAY_FREE_RET(ret);
+        }
+    }
+
+    // --- Insertion ---
+    size_t offset = 0;
+    void *element = va_arg(args, void*);
+    while (element != NULL) {
+        ret = array_add_at(self, index + offset, element);
+        if (ret.has_error) {
+            return ret;
+        } else {
+            JARRAY_FREE_RET(ret);
+        }
+        offset++;
+        element = va_arg(args, void*);
+    }
+
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_splice(JARRAY *self, size_t index, size_t count, ...) {
+    va_list args;
+    va_start(args, count);
+    JARRAY_RETURN ret = array_splice_ext(self, index, count, args);
+    va_end(args);
+    return ret;
+}
+
+
+
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
     .filter = array_filter,
@@ -1101,4 +1152,5 @@ JARRAY_INTERFACE jarray = {
     .fill = array_fill,
     .shift = array_shift,
     .shift_right = array_shift_right,
+    .splice = array_splice,
 };

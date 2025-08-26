@@ -308,6 +308,12 @@ int main(void) {
     JARRAY_CHECK_RET(ret);
     jarray.print(clone);
 
+    // --- Splice ---
+    printf("\nSplicing element 1 and 2 and replaced by 10s\n");
+    ret = jarray.splice(clone, 1, 2, JARRAY_DIRECT_INPUT(int, 10), JARRAY_DIRECT_INPUT(int, 10));
+    JARRAY_CHECK_RET(ret);
+    jarray.print(clone);
+
     // --- Cleanup ---
     jarray.free(&array);
     jarray.free(clone);
