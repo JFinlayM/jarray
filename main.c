@@ -309,8 +309,14 @@ int main(void) {
     jarray.print(clone);
 
     // --- Splice ---
-    printf("\nSplicing element 1 and 2 and replaced by 10s\n");
-    ret = jarray.splice(clone, 1, 2, JARRAY_DIRECT_INPUT(int, 10), JARRAY_DIRECT_INPUT(int, 10));
+    printf("\nSplicing element 1 and 2 and replaced by 10 and 15\n");
+    ret = jarray.splice(clone, 1, 2, JARRAY_DIRECT_INPUT(int, 10), JARRAY_DIRECT_INPUT(int, 15), NULL);
+    JARRAY_CHECK_RET(ret);
+    jarray.print(clone);
+
+    // --- Addm (Add multiple) ---
+    printf("\nAdding 25 and 30 with addm:\n");
+    ret = jarray.addm(clone, JARRAY_DIRECT_INPUT(int, 25), JARRAY_DIRECT_INPUT(int, 30), NULL);
     JARRAY_CHECK_RET(ret);
     jarray.print(clone);
 

@@ -83,28 +83,29 @@ JARRAY [size: 5] =>
 
 ### Basic Operations
 ```c
-jarray.init(&array, sizeof(int));                   // Initialize empty array
-jarray.init_with_data(&array, data, count, sizeof(int)); // Initialize with raw data
-jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));   // Append element
-jarray.add_all(&array, data, count);                // Append multiple elements
-jarray.add_at(&array, index, &value);               // Insert at index
-jarray.at(&array, index);                           // Get element at index
-jarray.set(&array, index, &value);                  // Overwrite element
-jarray.length(&array);                              // Get array length
-jarray.remove(&array);                              // Remove last element (and returns copy)
-jarray.remove_at(&array, index);                    // Remove at index (and returns copy)
-jarray.remove_all(&array, data, count);             // Remove all occurrences of given data
-jarray.print(&array);                               // Print array (needs print_element_callback)
-jarray.data(&array);                                // Copy raw buffer
-jarray.clear(&array);                               // Clear contents
-jarray.clone(&array);                               // Deep copy
-jarray.concat(&array, &other);                      // Concatenate two arrays
-jarray.free(&array);                                // Free memory
+jarray.init(&array, sizeof(int));                       // Initialize empty array
+jarray.init_with_data(&array, data, count, sizeof(int));// Initialize with raw data
+jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));       // Append element
+jarray.addm(&array, ...);                               // Appends elements to the end of the array.
+jarray.add_all(&array, data, count);                    // Append multiple elements
+jarray.add_at(&array, index, &value);                   // Insert at index
+jarray.at(&array, index);                               // Get element at index
+jarray.set(&array, index, &value);                      // Overwrite element
+jarray.length(&array);                                  // Get array length
+jarray.remove(&array);                                  // Remove last element (and returns copy)
+jarray.remove_at(&array, index);                        // Remove at index (and returns copy)
+jarray.print(&array);                                   // Print array (needs print_element_callback)
+jarray.data(&array);                                    // Copy raw buffer
+jarray.clear(&array);                                   // Clear contents
+jarray.clone(&array);                                   // Deep copy
+jarray.concat(&array, &other);                          // Concatenate two arrays
+jarray.free(&array);                                    // Free memory
 
 ```
 
 ### Advanced Operations
 ```c
+jarray.remove_all(&array, data, count);                 // Remove all occurrences of given data
 jarray.sort(&array, QSORT, compare);                    // Sort (either compare callback in arg or in user_implementation)
 jarray.filter(&array, predicate, ctx);                  // Filter by condition (predicate callback and optional context)
 jarray.subarray(&array, start, end);                    // Extract subarray
@@ -123,7 +124,7 @@ jarray.join(&array, separator);                         // Join as string (requi
 jarray.fill(&array, elem, start, end);                  // Fills of elem the jarray from start to end index
 jarray.shift(&array);                                   // Shifts the array to the left and discards the first element.
 jarray.shift_right(&array, elem);                       // Shifts the array to the right and adds elem at index 0.
-jarray.splice(&array, index, count, ...)                // Adds and/or removes array elements.
+jarray.splice(&array, index, count, ...);               // Adds and/or removes array elements.
 ```
 
 ## Examples

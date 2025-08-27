@@ -153,12 +153,11 @@ typedef struct JARRAY_INTERFACE {
      *   - `.value` pointing to the element (do NOT free),
      *   - or error if out-of-bounds or array not initialized.
      */
-    JARRAY_RETURN (*at)(JARRAY *self, size_t index);
+    JARRAY_RETURN (*at)(const JARRAY *self, size_t index);
     /**
      * @brief Appends an element to the end of the array.
      *
      * @note
-     * Resizes the internal buffer if size increases beyond the load factor and copies the element into it.
      * The element data is copied; the caller retains ownership of the original.
      *
      * @param self Pointer to JARRAY.
@@ -530,10 +529,21 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param index position to add and/or remove items.
      * @param count number of element to remove.
-     * @param ... Optionnal: the new elements to be added.
+     * @param ... the new elements to be added. ALWAYS add `NULL` as last argument after the elements.
      * @return JARRAY_RETURN pointing to NULL or an error.
      */
     JARRAY_RETURN (*splice)(JARRAY *self, size_t index, size_t count, ...);
+    /**
+     * @brief Appends elements to the end of the array.
+     *
+     * @note
+     * The elements data are copied; the caller retains ownership of the original elements.
+     *
+     * @param self Pointer to JARRAY.
+     * @param ... elements to append. ALWAYS add `NULL` as last argument after the elements to append.
+     * @return JARRAY_RETURN indicating success or error.
+     */
+    JARRAY_RETURN (*addm)(JARRAY *self, ...);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
@@ -590,6 +600,8 @@ extern JARRAY_INTERFACE jarray;
  * @note Does NOT free the pointer.
  */
 #define JARRAY_GET_VALUE(type, val) (*(type*)val)
+
+#define JARRAY_GET_POINTER(type, val) ((type*)val)
 
 /**
  * @brief Allocates memory and copies a value into it.
@@ -695,6 +707,13 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
         ret_val; \
     })
 
+#define JARRAY_CKECK_RET_RETURN(ret) \
+    if ((ret).has_error) { \
+        jarray.print_array_err((ret), __FILE__, __LINE__); \
+        JARRAY_FREE_RET(ret); \
+        return EXIT_FAILURE; \
+    }
+
 /**
  * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and returns EXIT_FAILURE.
  *
@@ -712,12 +731,12 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
     })
 
 
-#define JARRAY_CKECK_RET_FREE_RET(ret) \
-    do { \
-        if (jarray_check_ret_free(ret, __FILE__, __LINE__)) { \
+#define JARRAY_CKECK_RET_FREE_RETURN(ret) \
+        JARRAY_FREE_RET(ret); \
+        if ((ret).has_error) { \
+            jarray.print_array_err((ret), __FILE__, __LINE__); \
             return EXIT_FAILURE; \
-        } \
-    } while(0)
+        }
 
 
 #define MAX(a, b) a > b ? a : b

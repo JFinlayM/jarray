@@ -82,7 +82,7 @@ static void init_array_callbacks(JARRAY *array){
     array->user_implementation.is_equal = NULL;
 }
 
-static JARRAY_RETURN array_at(JARRAY *self, size_t index) {
+static JARRAY_RETURN array_at(const JARRAY *self, size_t index) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!self->_data) 
@@ -621,7 +621,6 @@ static JARRAY_RETURN array_contains(JARRAY *self, const void *elem) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Array cannot contain a NULL element");
     if (self->_length == 0) 
         return create_return_error(self, JARRAY_EMPTY, "Cannot check containment in an empty array");
-
     if (self->user_implementation.is_equal == NULL) 
         return create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
 
@@ -1111,7 +1110,34 @@ static JARRAY_RETURN array_splice(JARRAY *self, size_t index, size_t count, ...)
     return ret;
 }
 
+static JARRAY_RETURN array_addm_ext(JARRAY *self, va_list args) {
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
 
+    JARRAY_RETURN ret;
+    void *element = va_arg(args, void*);
+    while (element != NULL) {
+        ret = array_add(self, element);
+        if (ret.has_error) {
+            return ret;
+        } else {
+            JARRAY_FREE_RET(ret);
+        }
+        element = va_arg(args, void*);
+    }
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_addm(JARRAY *self, ...){
+    va_list args;
+    va_start(args, self);
+    JARRAY_RETURN ret = array_addm_ext(self, args);
+    va_end(args);
+    return ret;
+}
 
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
@@ -1153,4 +1179,5 @@ JARRAY_INTERFACE jarray = {
     .shift = array_shift,
     .shift_right = array_shift_right,
     .splice = array_splice,
+    .addm = array_addm,
 };
