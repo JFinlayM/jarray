@@ -23,7 +23,7 @@ void print_int(const void *x) {
 char *int_to_string(const void *x) {
     int value = JARRAY_GET_VALUE(const int, x);
     // Allocate enough space for the string representation
-    char *str = malloc(12); // Enough for 32-bit int
+    char *str = (char*)malloc(12*sizeof(char)); // Enough for 32-bit int
     if (str) {
         snprintf(str, 12, "%d", value);
     }
@@ -75,12 +75,7 @@ void *sum(const void *accumulator, const void *elem, const void *ctx) {
 
 int main(void) {
     JARRAY_RETURN ret;
-    printf("sizeof JARRAY_RETURN : %ld\n", sizeof(ret));
     JARRAY array;
-
-    // --- Init ---
-    ret = jarray.init(&array, sizeof(int));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
 
     printf("\n=== DEMO: jarray ===\n");
 
@@ -93,6 +88,8 @@ int main(void) {
     ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     data_start = NULL;
+    ret = jarray.reserve(&array, 20);
+    JARRAY_CHECK_RET(ret);
 
     array.user_implementation.print_element_callback = print_int;
     array.user_implementation.element_to_string = int_to_string;
@@ -163,11 +160,11 @@ int main(void) {
 
     // --- Raw data ---
     printf("\nRaw data pointer:\n");
-    ret = jarray.data(&array);
+    ret = jarray.copy_data(&array);
     JARRAY_CHECK_RET(ret);
     int *data = JARRAY_RET_GET_POINTER(int, ret);
     printf("data[0] = %d\n", data[0]);
-    free(data); // because jarray.data allocated
+    free(data);
 
     // --- Subarray ---
     printf("\nSubarray [0..3]:\n");
@@ -253,18 +250,9 @@ int main(void) {
 
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
-    jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
-    ret = jarray.data(clone);
+    ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
     if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-    void *data_clone = JARRAY_RET_GET_POINTER(void*, ret);
-    ret = jarray.length(clone);
-    if (JARRAY_CHECK_RET(ret)) {
-        free(data_clone);
-        return EXIT_FAILURE;
-    }
-    size_t count = JARRAY_RET_GET_VALUE(size_t, ret);
-    ret = jarray.remove_all(&array, data_clone, count);
-    free(data_clone);
+    ret = jarray.remove_all(&array, clone->_data, clone->_length);
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
     ret = jarray.print(&array); // Should only display 17
     if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;

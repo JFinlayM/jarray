@@ -75,9 +75,10 @@ typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
  * User can set these functions to customize the behavior of the JARRAY.
  */ 
 typedef struct JARRAY {
-    void *_data;
+    void * _data;
     size_t _elem_size;
     size_t _length;
+    size_t _min_alloc;
     JARRAY_USER_FUNCTION_IMPLEMENTATION user_implementation;
 } JARRAY;
 
@@ -280,7 +281,7 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @return JARRAY_RETURN containing copy of data or error.
      */
-    JARRAY_RETURN (*data)(JARRAY *self);
+    JARRAY_RETURN (*copy_data)(JARRAY *self);
     /**
      * @brief Create a subarray from a given JARRAY.
      * 
@@ -544,6 +545,25 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*addm)(JARRAY *self, ...);
+    /**
+     * @brief Reserves `capacity * self->_elem_size` bytes for the array, and sets `self->_min_alloc` to `capacity`.
+     * 
+     * @note
+     * `self->_min_alloc` only changes via this function, and will be spreaded when cloning array for example.
+     * 
+     * @param self Pointer o JARRAY.
+     * @param capacity Number of element to reserve in memory.
+     * @return JARRAY_RETURN pointing to NULL or error.
+     */
+    JARRAY_RETURN (*reserve)(JARRAY *self, size_t capacity);
+    /**
+     * @brief Initialize array and reserve memory.
+     * 
+     * @param self pointer to array
+     * @param elem_size size in bytes of the elements to be contained in array.
+     * @param capacity number of element to reserve in memory.
+     */
+    JARRAY_RETURN (*init_reserve)(JARRAY *self, size_t elem_size, size_t capacity);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
@@ -737,8 +757,5 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
             jarray.print_array_err((ret), __FILE__, __LINE__); \
             return EXIT_FAILURE; \
         }
-
-
-#define MAX(a, b) a > b ? a : b
 
 #endif

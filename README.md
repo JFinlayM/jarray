@@ -84,6 +84,7 @@ JARRAY [size: 5] =>
 ### Basic Operations
 ```c
 jarray.init(&array, sizeof(int));                       // Initialize empty array
+jarray.init_reserve(&array, sizeof(int), capacity)      // Initialize array and reserve memory
 jarray.init_with_data(&array, data, count, sizeof(int));// Initialize with raw data
 jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));       // Append element
 jarray.addm(&array, ...);                               // Appends elements to the end of the array.
@@ -91,16 +92,15 @@ jarray.add_all(&array, data, count);                    // Append multiple eleme
 jarray.add_at(&array, index, &value);                   // Insert at index
 jarray.at(&array, index);                               // Get element at index
 jarray.set(&array, index, &value);                      // Overwrite element
-jarray.length(&array);                                  // Get array length
 jarray.remove(&array);                                  // Remove last element (and returns copy)
 jarray.remove_at(&array, index);                        // Remove at index (and returns copy)
 jarray.print(&array);                                   // Print array (needs print_element_callback)
-jarray.data(&array);                                    // Copy raw buffer
+jarray.copy_data(&array);                               // Copy raw buffer
 jarray.clear(&array);                                   // Clear contents
 jarray.clone(&array);                                   // Deep copy
 jarray.concat(&array, &other);                          // Concatenate two arrays
+jarray.reserve(&array, capacity)                        // Reserves `capacity * array->_elem_size` bytes for the array, and sets `array->_min_alloc` to `capacity`
 jarray.free(&array);                                    // Free memory
-
 ```
 
 ### Advanced Operations

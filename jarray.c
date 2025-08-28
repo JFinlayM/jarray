@@ -23,6 +23,8 @@ static const char *enum_to_string[] = {
     [JARRAY_UNIMPLEMENTED_FUNCTION]                = "Function not implemented",
 };
 
+static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
+
 static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
     if (ret.ret_source->user_implementation.print_error_override) {
         ret.ret_source->user_implementation.print_error_override(ret.error);
@@ -46,6 +48,7 @@ static void array_free(JARRAY *array) {
     array->_data = NULL;
     array->_length = 0;
     array->_elem_size = 0;
+    array->_min_alloc = 0;
     memset(&array->user_implementation, 0, sizeof(array->user_implementation));
 }
 
@@ -101,11 +104,13 @@ static JARRAY_RETURN array_at(const JARRAY *self, size_t index) {
 static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
-    void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
-    if (!new_data) 
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
-
-    self->_data = new_data;
+    if (self->_min_alloc <= self->_length) {
+        void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+    
+        self->_data = new_data;
+    }
     memcpy((char*)self->_data + self->_length * self->_elem_size, elem, self->_elem_size);
     self->_length++;
 
@@ -124,11 +129,13 @@ static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) 
     if (index > self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for insert", index);
 
-    void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
-    if (!new_data)
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_at");
-
-    self->_data = new_data;
+    if (self->_min_alloc <= self->_length) {
+        void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+    
+        self->_data = new_data;
+    }
 
     memmove(
         (char*)self->_data + (index + 1) * self->_elem_size,
@@ -165,10 +172,10 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
 
     self->_length--;
 
-    if (self->_length > 0) {
+    if (self->_length > self->_min_alloc) {
         void *new_data = realloc(self->_data, self->_length * self->_elem_size);
         if (new_data) self->_data = new_data;
-    } else {
+    } else if(self->_length == 0) {
         free(self->_data);
         self->_data = NULL;
     }
@@ -195,6 +202,7 @@ static JARRAY_RETURN array_init(JARRAY *array, size_t _elem_size) {
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     array->_data = NULL;
     array->_length = 0;
+    array->_min_alloc = 0;
     array->_elem_size = _elem_size;
     
     init_array_callbacks(array);
@@ -218,6 +226,7 @@ static JARRAY_RETURN array_init_with_data_copy(JARRAY *array, const void *data, 
 
     memcpy(array->_data, data, length * elem_size);
     array->_length = length;
+    array->_min_alloc = 0;
     array->_elem_size = elem_size;
 
     init_array_callbacks(array);
@@ -237,6 +246,7 @@ static JARRAY_RETURN array_init_with_data(JARRAY *array, void *data, size_t leng
     
     array->_data = data;
     array->_length = length;
+    array->_min_alloc = 0;
     array->_elem_size = elem_size;
 
     init_array_callbacks(array);
@@ -262,6 +272,7 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
 
     JARRAY *result = malloc(sizeof(JARRAY));
     result->_length = count;
+    result->_min_alloc = 0;
     result->_elem_size = self->_elem_size;
     result->_data = malloc(count * self->_elem_size);
     result->user_implementation = self->user_implementation;
@@ -296,7 +307,7 @@ static JARRAY_RETURN array_print(const JARRAY *array) {
         return ret;
     }
 
-    printf("JARRAY [size: %zu] =>\n", array->_length);
+    printf("JARRAY [size: %zu, min_alloc: %zu] =>\n", array->_length, array->_min_alloc);
     for (size_t i = 0; i < array->_length; i++) {
         void *elem = (char*)array->_data + i * array->_elem_size;
         array->user_implementation.print_element_callback(elem);
@@ -418,7 +429,7 @@ static JARRAY_RETURN array_find_first(JARRAY *self, bool (*predicate)(const void
     return create_return_error(self, JARRAY_ELEMENT_NOT_FOUND, "Found no element corrsponding with predicate conditions\n");
 }
 
-static JARRAY_RETURN array_data(JARRAY *self) {
+static JARRAY_RETURN array_copy_data(JARRAY *self) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
 
@@ -458,6 +469,7 @@ static JARRAY_RETURN array_subarray(JARRAY *self, size_t start, size_t end){
         return create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate memory for subarray struct\n");
 
     ret_array->_elem_size = self->_elem_size;
+    ret_array->_min_alloc = 0;
     ret_array->_length = sub_length;
     ret_array->_data = malloc(sub_length * self->_elem_size);
     ret_array->user_implementation = self->user_implementation;
@@ -557,8 +569,10 @@ static JARRAY_RETURN array_clear(JARRAY *self) {
     if (self->_data == NULL) 
         return create_return_error(self, JARRAY_DATA_NULL, "Data field of array is null");
     // Free existing _data
-    free(self->_data);
-    self->_data = NULL;
+    if (self->_min_alloc == 0){
+        free(self->_data);
+        self->_data = NULL;
+    }
     self->_length = 0;
 
     JARRAY_RETURN ret;
@@ -579,13 +593,14 @@ static JARRAY_RETURN array_clone(JARRAY *self) {
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone");
 
     clone->_length = self->_length;
+    clone->_min_alloc = self->_min_alloc;
     clone->_elem_size = self->_elem_size;
-    clone->_data = malloc(self->_length * self->_elem_size);
+    clone->_data = malloc(max_size_t(self->_length, self->_min_alloc) * self->_elem_size);
     if (!clone->_data) {
         free(clone);
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone _data");
     }
-    memcpy(clone->_data, self->_data, self->_length * self->_elem_size);
+    memcpy(clone->_data, self->_data, max_size_t(self->_length, self->_min_alloc) * self->_elem_size);
     clone->user_implementation = self->user_implementation;
 
     JARRAY_RETURN ret;
@@ -599,11 +614,14 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
     if (!data || count == 0) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
 
-    void *new_data = realloc(self->_data, (self->_length + count) * self->_elem_size);
-    if (!new_data) 
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_all");
+    if (self->_min_alloc <= self->_length + count - 1) {
+        void *new_data = realloc(self->_data, (self->_length + count) * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+    
+        self->_data = new_data;
+    }
 
-    self->_data = new_data;
     memcpy((char*)self->_data + self->_length * self->_elem_size, data, count * self->_elem_size);
     self->_length += count;
 
@@ -655,10 +673,11 @@ static JARRAY_RETURN array_remove_all(JARRAY *self, const void *data, size_t cou
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
 
     JARRAY temp_array;
-    array_init(&temp_array, sizeof(size_t));
+    JARRAY_RETURN ret = jarray.init_reserve(&temp_array, sizeof(size_t), self->_length);
+    if (ret.has_error) return ret;
     for (size_t i = 0; i < count; i++) {
         const void *elem = (const char*)data + i * self->_elem_size;
-        JARRAY_RETURN ret = array_indexes_of(self, elem);
+        ret = array_indexes_of(self, elem);
 
         if (ret.has_error && ret.error.error_code == JARRAY_ELEMENT_NOT_FOUND) {
             continue; // No matches for this element
@@ -768,6 +787,7 @@ static JARRAY_RETURN array_concat(JARRAY *arr1, JARRAY *arr2) {
 
     new_array->_elem_size = arr1->_elem_size;
     new_array->_length = arr1->_length + arr2->_length;
+    new_array->_min_alloc = arr1->_length + arr2->_length;
     new_array->_data = malloc(new_array->_length * new_array->_elem_size);
     if (!new_array->_data) {
         free(new_array);
@@ -999,11 +1019,13 @@ static JARRAY_RETURN array_fill(JARRAY *self, const void *elem, size_t start, si
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot insert NULL in a jarray");
     if (end >= self->_length){
         size_t new_length = end + 1;
-        void *new_data = realloc(self->_data, new_length * self->_elem_size);
-        if (!new_data) 
-            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
-
-        self->_data = new_data;
+        if (self->_min_alloc <= new_length) {
+            void *new_data = realloc(self->_data, new_length * self->_elem_size);
+            if (!new_data) 
+                return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+        
+            self->_data = new_data;
+        }
         self->_length = new_length;
     }
 
@@ -1027,11 +1049,13 @@ static JARRAY_RETURN array_shift(JARRAY *self){
         (char*)self->_data + self->_elem_size,
         (self->_length - 1) * self->_elem_size
     );
-    void *new_data = realloc(self->_data, (self->_length - 1) * self->_elem_size);
-    if (!new_data)
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_at");
-
-    self->_data = new_data;
+    if (self->_min_alloc <= self->_length) {
+        void *new_data = realloc(self->_data, (self->_length - 1) * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+    
+        self->_data = new_data;
+    }
     self->_length--;
 
     JARRAY_RETURN ret;
@@ -1051,11 +1075,13 @@ static JARRAY_RETURN array_shift_right(JARRAY *self, const void *elem){
         (char*)self->_data,
         (self->_length + 1) * self->_elem_size
     );
-    void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
-    if (!new_data)
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add_at");
-
-    self->_data = new_data;
+    if (self->_min_alloc <= self->_length) {
+        void *new_data = realloc(self->_data, (self->_length + 1) * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in add");
+    
+        self->_data = new_data;
+    }
     self->_length++;
 
     return array_set(self, 0, elem);
@@ -1139,6 +1165,34 @@ static JARRAY_RETURN array_addm(JARRAY *self, ...){
     return ret;
 }
 
+static JARRAY_RETURN array_reserve(JARRAY *self, size_t capacity){
+    if (!self)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
+
+    self->_min_alloc = capacity;
+    if (capacity > self->_length) {
+        void* new_data = NULL;
+        if (self->_length > 0) new_data = realloc(self->_data, capacity * self->_elem_size);
+        else new_data = malloc(capacity * self->_elem_size);
+        if (!new_data) 
+            return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed when reallocating for reserve");
+        self->_data = new_data;
+    }
+
+    JARRAY_RETURN ret;
+    ret.has_value = false;
+    ret.has_error = false;
+    ret.value = NULL;
+    return ret;
+}
+
+static JARRAY_RETURN array_init_reserve(JARRAY *self, size_t elem_size, size_t capacity){
+    JARRAY_RETURN ret = jarray.init(self, elem_size);
+    if (ret.has_error) return ret;
+    ret = jarray.reserve(self, capacity);
+    return ret;
+}
+
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
     .filter = array_filter,
@@ -1155,7 +1209,7 @@ JARRAY_INTERFACE jarray = {
     .free = array_free,
     .sort = array_sort,
     .find_first = array_find_first,
-    .data = array_data,
+    .copy_data = array_copy_data,
     .subarray = array_subarray,
     .set = array_set,
     .indexes_of = array_indexes_of,
@@ -1180,4 +1234,6 @@ JARRAY_INTERFACE jarray = {
     .shift_right = array_shift_right,
     .splice = array_splice,
     .addm = array_addm,
+    .reserve = array_reserve,
+    .init_reserve = array_init_reserve,
 };
