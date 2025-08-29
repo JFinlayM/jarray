@@ -10,6 +10,7 @@ include(GNUInstallDirs)
 # ----- Sources de la bibliothèque -----
 set(LIB_SOURCES
     jarray.c
+    jarray_string.c
 )
 
 # Bibliothèque statique

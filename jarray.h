@@ -36,6 +36,10 @@ typedef enum {
     JARRAY_UNIMPLEMENTED_FUNCTION,
 } JARRAY_ERROR;
 
+typedef enum {
+    STRING = 0,
+} TYPE_PRESET;
+
 
 /**
  * @brief JARRAY_RETURN_ERROR structure.
@@ -239,6 +243,7 @@ typedef struct JARRAY_INTERFACE {
      * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size);
+    JARRAY (*init_preset)(TYPE_PRESET preset);
     /**
      * @brief Prints all elements using the user-defined callback.
      *

@@ -1199,6 +1199,18 @@ static JARRAY_RETURN array_init_reserve(JARRAY *self, size_t elem_size, size_t c
     return ret;
 }
 
+extern JARRAY create_jarray_string(void);
+
+static JARRAY array_init_preset(TYPE_PRESET preset){
+    JARRAY (*ret_func)(void) = NULL;
+    switch (preset){
+        case STRING:
+            ret_func = create_jarray_string;
+    }
+    JARRAY array = ret_func();
+    return array;
+}
+
 /// Static interface implementation for easier usage.
 JARRAY_INTERFACE jarray = {
     .filter = array_filter,
@@ -1211,6 +1223,7 @@ JARRAY_INTERFACE jarray = {
     .init = array_init,
     .init_with_data_copy = array_init_with_data_copy,
     .init_with_data = array_init_with_data,
+    .init_preset = array_init_preset,
     .print_array_err = print_array_err,
     .free = array_free,
     .sort = array_sort,

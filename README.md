@@ -5,7 +5,9 @@
 A dynamic array library for C on **Linux** with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
 It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
 The functions are inspired by higher-level languages like JavaScript and Java...
-**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please lool below for more info. You can also find a file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
+
+**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please lool below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
+
 `main.c` is complete example of a jarray storing integers. But you can store any structure in a jarray.
 
 ## Install
@@ -32,7 +34,7 @@ You can find in folder `Examples` some simple c files using jarray. Be sure to g
 ```bash
 cd Examples
 make
-./jarray_string
+./jarray_string hello goodbye
 ```
 
 ## Quick Start
@@ -93,7 +95,9 @@ JARRAY [size: 5] =>
 ```c
 jarray.init(&array, sizeof(int));                       // Initialize empty array
 jarray.init_reserve(&array, sizeof(int), capacity)      // Initialize array and reserve memory
-jarray.init_with_data(&array, data, count, sizeof(int));// Initialize with raw data
+jarray.init_with_data(&array, data, count, sizeof(int));// Initialize with raw data (don't use if data is stack allocated)
+jarray.init_with_data_copy(&array, data, count, sizeof(int));// Initialize with a copy of raw data 
+jarray.init_preset(preset);                             // Returns a jarray with all the user functions implemented for a given preset
 jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));       // Append element
 jarray.addm(&array, ...);                               // Appends elements to the end of the array.
 jarray.add_all(&array, data, count);                    // Append multiple elements
