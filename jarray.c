@@ -25,6 +25,17 @@ static const char *enum_to_string[] = {
 
 static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
 
+static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const void *__restrict__ __elem, size_t __count){
+    void *ret;
+    if (!self->user_implementation.copy_elem_override) ret = memcpy(__dest, __elem, self->_elem_size * __count);
+    else {
+        for (size_t i = 0; i < __count; i++){
+            ret = memcpy(__dest + i * self->_elem_size, self->user_implementation.copy_elem_override(__elem + i * self->_elem_size), self->_elem_size);
+        }
+    }
+    return ret;
+}
+
 static void print_array_err(const JARRAY_RETURN ret, const char *file, int line) {
     if (ret.ret_source->user_implementation.print_error_override) {
         ret.ret_source->user_implementation.print_error_override(ret.error);
@@ -81,6 +92,7 @@ static void init_array_callbacks(JARRAY *array){
     array->user_implementation.element_to_string = NULL;
     array->user_implementation.print_array_override = NULL;
     array->user_implementation.print_error_override = NULL;
+    array->user_implementation.copy_elem_override = NULL;
     array->user_implementation.compare = NULL;
     array->user_implementation.is_equal = NULL;
 }
@@ -111,7 +123,7 @@ static JARRAY_RETURN array_add(JARRAY *self, const void *elem) {
     
         self->_data = new_data;
     }
-    memcpy((char*)self->_data + self->_length * self->_elem_size, elem, self->_elem_size);
+    memcpy_elem(self, (char*)self->_data + self->_length * self->_elem_size, elem, 1);
     self->_length++;
 
     JARRAY_RETURN ret;
@@ -143,7 +155,7 @@ static JARRAY_RETURN array_add_at(JARRAY *self, size_t index, const void *elem) 
         (self->_length - index) * self->_elem_size
     );
 
-    memcpy((char*)self->_data + index * self->_elem_size, elem, self->_elem_size);
+    memcpy_elem(self, (char*)self->_data + index * self->_elem_size, elem, 1);
     self->_length++;
 
     JARRAY_RETURN ret;
@@ -158,11 +170,6 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (index >= self->_length)
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Index %zu out of bound for remove", index);
-
-    void *removed_elem = malloc(self->_elem_size);
-    if (!removed_elem)
-        return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in remove_at");
-    memcpy(removed_elem, (char*)self->_data + index * self->_elem_size, self->_elem_size);
 
     memmove(
         (char*)self->_data + index * self->_elem_size,
@@ -181,9 +188,9 @@ static JARRAY_RETURN array_remove_at(JARRAY *self, size_t index) {
     }
 
     JARRAY_RETURN ret;
-    ret.has_value = true;
+    ret.has_value = false;
     ret.has_error = false;
-    ret.value = removed_elem;
+    ret.value = NULL;
     return ret;
 }
 
@@ -281,7 +288,7 @@ static JARRAY_RETURN array_filter(JARRAY *self, bool (*predicate)(const void *el
     for (size_t i = 0; i < self->_length; i++) {
         void *elem = (char*)self->_data + i * self->_elem_size;
         if (predicate(elem, ctx)) {
-            memcpy((char*)result->_data + j * self->_elem_size, elem, self->_elem_size);
+            memcpy_elem(self, (char*)result->_data + j * self->_elem_size, elem, 1);
             j++;
         }
     }
@@ -336,7 +343,7 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
     if (!copy_data)
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in array_sort");
 
-    memcpy(copy_data, self->_data, self->_length * self->_elem_size);
+    memcpy_elem(self, copy_data, self->_data, self->_length);
 
     switch(method) {
         case QSORT:
@@ -350,9 +357,9 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
                     void *b = (char*)copy_data + (j + 1) * self->_elem_size;
                     if (compare(a, b) > 0) {
                         void *temp = malloc(self->_elem_size);
-                        memcpy(temp, a, self->_elem_size);
-                        memcpy(a, b, self->_elem_size);
-                        memcpy(b, temp, self->_elem_size);
+                        memcpy_elem(self, temp, a, 1);
+                        memcpy_elem(self, a, b, 1);
+                        memcpy_elem(self, b, temp, 1);
                         free(temp);
                     }
                 }
@@ -362,15 +369,14 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
         case INSERTION_SORT:
             for (size_t i = 1; i < self->_length; i++) {
                 void *key = malloc(self->_elem_size);
-                memcpy(key, (char*)copy_data + i * self->_elem_size, self->_elem_size);
+                memcpy_elem(self, key, (char*)copy_data + i * self->_elem_size, 1);
                 size_t j = i;
                 while (j > 0 && compare((char*)copy_data + (j - 1) * self->_elem_size, key) > 0) {
-                    memcpy((char*)copy_data + j * self->_elem_size,
-                           (char*)copy_data + (j - 1) * self->_elem_size,
-                           self->_elem_size);
+                    memcpy_elem(self, (char*)copy_data + j * self->_elem_size,
+                           (char*)copy_data + (j - 1) * self->_elem_size, 1);
                     j--;
                 }
-                memcpy((char*)copy_data + j * self->_elem_size, key, self->_elem_size);
+                memcpy_elem(self, (char*)copy_data + j * self->_elem_size, key, 1);
                 free(key);
             }
             break;
@@ -387,9 +393,9 @@ static JARRAY_RETURN array_sort(JARRAY *self, SORT_METHOD method, int (*custom_c
                 }
                 if (min_idx != i) {
                     void *temp = malloc(self->_elem_size);
-                    memcpy(temp, (char*)copy_data + i * self->_elem_size, self->_elem_size);
-                    memcpy((char*)copy_data + i * self->_elem_size, (char*)copy_data + min_idx * self->_elem_size, self->_elem_size);
-                    memcpy((char*)copy_data + min_idx * self->_elem_size, temp, self->_elem_size);
+                    memcpy_elem(self, temp, (char*)copy_data + i * self->_elem_size, 1);
+                    memcpy_elem(self, (char*)copy_data + i * self->_elem_size, (char*)copy_data + min_idx * self->_elem_size, 1);
+                    memcpy_elem(self, (char*)copy_data + min_idx * self->_elem_size, temp, 1);
                     free(temp);
                 }
             }
@@ -439,7 +445,7 @@ static JARRAY_RETURN array_copy_data(JARRAY *self) {
         copy = malloc(self->_length * self->_elem_size);
         if (!copy)
             return create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate _data copy");
-        memcpy(copy, self->_data, self->_length * self->_elem_size);
+        memcpy_elem(self, copy, self->_data, self->_length);
     }
 
     ret.has_value = true;
@@ -482,7 +488,7 @@ static JARRAY_RETURN array_subarray(JARRAY *self, size_t start, size_t end){
     for (size_t i = 0; i < sub_length; i++) {
         void *src = (char*)self->_data + (start + i) * self->_elem_size;
         void *dst = (char*)ret_array->_data + i * self->_elem_size;
-        memcpy(dst, src, self->_elem_size);
+        memcpy_elem(self, dst, src, 1);
     }
 
     JARRAY_RETURN ret;
@@ -502,7 +508,7 @@ static JARRAY_RETURN array_set(JARRAY *self, size_t index, const void *elem) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Index cannot be higher or equal to the _length of array\n");
 
     // Copy the new element into the array at the given index
-    memcpy((char*)self->_data + index * self->_elem_size, elem, self->_elem_size);
+    memcpy_elem(self, (char*)self->_data + index * self->_elem_size, elem, 1);
 
     JARRAY_RETURN ret;
     ret.has_value = false;
@@ -600,7 +606,7 @@ static JARRAY_RETURN array_clone(JARRAY *self) {
         free(clone);
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone _data");
     }
-    memcpy(clone->_data, self->_data, max_size_t(self->_length, self->_min_alloc) * self->_elem_size);
+    memcpy_elem(self, clone->_data, self->_data, max_size_t(self->_length, self->_min_alloc));
     clone->user_implementation = self->user_implementation;
 
     JARRAY_RETURN ret;
@@ -622,7 +628,7 @@ static JARRAY_RETURN array_add_all(JARRAY *self, const void *data, size_t count)
         self->_data = new_data;
     }
 
-    memcpy((char*)self->_data + self->_length * self->_elem_size, data, count * self->_elem_size);
+    memcpy_elem(self, (char*)self->_data + self->_length * self->_elem_size, data, count);
     self->_length += count;
 
     JARRAY_RETURN ret;
@@ -746,10 +752,10 @@ static JARRAY_RETURN array_reduce(JARRAY *self, void *(*reducer)(const void *acc
 
     size_t start_index;
     if (initial_value) {
-        memcpy(accumulator, initial_value, self->_elem_size);
+        memcpy_elem(self, accumulator, initial_value, 1);
         start_index = 0;
     } else {
-        memcpy(accumulator, self->_data, self->_elem_size);
+        memcpy_elem(self, accumulator, self->_data, 1);
         start_index = 1;
     }
 
@@ -760,7 +766,7 @@ static JARRAY_RETURN array_reduce(JARRAY *self, void *(*reducer)(const void *acc
             free(accumulator);
             return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function returned null");
         }
-        memcpy(accumulator, new_accumulator, self->_elem_size);
+        memcpy_elem(self, accumulator, new_accumulator, 1);
         free(new_accumulator);
     }
 
@@ -794,8 +800,8 @@ static JARRAY_RETURN array_concat(JARRAY *arr1, JARRAY *arr2) {
         return create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array data");
     }
 
-    memcpy(new_array->_data, arr1->_data, arr1->_length * arr1->_elem_size);
-    memcpy((char*)new_array->_data + arr1->_length * arr1->_elem_size, arr2->_data, arr2->_length * arr2->_elem_size);
+    memcpy_elem(arr1, new_array->_data, arr1->_data, 1);
+    memcpy_elem(arr2, (char*)new_array->_data + arr1->_length * arr1->_elem_size, arr2->_data, arr2->_length);
     new_array->user_implementation = arr1->user_implementation;
 
     JARRAY_RETURN ret;
@@ -870,9 +876,9 @@ static JARRAY_RETURN array_reverse(JARRAY *self) {
     for (size_t i = 0; i < n / 2; i++) {
         void *a = (char*)self->_data + i * self->_elem_size;
         void *b = (char*)self->_data + (n - i - 1) * self->_elem_size;
-        memcpy(temp, a, self->_elem_size);
-        memcpy(a, b, self->_elem_size);
-        memcpy(b, temp, self->_elem_size);
+        memcpy_elem(self, temp, a, 1);
+        memcpy_elem(self, a, b, 1);
+        memcpy_elem(self, b, temp, 1);
     }
     free(temp);
 
@@ -923,10 +929,10 @@ static JARRAY_RETURN array_reduce_right(JARRAY *self, void *(*reducer)(const voi
 
     size_t start_index;
     if (initial_value) {
-        memcpy(accumulator, initial_value, self->_elem_size);
+        memcpy_elem(self, accumulator, initial_value, 1);
         start_index = 0;
     } else {
-        memcpy(accumulator, self->_data + (self->_length - 1) * self->_elem_size, self->_elem_size);
+        memcpy_elem(self, accumulator, self->_data + (self->_length - 1) * self->_elem_size, 1);
         start_index = 1;
     }
 
@@ -937,7 +943,7 @@ static JARRAY_RETURN array_reduce_right(JARRAY *self, void *(*reducer)(const voi
             free(accumulator);
             return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Reducer function returned null");
         }
-        memcpy(accumulator, new_accumulator, self->_elem_size);
+        memcpy_elem(self, accumulator, new_accumulator, 1);
         free(new_accumulator);
     }
 

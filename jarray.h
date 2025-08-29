@@ -65,6 +65,8 @@ typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
     int (*compare)(const void*, const void*);
     // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.indexes_of functions.
     bool (*is_equal)(const void*, const void*);
+    // This function is MANDATORY if storing pointers (Example : strdup for char*).
+    void *(*copy_elem_override)(const void*);
 } JARRAY_USER_FUNCTION_IMPLEMENTATION;
 
 /**
@@ -225,7 +227,7 @@ typedef struct JARRAY_INTERFACE {
      */
     JARRAY_RETURN (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size);
     /**
-     * @brief Initializes a JARRAY with pre-existing data.
+     * @brief Initializes a JARRAY with pre-existing (if heap allocated!! Otherwise use `init_with_data_copy`) data.
      *
      * @note
      * Takes ownership of the provided data into the JARRAY. The caller should set data pointer to NULL.
@@ -757,5 +759,6 @@ static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
             jarray.print_array_err((ret), __FILE__, __LINE__); \
             return EXIT_FAILURE; \
         }
+
 
 #endif

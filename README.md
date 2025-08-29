@@ -4,7 +4,9 @@
 
 A dynamic array library for C on **Linux** with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
 It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
-The functions are inspired by higher-level languages like JavaScript and Java but hopefully quicker...
+The functions are inspired by higher-level languages like JavaScript and Java...
+**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please lool below for more info. You can also find a file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
+`main.c` is complete example of a jarray storing integers. But you can store any structure in a jarray.
 
 ## Install
 
@@ -26,6 +28,12 @@ sudo ldconfig
 This should install libjarray.so and libjarray.a in /urs/local/lib/ and jarray.h in usr/local/include/
 
 To use in your projet just include with *#include <jarray.h>* and link with *-ljarray* when compiling.
+You can find in folder `Examples` some simple c files using jarray. Be sure to go through `Install` procedure as described above beforehand. To see result (for jarray_string.c for example): 
+```bash
+cd Examples
+make
+./jarray_string
+```
 
 ## Quick Start
 
@@ -177,6 +185,9 @@ points.user_implementation.print_element_callback = print_point;
 Point p = {3, 4};
 ret = jarray.add(&points, &p);
 JARRAY_CHECK_RET(ret);
+
+ret = jarray.print(&points);
+JARRAY_CHECK_RET(ret);
 ```
 
 ### Sorting
@@ -206,9 +217,16 @@ There is some functions that can be overriden. Maybe more will be added later:
 ```c
 array.user_implementation.print_error_override = error_func;        // For error printing
 array.user_implementation.print_array_override = print_array_func;  // For print() override
+array.user_implementation.copy_elem_override = copy_elem_func;      // For copy override. NECESSARY when storing pointers (Example : strdup for char*)
 ```
 
-## MACROS
+## Good practices
+
+- always check return value with macros below to be notices of an error and/free memory.
+- if you know rougly how many element there should be in your jarray, you should use `reserve` function to allocate memory beforehand (to reduce realloc calls).
+- if you need to store pointers, you **must** implement the `copy_elem_override` function and set it in the user implementation structure of your array. Please look at file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
+
+## Macros
 
 Use these macros for automatic error checking and value extraction:
 ```c
