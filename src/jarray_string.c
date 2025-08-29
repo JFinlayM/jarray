@@ -1,4 +1,4 @@
-#include "jarray.h"
+#include "../inc/jarray.h"
 #include <stdio.h>
 
 

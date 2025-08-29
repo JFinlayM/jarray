@@ -38,6 +38,8 @@ typedef enum {
 
 typedef enum {
     STRING = 0,
+    INT,
+    FLOAT
 } TYPE_PRESET;
 
 

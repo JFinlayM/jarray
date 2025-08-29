@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "jarray.h"
+#include "../inc/jarray.h"
 
 // ----------- Helpers -----------
 

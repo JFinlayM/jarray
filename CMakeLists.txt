@@ -9,8 +9,10 @@ include(GNUInstallDirs)
 
 # ----- Sources de la bibliothèque -----
 set(LIB_SOURCES
-    jarray.c
-    jarray_string.c
+    src/jarray.c
+    src/jarray_string.c
+    src/jarray_int.c
+    src/jarray_float.c
 )
 
 # Bibliothèque statique
@@ -39,8 +41,8 @@ install(TARGETS jarray jarray_shared
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Installe jarray.h dans /usr/local/include
-install(FILES jarray.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+# Installe inc/jarray.h dans /usr/local/include
+install(FILES inc/jarray.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # ----- Cibles personnalisées -----
 # "make lib" -> construit et installe la lib
@@ -50,7 +52,7 @@ add_custom_target(lib
 )
 
 # Exécutable de test
-add_executable(jarray_test main.c)
+add_executable(jarray_test src/main.c)
 target_link_libraries(jarray_test jarray)
 target_include_directories(jarray_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

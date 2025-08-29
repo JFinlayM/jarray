@@ -1,4 +1,4 @@
-#include "jarray.h"
+#include "../inc/jarray.h"
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
@@ -1200,12 +1200,22 @@ static JARRAY_RETURN array_init_reserve(JARRAY *self, size_t elem_size, size_t c
 }
 
 extern JARRAY create_jarray_string(void);
+extern JARRAY create_jarray_int(void);
+extern JARRAY create_jarray_float(void);
+
 
 static JARRAY array_init_preset(TYPE_PRESET preset){
     JARRAY (*ret_func)(void) = NULL;
     switch (preset){
         case STRING:
             ret_func = create_jarray_string;
+            break;
+        case INT:
+            ret_func = create_jarray_int;
+            break;
+        case FLOAT:
+            ret_func = create_jarray_float;
+            break;
     }
     JARRAY array = ret_func();
     return array;
