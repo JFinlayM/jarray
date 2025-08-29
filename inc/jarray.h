@@ -37,12 +37,11 @@ typedef enum {
 } JARRAY_ERROR;
 
 typedef enum {
-    STRING = 0,
-    INT,
-    FLOAT,
-    CHAR,
+    STRING_PRESET = 0,
+    INT_PRESET,
+    FLOAT_PRESET,
+    CHAR_PRESET,
 } TYPE_PRESET;
-
 
 /**
  * @brief JARRAY_RETURN_ERROR structure.
@@ -145,7 +144,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function returning true for elements to keep.
-     * @param ctx Context pointer passed to predicate.
+     * @param ctx (Optionnal) Context pointer passed to predicate.
      * @return JARRAY_RETURN containing the new filtered JARRAY or an error.
      */
     JARRAY_RETURN (*filter)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -266,7 +265,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param method Sorting method enum.
-     * @param custom_compare Optional custom compare function (overrides user callback if provided).
+     * @param custom_compare (Optional) Custom compare function (overrides user callback if provided).
      * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*sort)(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*));
@@ -278,7 +277,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx Context pointer for predicate.
+     * @param ctx (Optionnal) Context pointer for predicate.
      * @return JARRAY_RETURN pointing to matching element or an error.
      */
     JARRAY_RETURN (*find_first)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -335,7 +334,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param callback Function to apply to each element.
-     * @param ctx Context pointer.
+     * @param ctx (Optionnal) Context pointer.
      * @return JARRAY_RETURN indicating success or error.
      */
     JARRAY_RETURN (*for_each)(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx);
@@ -409,8 +408,8 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
-     * @param initial_value Pointer to initial accumulator value.
-     * @param ctx Context pointer for reducer.
+     * @param initial_value (Optionnal) Pointer to initial accumulator value.
+     * @param ctx (Optionnal) Context pointer for reducer.
      * @return JARRAY_RETURN containing reduced value or error.
      */
     JARRAY_RETURN (*reduce)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
@@ -451,7 +450,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx Context pointer for predicate.
+     * @param ctx (Optionnal) Context pointer for predicate.
      * @return JARRAY_RETURN containing result or error.
      */
     JARRAY_RETURN (*any)(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -463,8 +462,8 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
-     * @param initial_value Pointer to initial accumulator value.
-     * @param ctx Context pointer for reducer.
+     * @param initial_value (Optionnal) Pointer to initial accumulator value.
+     * @param ctx (Optionnal) Context pointer for reducer.
      * @return JARRAY_RETURN containing reduced value or error.
      */
     JARRAY_RETURN (*reduce_right)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
@@ -476,7 +475,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx Context pointer for predicate.
+     * @param ctx (Optionnal) Context pointer for predicate.
      * @return JARRAY_RETURN pointing to matching element or an error.
      */
     JARRAY_RETURN (*find_last)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -488,7 +487,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx Context pointer for predicate.
+     * @param ctx (Optionnal) Context pointer for predicate.
      * @return JARRAY_RETURN pointing to matching element or an error.
      */
     JARRAY_RETURN (*find_first_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -500,7 +499,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx Context pointer for predicate.
+     * @param ctx (Optionnal) Context pointer for predicate.
      * @return JARRAY_RETURN pointing to matching element or an error.
      */
     JARRAY_RETURN (*find_last_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);

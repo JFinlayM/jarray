@@ -3,17 +3,17 @@ project(jarray C)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -Wall -Wextra")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 include(GNUInstallDirs)
 
 # ----- Sources de la bibliothèque -----
 set(LIB_SOURCES
     src/jarray.c
-    src/jarray_string.c
-    src/jarray_int.c
-    src/jarray_float.c
-    src/jarray_char.c
+    src/jarray_presets/jarray_string.c
+    src/jarray_presets/jarray_int.c
+    src/jarray_presets/jarray_float.c
+    src/jarray_presets/jarray_char.c
 )
 
 # Bibliothèque statique

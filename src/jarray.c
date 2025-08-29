@@ -1204,20 +1204,19 @@ extern JARRAY create_jarray_int(void);
 extern JARRAY create_jarray_float(void);
 extern JARRAY create_jarray_char(void);
 
-
 static JARRAY array_init_preset(TYPE_PRESET preset){
     JARRAY (*ret_func)(void) = NULL;
     switch (preset){
-        case STRING:
+        case STRING_PRESET:
             ret_func = create_jarray_string;
             break;
-        case INT:
+        case INT_PRESET:
             ret_func = create_jarray_int;
             break;
-        case FLOAT:
+        case FLOAT_PRESET:
             ret_func = create_jarray_float;
             break;
-        case CHAR:
+        case CHAR_PRESET:
             ret_func = create_jarray_char;
             break;
     }

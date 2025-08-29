@@ -1,6 +1,5 @@
-#include "../inc/jarray.h"
+#include "../../inc/jarray.h"
 #include <stdio.h>
-
 
 static char *my_strdup(const char *s) {
     size_t len = strlen(s) + 1;

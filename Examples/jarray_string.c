@@ -1,4 +1,4 @@
-#include <jarray.h>
+#include "../inc/jarray.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -9,7 +9,7 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    JARRAY arr_preset = jarray.init_preset(STRING);
+    JARRAY arr_preset = jarray.init_preset(STRING_PRESET);
     JARRAY_RETURN ret = jarray.reserve(&arr_preset, 5);
     JARRAY_CHECK_RET(ret);
 
