@@ -5,21 +5,21 @@
 
 int main(int argc, char *argv[]){
     if (argc < 2) {
-        fprintf(stderr, "Usage: %s n1 n2 ...\n", argv[0]);
+        fprintf(stderr, "Usage: %s c1 c2 ...\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    JARRAY arr_preset = jarray.init_preset(FLOAT);
+    JARRAY arr_preset = jarray.init_preset(CHAR);
     JARRAY_RETURN ret = jarray.reserve(&arr_preset, 5);
     JARRAY_CHECK_RET(ret);
 
     for (int i = 1; i < argc; i++) {
-        ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, atof(argv[i])));
+        ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(char, argv[i][0]));
         JARRAY_CHECK_RET(ret);
     }
     jarray.print(&arr_preset);
 
-    ret = jarray.join(&arr_preset, ", ");
+    ret = jarray.join(&arr_preset, "");
     JARRAY_CHECK_RET(ret);
     printf("Joined string: %s\n", JARRAY_RET_GET_POINTER(char, ret));
 
@@ -28,16 +28,16 @@ int main(int argc, char *argv[]){
     ret = jarray.print(&arr_preset);
     JARRAY_CHECK_RET(ret);
 
-    ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, 9.5f));
+    ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(char, 'c'));
     JARRAY_CHECK_RET(ret);
     ret = jarray.print(&arr_preset);
     JARRAY_CHECK_RET(ret);
 
-    ret = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(float, 5.0f));
+    ret = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(char, 'b'));
     JARRAY_CHECK_RET(ret);
-    printf("Contains 5.0 ? %s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "true" : "false");
+    printf("Contains 'b' ? %s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "true" : "false");
 
-    ret = jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(float, 25.94), NULL);
+    ret = jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(char, 'z'), NULL);
     JARRAY_CHECK_RET(ret);
     ret = jarray.print(&arr_preset);
     JARRAY_CHECK_RET(ret);

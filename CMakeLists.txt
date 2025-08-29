@@ -13,6 +13,7 @@ set(LIB_SOURCES
     src/jarray_string.c
     src/jarray_int.c
     src/jarray_float.c
+    src/jarray_char.c
 )
 
 # Bibliothèque statique

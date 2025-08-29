@@ -1202,6 +1202,7 @@ static JARRAY_RETURN array_init_reserve(JARRAY *self, size_t elem_size, size_t c
 extern JARRAY create_jarray_string(void);
 extern JARRAY create_jarray_int(void);
 extern JARRAY create_jarray_float(void);
+extern JARRAY create_jarray_char(void);
 
 
 static JARRAY array_init_preset(TYPE_PRESET preset){
@@ -1215,6 +1216,9 @@ static JARRAY array_init_preset(TYPE_PRESET preset){
             break;
         case FLOAT:
             ret_func = create_jarray_float;
+            break;
+        case CHAR:
+            ret_func = create_jarray_char;
             break;
     }
     JARRAY array = ret_func();
