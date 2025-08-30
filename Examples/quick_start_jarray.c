@@ -25,7 +25,6 @@ int main() {
     jarray.init(&array, sizeof(int), imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
     // Or nothing if your sure there is no error
-
     
     // Add elements
     for (int i = 1; i <= 5; i++) {

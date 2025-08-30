@@ -1148,6 +1148,12 @@ extern JARRAY create_jarray_string(void);
 extern JARRAY create_jarray_int(void);
 extern JARRAY create_jarray_float(void);
 extern JARRAY create_jarray_char(void);
+extern JARRAY create_jarray_double(void);
+extern JARRAY create_jarray_long(void);
+extern JARRAY create_jarray_short(void);
+extern JARRAY create_jarray_ulong(void);
+extern JARRAY create_jarray_ushort(void);
+extern JARRAY create_jarray_uint(void);
 
 static JARRAY array_init_preset(TYPE_PRESET preset){
     JARRAY (*ret_func)(void) = NULL;
@@ -1163,6 +1169,24 @@ static JARRAY array_init_preset(TYPE_PRESET preset){
             break;
         case CHAR_PRESET:
             ret_func = create_jarray_char;
+            break;
+        case DOUBLE_PRESET:
+            ret_func = create_jarray_double;
+            break;
+        case LONG_PRESET:
+            ret_func = create_jarray_long;
+            break;
+        case SHORT_PRESET:
+            ret_func = create_jarray_short;
+            break;
+        case UINT_PRESET:
+            ret_func = create_jarray_uint;
+            break;
+        case USHORT_PRESET:
+            ret_func = create_jarray_ushort;
+            break;
+        case ULONG_PRESET:
+            ret_func = create_jarray_ulong;
             break;
     }
     JARRAY array = ret_func();

@@ -14,6 +14,12 @@ set(LIB_SOURCES
     src/jarray_presets/jarray_int.c
     src/jarray_presets/jarray_float.c
     src/jarray_presets/jarray_char.c
+    src/jarray_presets/jarray_short.c
+    src/jarray_presets/jarray_long.c
+    src/jarray_presets/jarray_double.c
+    src/jarray_presets/jarray_uint.c
+    src/jarray_presets/jarray_ulong.c
+    src/jarray_presets/jarray_ushort.c
 )
 
 # Bibliothèque statique
