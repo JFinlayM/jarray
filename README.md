@@ -54,30 +54,31 @@ int compare_int(const void *a, const void *b) {
 
 int main() {
     JARRAY array;
-    JARRAY_RETURN ret;
-    
-    // Initialize
-    ret = jarray.init(&array, sizeof(int));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE; // Check for errors and return
-    // Or just JARRAY_CHECK_RET_FREE(ret) after function calls if you don't need to return
-    // Or JARRAY_CHECK_RET(ret) if you need the return value later
-    // Or nothing but that creates memory leaks if there is returned value or an error
 
-*
+    // --- Initialize ---
+
     // Set callbacks
-    array.user_implementation.print_element_callback = print_int;
-    array.user_implementation.compare = compare_int;
+    JARRAY_USER_CALLBACK_IMPLEMENTATION imp = {
+        .print_element_callback = print_int,
+        .compare = compare_int,
+        .element_to_string = NULL,
+        .is_equal = NULL
+    };
+
+    jarray.init(&array, sizeof(int), imp);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
+    // Or nothing if your sure there is no error
+
     
     // Add elements
     for (int i = 1; i <= 5; i++) {
-        ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
+        jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
+        if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
     }
     
-    ret = jarray.print(&array);
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.free(&array);
-    JARRAY_CHECK_RET(ret);
+    jarray.print(&array); // Output: 1 2 3 4 5
+    jarray.free(&array);
+    JARRAY_FREE_RET();
     return 0;
 }
 ```
@@ -158,18 +159,17 @@ bool is_even(const void *x, const void *ctx) {
 }
 
 // Filter
-ret = jarray.filter(&array, is_even, NULL); // No context needed here -> NULL
-if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-JARRAY *evens = JARRAY_RET_GET_POINTER(JARRAY, ret);
-ret = jarray.print(evens);
-JARRAY_CHECK_RET(ret);
-ret = jarray.free(evens);
-JARRAY_CHECK_RET(ret);
+JARRAY evens = jarray.filter(&array, is_even, NULL); // No context needed here -> NULL
+if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+jarray.print(evens);
+JARRAY_CHECK_RET();
+jarray.free(evens);
+JARRAY_CHECK_RET();
 
 // Find first
-ret = jarray.find_first(&array, is_even, NULL); // No context needed here -> NULL
-if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-printf("First even: %d\n", JARRAY_RET_GET_VALUE(int, ret));
+int even = *(int*)jarray.find_first(&array, is_even, NULL); // No context needed here -> NULL
+if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+printf("First even: %d\n", even);
 ```
 
 ### Custom Types
@@ -182,23 +182,25 @@ void print_point(const void *p) {
 }
 
 JARRAY points;
-JARRAY_RETURN ret;
-ret = jarray.init(&points, sizeof(Point));
-if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-points.user_implementation.print_element_callback = print_point;
+
+JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
+imp.print_element_callback = print_point;
+
+jarray.init(&points, sizeof(Point), imp);
+if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
 Point p = {3, 4};
-ret = jarray.add(&points, &p);
-JARRAY_CHECK_RET(ret);
+jarray.add(&points, &p);
+JARRAY_CHECK_RET();
 
-ret = jarray.print(&points);
-JARRAY_CHECK_RET(ret);
+jarray.print(&points);
+JARRAY_CHECK_RET();
 ```
 
 ### Sorting
 ```c
 // Sort methods: QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT
-array.user_implementation.compare = compare_func; // Set comparison function
+array.user_callbacks.compare = compare_func; // Set comparison function
 jarray.sort(&array, QSORT, NULL);
 ```
 Or
@@ -210,24 +212,26 @@ jarray.sort(&array, QSORT, compare_func);
 
 Set these before using related functions:
 ```c
-array.user_implementation.print_element_callback = print_func;  // For print()
-array.user_implementation.element_to_string = to_string_func;   // For join()
-array.user_implementation.compare = compare_func;               // For sort()
-array.user_implementation.is_equal = equal_func;                // For contains(), find_indexes()
+JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
+imp.print_element_callback = print_element_array_callback;  // For print()
+imp.element_to_string = element_to_string_array_callback;   // For join()
+imp.compare = compare_array_callback;                       // For sort()
+imp.is_equal = is_equal_array_callback;                     // For contains(), find_indexes()
 ```
 
 ## Override callbacks
 
 There is some functions that can be overriden. Maybe more will be added later:
 ```c
-array.user_implementation.print_error_override = error_func;        // For error printing
-array.user_implementation.print_array_override = print_array_func;  // For print() override
-array.user_implementation.copy_elem_override = copy_elem_func;      // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
+JARRAY_USER_OVERRIDE_IMPLEMENTATION imp;
+imp.print_error_override = error_func;        // For error printing
+imp.print_array_override = print_array_func;  // For print() override
+imp.copy_elem_override = copy_elem_func;      // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
 ```
 
 ## Good practices
-
-- always check return value with macros below to be notices of an error and/free memory.
+- you **should** implement every function of `JARRAY_USER_CALLBACKS_IMPLEMENTATION`.
+- always check return value with macros below to be noticed if the last jarray function call produced an error.
 - if you know rougly how many element there should be in your jarray, you should use `reserve` function to allocate memory beforehand (to reduce realloc calls).
 - if you need to store pointers, you **must** implement the `copy_elem_override` function and set it in the user implementation structure of your array. Please look at file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
 
@@ -235,14 +239,8 @@ array.user_implementation.copy_elem_override = copy_elem_func;      // For copy 
 
 Use these macros for automatic error checking and value extraction:
 ```c
-JARRAY_CHECK_RET(ret);             // Print error, free error, return true if error -> if you need ret value later
-JARRAY_CHECK_RET_FREE(ret);        // Print error, free ret value and error, return true if error -> if you don't need ret value later
+JARRAY_CHECK_RET();                // Print error, free error, return true if error
 JARRAY_GET_VALUE(type, val);       // Extract value from pointer (doesn't free)
 JARRAY_DIRECT_INPUT(type, val);    // Create pointer for input value
-JARRAY_RET_GET_VALUE(type, ret);   // Get value from ret (doesn't free)
-JARRAY_RET_GET_VALUE_FREE(type, ret); // Get value and free ret
-JARRAY_RET_GET_POINTER(type, ret); // Get pointer from ret
-JARRAY_FREE_RET(ret);              // Free both value and error
-JARRAY_FREE_RET_VALUE(ret);        // Free only value
-JARRAY_FREE_RET_ERROR(ret);        // Free only error
+JARRAY_FREE_RET();                  // Free error
 ```

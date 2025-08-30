@@ -10,37 +10,37 @@ int main(int argc, char *argv[]){
     }
 
     JARRAY arr_preset = jarray.init_preset(STRING_PRESET);
-    JARRAY_RETURN ret = jarray.reserve(&arr_preset, 5);
-    JARRAY_CHECK_RET(ret);
+    jarray.reserve(&arr_preset, 5);
+    JARRAY_CHECK_RET();
 
     for (int i = 1; i < argc; i++) {
-        ret = jarray.add(&arr_preset, argv[i]);
-        JARRAY_CHECK_RET(ret);
+        jarray.add(&arr_preset, argv[i]);
+        JARRAY_CHECK_RET();
     }
     jarray.print(&arr_preset);
 
-    ret = jarray.join(&arr_preset, ", ");
-    JARRAY_CHECK_RET(ret);
-    printf("Joined string: %s\n", JARRAY_RET_GET_POINTER(char, ret));
+    char *joined = jarray.join(&arr_preset, ", ");
+    JARRAY_CHECK_RET();
+    printf("Joined string: %s\n", joined);
 
-    ret = jarray.sort(&arr_preset, QSORT, NULL);
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.sort(&arr_preset, QSORT, NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
-    ret = jarray.add(&arr_preset, "thanks");
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.add(&arr_preset, "thanks");
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
-    ret = jarray.contains(&arr_preset, "hello");
-    JARRAY_CHECK_RET(ret);
-    printf("Contains 'hello' ? %s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "true" : "false");
+    bool contains = jarray.contains(&arr_preset, "hello");
+    JARRAY_CHECK_RET();
+    printf("Contains 'hello' ? %s\n", contains ? "true" : "false");
 
-    ret = jarray.splice(&arr_preset, 2, 1, "great", NULL);
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.splice(&arr_preset, 2, 1, "great", NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
     // --- Cleanup ---
     jarray.free(&arr_preset);

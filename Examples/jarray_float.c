@@ -10,37 +10,37 @@ int main(int argc, char *argv[]){
     }
 
     JARRAY arr_preset = jarray.init_preset(FLOAT_PRESET);
-    JARRAY_RETURN ret = jarray.reserve(&arr_preset, 5);
-    JARRAY_CHECK_RET(ret);
+    jarray.reserve(&arr_preset, 5);
+    JARRAY_CHECK_RET();
 
     for (int i = 1; i < argc; i++) {
-        ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, atof(argv[i])));
-        JARRAY_CHECK_RET(ret);
+        jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, atof(argv[i])));
+        JARRAY_CHECK_RET();
     }
     jarray.print(&arr_preset);
 
-    ret = jarray.join(&arr_preset, ", ");
-    JARRAY_CHECK_RET(ret);
-    printf("Joined string: %s\n", JARRAY_RET_GET_POINTER(char, ret));
+    char* joined = jarray.join(&arr_preset, ", ");
+    JARRAY_CHECK_RET();
+    printf("Joined string: %s\n", joined);
 
-    ret = jarray.sort(&arr_preset, QSORT, NULL);
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.sort(&arr_preset, QSORT, NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
-    ret = jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, 9.5f));
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(float, 9.5f));
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
-    ret = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(float, 5.0f));
-    JARRAY_CHECK_RET(ret);
-    printf("Contains 5.0 ? %s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "true" : "false");
+    bool contains = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(float, 5.0f));
+    JARRAY_CHECK_RET();
+    printf("Contains 5.0 ? %s\n", contains ? "true" : "false");
 
-    ret = jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(float, 25.94), NULL);
-    JARRAY_CHECK_RET(ret);
-    ret = jarray.print(&arr_preset);
-    JARRAY_CHECK_RET(ret);
+    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(float, 25.94), NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET();
 
     // --- Cleanup ---
     jarray.free(&arr_preset);

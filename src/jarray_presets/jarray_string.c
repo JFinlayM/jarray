@@ -39,12 +39,14 @@ static void *copy_elem_override(const void *x){
 
 
 JARRAY create_jarray_string(void){
+
     JARRAY array;
-    jarray.init(&array, sizeof(char*));
-    array.user_implementation.print_element_callback = print_element_array_callback;
-    array.user_implementation.element_to_string = element_to_string_array_callback;
-    array.user_implementation.compare = compare_array_callback;
-    array.user_implementation.is_equal = is_equal_array_callback;
-    array.user_implementation.copy_elem_override = copy_elem_override;
+    JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
+    imp.print_element_callback = print_element_array_callback;
+    imp.element_to_string = element_to_string_array_callback;
+    imp.compare = compare_array_callback;
+    imp.is_equal = is_equal_array_callback;
+    jarray.init(&array, sizeof(char*), imp);
+    array.user_overrides.copy_elem_override = copy_elem_override;
     return array;
 }

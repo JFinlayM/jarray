@@ -23,7 +23,8 @@ typedef struct JARRAY JARRAY;
  * Each error code corresponds to a specific issue that can arise during operations on the JARRAY.
  */
 typedef enum {
-    JARRAY_INDEX_OUT_OF_BOUND = 0,
+    JARRAY_NO_ERROR = 0,
+    JARRAY_INDEX_OUT_OF_BOUND,
     JARRAY_UNINITIALIZED,
     JARRAY_DATA_NULL,
     JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED,
@@ -44,36 +45,43 @@ typedef enum {
 } TYPE_PRESET;
 
 /**
- * @brief JARRAY_RETURN_ERROR structure.
- * This structure is used to return error information from JARRAY functions.
- * It contains an error code and an error message.
+ * @brief JARRAY_RETURN structure.
+ * This structure is used to return results from JARRAY functions.
+ * It can contain either a pointer to the value or an error code and message.
+ * The members should not be accessed directly; instead, use the provided macros for safe access.
  */
-typedef struct JARRAY_RETURN_ERROR {
+typedef struct JARRAY_RETURN {
     JARRAY_ERROR error_code;
     char* error_msg;
-} JARRAY_RETURN_ERROR;
+    bool has_error;
+    const JARRAY* ret_source;
+} JARRAY_RETURN;
 
 /**
  * @brief User-defined function implementations for JARRAY.
  * This structure contains pointers to user-defined functions for printing, comparing, and checking equality of elements.
  * These functions can be set by the user to customize the behavior of the JARRAY. These functions are used by the JARRAY_INTERFACE to perform operations on the elements.
  */
-typedef struct JARRAY_USER_FUNCTION_IMPLEMENTATION {
+typedef struct JARRAY_USER_CALLBACK_IMPLEMENTATION {
     // Function to print an element. This function is mandatory if you want to use the jarray.print function.
     void (*print_element_callback)(const void*);
-    // Override function to print the whole array. This function is NOT mandatory.
-    void (*print_array_override)(const JARRAY*);
     // Function to convert an element to a string. This function is NOT mandatory but can be useful for functions like join.
     char *(*element_to_string)(const void*);
-    // Override function to print errors. This function is NOT mandatory.
-    void (*print_error_override)(const JARRAY_RETURN_ERROR);
     // Function to compare two elements. This function is mandatory if you want to use the jarray.sort function.
     int (*compare)(const void*, const void*);
     // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.indexes_of functions.
     bool (*is_equal)(const void*, const void*);
+} JARRAY_USER_CALLBACK_IMPLEMENTATION;
+
+typedef struct JARRAY_USER_OVERRIDE_IMPLEMENTATION {
+    // Override function to print errors. This function is NOT mandatory.
+    void (*print_error_override)(const JARRAY_RETURN);
+    // Override function to print the whole array. This function is NOT mandatory.
+    void (*print_array_override)(const JARRAY*);
     // This function is MANDATORY if storing pointers (Example : strdup for char*).
     void *(*copy_elem_override)(const void*);
-} JARRAY_USER_FUNCTION_IMPLEMENTATION;
+}JARRAY_USER_OVERRIDE_IMPLEMENTATION;
+
 
 /**
  * @brief JARRAY structure.
@@ -87,24 +95,11 @@ typedef struct JARRAY {
     size_t _elem_size;
     size_t _length;
     size_t _min_alloc;
-    JARRAY_USER_FUNCTION_IMPLEMENTATION user_implementation;
+    JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks;
+    JARRAY_USER_OVERRIDE_IMPLEMENTATION user_overrides;
 } JARRAY;
 
-/**
- * @brief JARRAY_RETURN structure.
- * This structure is used to return results from JARRAY functions.
- * It can contain either a pointer to the value or an error code and message.
- * The members should not be accessed directly; instead, use the provided macros for safe access.
- */
-typedef struct JARRAY_RETURN {
-    union {
-        void* value;
-        JARRAY_RETURN_ERROR error;
-    };
-    bool has_value;
-    bool has_error;
-    const JARRAY* ret_source;
-} JARRAY_RETURN;
+
 
 typedef enum SORT_METHOD {
     QSORT = 0,
@@ -113,18 +108,17 @@ typedef enum SORT_METHOD {
     SELECTION_SORT,
 } SORT_METHOD;
 
-typedef struct JARRAY_INTERFACE {    
+typedef struct JARRAY_INTERFACE {
     /**
-     * @brief Prints an error message for a JARRAY_RETURN.
+     * @brief Prints the error message of the last jarray call.
      * 
      * @note
      * Uses the `print_error_override` if defined, otherwise uses a default printing method.
      * 
-     * @param ret JARRAY_RETURN containing the error to print.
      * @param file Source file where the error occurred.
      * @param line Line number of the error.
      */
-    void (*print_array_err)(const JARRAY_RETURN ret, const char *file, int line);
+    void (*print_array_err)(const char *file, int line);
     /**
      * @brief Frees a JARRAY instance and its internal data buffer.
      *
@@ -145,9 +139,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function returning true for elements to keep.
      * @param ctx (Optionnal) Context pointer passed to predicate.
-     * @return JARRAY_RETURN containing the new filtered JARRAY or an error.
+     * @return filtered jarray.
      */
-    JARRAY_RETURN (*filter)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    JARRAY (*filter)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Retrieves a pointer to the element at a given index.
      *
@@ -158,11 +152,9 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param index Index of the element.
-     * @return JARRAY_RETURN containing:
-     *   - `.value` pointing to the element (do NOT free),
-     *   - or error if out-of-bounds or array not initialized.
+     * @return pointer to elem at `index`.
      */
-    JARRAY_RETURN (*at)(const JARRAY *self, size_t index);
+    void* (*at)(const JARRAY *self, size_t index);
     /**
      * @brief Appends an element to the end of the array.
      *
@@ -171,9 +163,8 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element data to append.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*add)(JARRAY *self, const void * elem);
+    void (*add)(JARRAY *self, const void * elem);
     /**
      * @brief Removes the last element from the array.
      *
@@ -181,9 +172,8 @@ typedef struct JARRAY_INTERFACE {
      * Returns a newly allocated copy of the removed element. Caller must free `.value`.
      *
      * @param self Pointer to JARRAY.
-     * @return JARRAY_RETURN containing the removed element or an error.
      */
-    JARRAY_RETURN (*remove)(JARRAY *self);
+    void (*remove)(JARRAY *self);
     /**
      * @brief Removes an element at a specific index.
      *
@@ -193,9 +183,8 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param index Index of element to remove.
-     * @return JARRAY_RETURN containing the removed element or an error.
      */
-    JARRAY_RETURN (*remove_at)(JARRAY *self, size_t index);
+    void (*remove_at)(JARRAY *self, size_t index);
     /**
      * @brief Inserts an element at a specific index, shifting elements to the right.
      *
@@ -205,9 +194,8 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param index Index to insert at.
      * @param elem Pointer to element to insert.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*add_at)(JARRAY *self, size_t index, const void * elem);
+    void (*add_at)(JARRAY *self, size_t index, const void * elem);
     /**
      * @brief Initializes a JARRAY with a given element size.
      *
@@ -216,9 +204,9 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param array Pointer to JARRAY.
      * @param elem_size Size of one element in bytes.
-     * @return JARRAY_RETURN indicating success or error.
+     * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    JARRAY_RETURN (*init)(JARRAY *array, size_t elem_size);
+    void (*init)(JARRAY *array, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     /**
      * @brief Initializes a JARRAY with pre-existing data.
      *
@@ -229,9 +217,9 @@ typedef struct JARRAY_INTERFACE {
      * @param data Pointer to existing data buffer.
      * @param length Number of elements in the data buffer.
      * @param elem_size Size of one element in bytes.
-     * @return JARRAY_RETURN indicating success or error.
+     * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    JARRAY_RETURN (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size);
+    void (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     /**
      * @brief Initializes a JARRAY with pre-existing (if heap allocated!! Otherwise use `init_with_data_copy`) data.
      *
@@ -242,9 +230,9 @@ typedef struct JARRAY_INTERFACE {
      * @param data Pointer to existing data buffer.
      * @param length Number of elements in the data buffer.
      * @param elem_size Size of one element in bytes.
-     * @return JARRAY_RETURN indicating success or error.
+     * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    JARRAY_RETURN (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size);
+    void (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     JARRAY (*init_preset)(TYPE_PRESET preset);
     /**
      * @brief Prints all elements using the user-defined callback.
@@ -253,9 +241,8 @@ typedef struct JARRAY_INTERFACE {
      * Callback `print_element_callback` must be set, otherwise an error is returned.
      *
      * @param array Pointer to JARRAY.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*print)(const JARRAY *self);
+    void (*print)(const JARRAY *self);
     /**
      * @brief Sorts a copy of the array using a specified method.
      *
@@ -266,9 +253,8 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param method Sorting method enum.
      * @param custom_compare (Optional) Custom compare function (overrides user callback if provided).
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*sort)(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*));
+    void (*sort)(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*));
     /**
      * @brief Finds the first element satisfying a predicate.
      *
@@ -278,9 +264,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
      * @param ctx (Optionnal) Context pointer for predicate.
-     * @return JARRAY_RETURN pointing to matching element or an error.
+     * @return pointer to element.
      */
-    JARRAY_RETURN (*find_first)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    void* (*find_first)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Returns a copy of the internal `_data`.
      *
@@ -288,9 +274,9 @@ typedef struct JARRAY_INTERFACE {
      * Allocates memory; caller must free `.value`.
      *
      * @param self Pointer to JARRAY.
-     * @return JARRAY_RETURN containing copy of data or error.
+     * @return pointer to the first element of data array.
      */
-    JARRAY_RETURN (*copy_data)(JARRAY *self);
+    void* (*copy_data)(JARRAY *self);
     /**
      * @brief Create a subarray from a given JARRAY.
      * 
@@ -300,9 +286,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to the original JARRAY.
      * @param low_index Starting index of the subarray (inclusive).
      * @param high_index Ending index of the subarray (inclusive).
-     * @return JARRAY_RETURN On success, contains a pointer to the new subarray. On failure, contains an error code and message.
+     * @return sub jarray.
      */
-    JARRAY_RETURN (*subarray)(JARRAY *self, size_t low_index, size_t high_index);
+    JARRAY (*subarray)(JARRAY *self, size_t low_index, size_t high_index);
     /**
      * @brief Sets the element at a given index.
      *
@@ -312,9 +298,8 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param index Index to set.
      * @param elem Pointer to element data.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*set)(JARRAY *self, size_t index, const void *elem);
+    void (*set)(JARRAY *self, size_t index, const void *elem);
     /**
      * @brief Finds all indexes matching an element using `is_equal`.
      *
@@ -323,9 +308,9 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to find.
-     * @return JARRAY_RETURN containing allocated indexes or error.
+     * @return pointer to array of the indexes.
      */
-    JARRAY_RETURN (*indexes_of)(JARRAY *self, const void *elem);
+    size_t* (*indexes_of)(JARRAY *self, const void *elem);
     /**
      * @brief Applies a callback to each element.
      *
@@ -335,9 +320,8 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param callback Function to apply to each element.
      * @param ctx (Optionnal) Context pointer.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*for_each)(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx);
+    void (*for_each)(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx);
     /**
      * @brief Clears the array, freeing internal `_data`.
      *
@@ -345,9 +329,8 @@ typedef struct JARRAY_INTERFACE {
      * After clearing, array length is 0. Internal `_data` buffer is freed.
      *
      * @param self Pointer to JARRAY.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*clear)(JARRAY *self);
+    void (*clear)(JARRAY *self);
     /**
      * @brief Clones the array.
      *
@@ -355,9 +338,9 @@ typedef struct JARRAY_INTERFACE {
      * Allocates new JARRAY and copies all elements. Caller must free returned JARRAY and `_data`.
      *
      * @param self Pointer to JARRAY.
-     * @return JARRAY_RETURN containing new clone or error.
+     * @return cloned jarray
      */
-    JARRAY_RETURN (*clone)(JARRAY *self);
+    JARRAY (*clone)(JARRAY *self);
     /**
      * @brief Adds multiple elements from a data buffer.
      *
@@ -367,9 +350,8 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param data Pointer to data buffer.
      * @param count Number of elements.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*add_all)(JARRAY *self, const void *data, size_t length);
+    void (*add_all)(JARRAY *self, const void *data, size_t length);
     /**
      * @brief Checks if the array contains an element.
      *
@@ -378,9 +360,9 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to search.
-     * @return JARRAY_RETURN containing result or error.
+     * @return boolean : true if element is in jarray, false otherwise
      */
-    JARRAY_RETURN (*contains)(JARRAY *self, const void *elem);
+    bool (*contains)(JARRAY *self, const void *elem);
     /**
      * @brief Removes all elements present in a data buffer.
      *
@@ -390,16 +372,15 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param data Pointer to elements to remove.
      * @param count Number of elements.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*remove_all)(JARRAY *self, const void *data, size_t length);
+    void (*remove_all)(JARRAY *self, const void *data, size_t length);
     /**
      * @brief Returns the number of elements in the array. 
      * @note Or just access the _length member directly if you want to.
      * @param self Pointer to the JARRAY instance.
-     * @return JARRAY_RETURN containing the length of the array, or an error.
+     * @return length of the jarray
      */
-    JARRAY_RETURN (*length)(JARRAY *self);
+    size_t (*length)(JARRAY *self);
     /**
      * @brief Reduces the array to a single value using a reducer function.
      *
@@ -410,9 +391,9 @@ typedef struct JARRAY_INTERFACE {
      * @param reducer Function to combine elements.
      * @param initial_value (Optionnal) Pointer to initial accumulator value.
      * @param ctx (Optionnal) Context pointer for reducer.
-     * @return JARRAY_RETURN containing reduced value or error.
+     * @return pointer to result.
      */
-    JARRAY_RETURN (*reduce)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
+    void* (*reduce)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
     /**
      * @brief Concatenates two JARRAYs of the same element type.
      * 
@@ -420,9 +401,9 @@ typedef struct JARRAY_INTERFACE {
      * 
      * @param arr1 Pointer to the first JARRAY.
      * @param arr2 Pointer to the second JARRAY.
-     * @return JARRAY_RETURN On success, contains a pointer to the new concatenated array. On failure, contains an error code and message.
+     * @return jarray concatanated.
      */
-    JARRAY_RETURN (*concat)(JARRAY *arr1, JARRAY *arr2);
+    JARRAY (*concat)(JARRAY *arr1, JARRAY *arr2);
     /**
      * @brief Joins the string representations of all elements into a single string, separated by a specified delimiter.
      * 
@@ -430,18 +411,17 @@ typedef struct JARRAY_INTERFACE {
      * 
      * @param self Pointer to the JARRAY instance.
      * @param separator String to insert between elements.
-     * @return JARRAY_RETURN On success, contains a pointer to the joined string. On failure, contains an error code and message.
+     * @return string result.
      */
-    JARRAY_RETURN (*join)(JARRAY *self, const char *separator);
+    char* (*join)(JARRAY *self, const char *separator);
     /**
      * @brief Reverses the order of elements in the array.
      * 
      * @note This function modifies the array in place and does not allocate new memory.
      * 
      * @param self Pointer to the JARRAY instance.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*reverse)(JARRAY *self);
+    void (*reverse)(JARRAY *self);
     /**
      * @brief Checks if any element satisfies a predicate.
      *
@@ -451,9 +431,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
      * @param ctx (Optionnal) Context pointer for predicate.
-     * @return JARRAY_RETURN containing result or error.
+     * @return boolean : true if any satisfies the predicate, false otherwise.
      */
-    JARRAY_RETURN (*any)(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    bool (*any)(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from rigth to left of array.
      *
@@ -464,9 +444,9 @@ typedef struct JARRAY_INTERFACE {
      * @param reducer Function to combine elements.
      * @param initial_value (Optionnal) Pointer to initial accumulator value.
      * @param ctx (Optionnal) Context pointer for reducer.
-     * @return JARRAY_RETURN containing reduced value or error.
+     * @return pointer to result.
      */
-    JARRAY_RETURN (*reduce_right)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
+    void* (*reduce_right)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
     /**
      * @brief Finds the last element satisfying a predicate.
      *
@@ -476,9 +456,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
      * @param ctx (Optionnal) Context pointer for predicate.
-     * @return JARRAY_RETURN pointing to matching element or an error.
+     * @return pointer to last element.
      */
-    JARRAY_RETURN (*find_last)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    void* (*find_last)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Finds the index of the first element satisfying a predicate.
      *
@@ -488,9 +468,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
      * @param ctx (Optionnal) Context pointer for predicate.
-     * @return JARRAY_RETURN pointing to matching element or an error.
+     * @return index of first element.
      */
-    JARRAY_RETURN (*find_first_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    size_t (*find_first_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Finds the index of the last element satisfying a predicate.
      *
@@ -500,9 +480,9 @@ typedef struct JARRAY_INTERFACE {
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
      * @param ctx (Optionnal) Context pointer for predicate.
-     * @return JARRAY_RETURN pointing to matching element or an error.
+     * @return index of last element.
      */
-    JARRAY_RETURN (*find_last_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
+    size_t (*find_last_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Fills array with the same element. The number of element in the array filled is specified with argument `count`.
      * 
@@ -512,24 +492,21 @@ typedef struct JARRAY_INTERFACE {
      * @param elem element to insert.
      * @param start the index where inserting begins.
      * @param end the index where inserting ends.
-     * @return JARRAY_RETURN pointing to NULL or an error.
      */
-    JARRAY_RETURN (*fill)(JARRAY *self, const void *elem, size_t start, size_t end);
+    void (*fill)(JARRAY *self, const void *elem, size_t start, size_t end);
     /**
      * @brief Shifts the array to the left and discards the first element.
      * 
      * @param self Pointer to JARRAY.
-     * @return JARRAY_RETURN pointing to NULL or an error.
      */
-    JARRAY_RETURN (*shift)(JARRAY *self);
+    void (*shift)(JARRAY *self);
     /**
      * @brief Shifts the array to the right and adds elem at index 0.
      * 
      * @param self Pointer to JARRAY.
      * @param elem Element to add.
-     * @return JARRAY_RETURN pointing to NULL or an error.
      */
-    JARRAY_RETURN (*shift_right)(JARRAY *self, const void *elem);
+    void (*shift_right)(JARRAY *self, const void *elem);
     /**
      * @brief Adds and/or removes array elements.
      * 
@@ -540,9 +517,8 @@ typedef struct JARRAY_INTERFACE {
      * @param index position to add and/or remove items.
      * @param count number of element to remove.
      * @param ... the new elements to be added. ALWAYS add `NULL` as last argument after the elements.
-     * @return JARRAY_RETURN pointing to NULL or an error.
      */
-    JARRAY_RETURN (*splice)(JARRAY *self, size_t index, size_t count, ...);
+    void (*splice)(JARRAY *self, size_t index, size_t count, ...);
     /**
      * @brief Appends elements to the end of the array.
      *
@@ -551,9 +527,8 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param ... elements to append. ALWAYS add `NULL` as last argument after the elements to append.
-     * @return JARRAY_RETURN indicating success or error.
      */
-    JARRAY_RETURN (*addm)(JARRAY *self, ...);
+    void (*addm)(JARRAY *self, ...);
     /**
      * @brief Reserves `capacity * self->_elem_size` bytes for the array, and sets `self->_min_alloc` to `capacity`.
      * 
@@ -562,9 +537,8 @@ typedef struct JARRAY_INTERFACE {
      * 
      * @param self Pointer o JARRAY.
      * @param capacity Number of element to reserve in memory.
-     * @return JARRAY_RETURN pointing to NULL or error.
      */
-    JARRAY_RETURN (*reserve)(JARRAY *self, size_t capacity);
+    void (*reserve)(JARRAY *self, size_t capacity);
     /**
      * @brief Initialize array and reserve memory.
      * 
@@ -572,51 +546,25 @@ typedef struct JARRAY_INTERFACE {
      * @param elem_size size in bytes of the elements to be contained in array.
      * @param capacity number of element to reserve in memory.
      */
-    JARRAY_RETURN (*init_reserve)(JARRAY *self, size_t elem_size, size_t capacity);
+    void (*init_reserve)(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_USER_CALLBACK_IMPLEMENTATION imp);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
-
+extern JARRAY_RETURN last_error_trace;
 
 /* ----- MACROS ----- */
 
-/**
- * @brief Frees only the .value in a JARRAY_RETURN if it exists.
- *
- * @param ret JARRAY_RETURN to free value from.
- */
-#define JARRAY_FREE_RET_VALUE(ret) \
-    do { \
-        if ((ret).has_value && (ret).value != NULL) { \
-            free((ret).value); \
-            (ret).value = NULL; \
-        } \
-    } while(0)
 
 /**
- * @brief Frees only the error message in a JARRAY_RETURN if it exists.
- *
- * @param ret JARRAY_RETURN to free error from.
+ * @brief Frees the global error trace structure.
  */
-#define JARRAY_FREE_RET_ERROR(ret) \
-    do { \
-        if ((ret).has_error && (ret).error.error_msg != NULL) { \
-            free((ret).error.error_msg); \
-            (ret).error.error_msg = NULL; \
-        } \
-    } while(0)
-
-
-/**
- * @brief Frees both the .value and the error in a JARRAY_RETURN.
- *
- * @param ret JARRAY_RETURN to fully free.
- */
-#define JARRAY_FREE_RET(ret) \
-    do { \
-        JARRAY_FREE_RET_VALUE(ret); \
-        JARRAY_FREE_RET_ERROR(ret); \
-    } while(0)
+#define JARRAY_FREE_RET() \
+do { \
+    if (last_error_trace.error_msg != NULL) { \
+        free(last_error_trace.error_msg); \
+        last_error_trace.error_msg = NULL; \
+    } \
+} while(0)
 
 
 /**
@@ -661,111 +609,26 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
 
 
 /**
- * @brief Extracts the value from a JARRAY_RETURN and frees its internal pointer.
+ * @brief Checks if global error trace contains error.
  *
- * @param type Type of the value to extract.
- * @param ret The JARRAY_RETURN structure to extract the value from.
- * @return The extracted value of type `type`.
- *
- * @note Frees the internal .value pointer automatically.
+ * @return true if error, false otherwise.
  */
-#define JARRAY_RET_GET_VALUE_FREE(type, ret) \
-    ({ type _tmp = *(type*)(ret).value; JARRAY_FREE_RET(ret); _tmp; })
-
-/**
- * @brief Extracts the value from a JARRAY_RETURN without freeing it.
- *
- * @param type Type of the value to extract.
- * @param JARRAY_RETURN The JARRAY_RETURN structure to extract the value from.
- * @return The extracted value of type `type`.
- *
- * @note Caller must free .value manually if needed.
- */
-#define JARRAY_RET_GET_VALUE(type, JARRAY_RETURN) (*(type*)(JARRAY_RETURN).value)
-
-/**
- * @brief Helper to extract the internal pointer from a JARRAY_RETURN.
- *
- * @param ret JARRAY_RETURN to extract from.
- * @return Pointer stored in ret.value, or NULL if ret.value is NULL.
- *
- * @note Sets ret.value to NULL to prevent double-free.
- */
-static inline void* jarray_ret_get_pointer_impl(JARRAY_RETURN ret) {
-    if (ret.value == NULL) return NULL;
-    void *p = ret.value;
-    ret.value = NULL; // Clear the value to avoid double free
-    return p;
-}
-
-/**
- * @brief Extracts the pointer from a JARRAY_RETURN without freeing.
- *
- * @param type Type of the pointer.
- * @param JARRAY_RETURN JARRAY_RETURN to extract from.
- * @return Pointer of type `type*`.
- *
- * @note Caller is responsible for freeing the returned pointer.
- */
-#define JARRAY_RET_GET_POINTER(type, JARRAY_RETURN) ((type*)jarray_ret_get_pointer_impl(JARRAY_RETURN))
-
-/**
- * @brief Extracts value from a JARRAY_RETURN or returns a default if empty.
- *
- * @param type Type of the value.
- * @param JARRAY_RETURN JARRAY_RETURN to extract from.
- * @param default_value Value to return if JARRAY_RETURN has no value.
- * @return Value from JARRAY_RETURN or default_value.
- */
-#define JARRAY_RET_GET_VALUE_SAFE(type, JARRAY_RETURN, default_value) \
-    ((JARRAY_RETURN).has_value ? *(type*)((JARRAY_RETURN).value) : (default_value))
-
-/**
- * @brief Checks if a JARRAY_RETURN has an error, prints it, and returns EXIT_FAILURE.
- *
- * @param ret JARRAY_RETURN to check.
- */
-#define JARRAY_CHECK_RET(ret) \
+#define JARRAY_CHECK_RET() \
     ({ \
         bool ret_val = false; \
-        if ((ret).has_error) { \
-            jarray.print_array_err((ret), __FILE__, __LINE__); \
+        if (last_error_trace.has_error) { \
+            jarray.print_array_err(__FILE__, __LINE__); \
             ret_val = true; \
         } \
-        JARRAY_FREE_RET_ERROR(ret); \
         ret_val; \
     })
 
-#define JARRAY_CKECK_RET_RETURN(ret) \
-    if ((ret).has_error) { \
-        jarray.print_array_err((ret), __FILE__, __LINE__); \
-        JARRAY_FREE_RET(ret); \
+#define JARRAY_CKECK_RET_RETURN() \
+    if (last_error_trace.has_error) { \
+        jarray.print_array_err(__FILE__, __LINE__); \
+        JARRAY_FREE_RET(); \
         return EXIT_FAILURE; \
     }
-
-/**
- * @brief Checks if a JARRAY_RETURN has an error, prints it, frees its value if present, and returns EXIT_FAILURE.
- *
- * @param ret JARRAY_RETURN to check.
- */
-#define JARRAY_CHECK_RET_FREE(ret) \
-    ({ \
-        bool ret_val = false; \
-        if ((ret).has_error) { \
-            jarray.print_array_err((ret), __FILE__, __LINE__); \
-            ret_val = true; \
-        } \
-        JARRAY_FREE_RET(ret); \
-        ret_val; \
-    })
-
-
-#define JARRAY_CKECK_RET_FREE_RETURN(ret) \
-        JARRAY_FREE_RET(ret); \
-        if ((ret).has_error) { \
-            jarray.print_array_err((ret), __FILE__, __LINE__); \
-            return EXIT_FAILURE; \
-        }
 
 
 #endif

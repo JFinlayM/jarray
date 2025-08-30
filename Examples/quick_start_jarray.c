@@ -11,26 +11,30 @@ int compare_int(const void *a, const void *b) {
 
 int main() {
     JARRAY array;
-    JARRAY_RETURN ret;
-    
-    // Initialize
-    ret = jarray.init(&array, sizeof(int));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE; // Check for errors and return
-    // Or just JARRAY_CHECK_RET_FREE(ret) after function calls if you don't need to return
-    // Or JARRAY_CHECK_RET(ret) if you need the return value later
-    // Or nothing but that creates memory leaks
+
+    // --- Initialize ---
 
     // Set callbacks
-    array.user_implementation.print_element_callback = print_int;
-    array.user_implementation.compare = compare_int;
+    JARRAY_USER_CALLBACK_IMPLEMENTATION imp = {
+        .print_element_callback = print_int,
+        .compare = compare_int,
+        .element_to_string = NULL,
+        .is_equal = NULL
+    };
+
+    jarray.init(&array, sizeof(int), imp);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
+    // Or nothing if your sure there is no error
+
     
     // Add elements
     for (int i = 1; i <= 5; i++) {
-        ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+        jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
+        if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
     }
     
     jarray.print(&array); // Output: 1 2 3 4 5
     jarray.free(&array);
+    JARRAY_FREE_RET();
     return 0;
 }

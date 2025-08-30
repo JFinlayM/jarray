@@ -39,10 +39,6 @@ bool is_equal_int(const void *a, const void *b) {
     return JARRAY_GET_VALUE(const int, a) == JARRAY_GET_VALUE(const int, b);
 }
 
-void print_error_override(const JARRAY_RETURN_ERROR error) {
-    fprintf(stderr, "[\033[31mError: %s\033[0m]\n", error.error_msg);
-    free(error.error_msg); // Free the error message after printing
-}
 void print_array_override(const JARRAY *array) {
     printf("Custom print of JARRAY [size: %zu]: ", array->_length);
     for (size_t i = 0; i < array->_length; i++) {
@@ -74,7 +70,6 @@ void *sum(const void *accumulator, const void *elem, const void *ctx) {
 }
 
 int main(void) {
-    JARRAY_RETURN ret;
     JARRAY array;
 
     printf("\n=== DEMO: jarray ===\n");
@@ -85,232 +80,227 @@ int main(void) {
     for (int i = 1; i <= 10; i++) {
         data_start[i-1] = i;
     }
-    ret = jarray.init_with_data(&array, data_start, 10, sizeof(int));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    data_start = NULL;
-    ret = jarray.reserve(&array, 20);
-    JARRAY_CHECK_RET(ret);
 
-    array.user_implementation.print_element_callback = print_int;
-    array.user_implementation.element_to_string = int_to_string;
-    array.user_implementation.compare = compare_int;
-    array.user_implementation.is_equal = is_equal_int;
+    JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
+
+    imp.print_element_callback = print_int;
+    imp.element_to_string = int_to_string;
+    imp.compare = compare_int;
+    imp.is_equal = is_equal_int;
+
+    jarray.init_with_data(&array, data_start, 10, sizeof(int), imp);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    data_start = NULL;
+    jarray.reserve(&array, 20);
+    JARRAY_CHECK_RET();
 
     printf("Insert 11 at index 0, and 12 at index 5\n");
-    ret = jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.add_at(&array, 5, JARRAY_DIRECT_INPUT(int, 12));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.add_at(&array, 5, JARRAY_DIRECT_INPUT(int, 12));
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     printf("Full array: ");
-    ret = jarray.print(&array);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.print(&array);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Filtering ---
     printf("\nFiltering even numbers:\n");
-    ret = jarray.filter(&array, is_even, NULL);
-    JARRAY_CHECK_RET(ret);
-    JARRAY* evens = JARRAY_RET_GET_POINTER(JARRAY, ret);
-    ret = jarray.print(evens);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    jarray.free(evens); // free filtered array
+    JARRAY evens = jarray.filter(&array, is_even, NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&evens);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.free(&evens); // free filtered array
 
     printf("\nFiltering numbers between 3 and 9:\n");
     TEST_CTX ctx = {3, 9};
-    ret = jarray.filter(&array, test_ctx_func, &ctx);
-    JARRAY_CHECK_RET(ret);
-    JARRAY* filtered = JARRAY_RET_GET_POINTER(JARRAY, ret);
-    ret = jarray.print(filtered);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    jarray.free(filtered); // free filtered array
+    JARRAY filtered = jarray.filter(&array, test_ctx_func, &ctx);
+    JARRAY_CHECK_RET();
+    jarray.print(&filtered);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.free(&filtered); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
-    ret = jarray.sort(&array, QSORT, NULL);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(&array);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.sort(&array, QSORT, NULL);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&array);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Accessing ---
     printf("\nAccess element at index 3: ");
-    ret = jarray.at(&array, 3);
-    JARRAY_CHECK_RET(ret);
-    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+    int el = *(int*)jarray.at(&array, 3);
+    JARRAY_CHECK_RET();
+    printf("%d\n", el);
 
     // --- Finding ---
 
     printf("\nFind first even number: ");
-    ret = jarray.find_first(&array, is_even, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+    int first = *(int*)jarray.find_first(&array, is_even, NULL);
+    JARRAY_CHECK_RET();
+    printf("%d\n", first);
 
     printf("Find index of first even number: ");
-    ret = jarray.find_first_index(&array, is_even, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+    size_t idx = jarray.find_first_index(&array, is_even, NULL);
+    JARRAY_CHECK_RET();
+    printf("%zu\n", idx);
 
     printf("Find last even number: ");
-    ret = jarray.find_last(&array, is_even, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+    int last = *(int*)jarray.find_last(&array, is_even, NULL);
+    JARRAY_CHECK_RET();
+    printf("%d\n", last);
 
     printf("Find index of last even number: ");
-    ret = jarray.find_last_index(&array, is_even, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("%d\n", JARRAY_RET_GET_VALUE(int, ret));
+    idx = jarray.find_last_index(&array, is_even, NULL);
+    JARRAY_CHECK_RET();
+    printf("%zu\n", idx);
 
     // --- Raw data ---
     printf("\nRaw data pointer:\n");
-    ret = jarray.copy_data(&array);
-    JARRAY_CHECK_RET(ret);
-    int *data = JARRAY_RET_GET_POINTER(int, ret);
+    int* data = (int*)jarray.copy_data(&array);
+    JARRAY_CHECK_RET();
     printf("data[0] = %d\n", data[0]);
     free(data);
 
     // --- Subarray ---
     printf("\nSubarray [0..3]:\n");
-    ret = jarray.subarray(&array, 0, 3);
-    JARRAY_CHECK_RET(ret);
-    JARRAY* sub = JARRAY_RET_GET_POINTER(JARRAY, ret);
-    ret = jarray.print(sub);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    jarray.free(sub);
+    JARRAY sub = jarray.subarray(&array, 0, 3);
+    JARRAY_CHECK_RET();
+    jarray.print(&sub);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.free(&sub);
 
     // --- Modify ---
     printf("\nSet index 1 to 12:\n");
-    ret = jarray.set(&array, 1, JARRAY_DIRECT_INPUT(int, 12));
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(&array);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.set(&array, 1, JARRAY_DIRECT_INPUT(int, 12));
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&array);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Find indexes ---
     printf("\nFinding indexes of 12:\n");
-    ret = jarray.indexes_of(&array, JARRAY_DIRECT_INPUT(int, 12));
-    JARRAY_CHECK_RET(ret);
-    size_t *indexes = JARRAY_RET_GET_POINTER(size_t, ret);
-
+    size_t* indexes = jarray.indexes_of(&array, JARRAY_DIRECT_INPUT(int, 12));
+    JARRAY_CHECK_RET();
     // print matches
     printf("%zu\n", indexes[0]);
     free(indexes);
 
     // --- For each ---
     printf("\nFor each element, modulo 3:\n");
-    ret = jarray.for_each(&array, modulo3, NULL);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(&array);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.for_each(&array, modulo3, NULL);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&array);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Clone ---
     printf("\nCloning array:\n");
-    ret = jarray.clone(&array);
-    JARRAY_CHECK_RET(ret);
-    JARRAY* clone = JARRAY_RET_GET_POINTER(JARRAY, ret);
-    ret = jarray.print(clone);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    JARRAY clone = jarray.clone(&array);
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Clear ---
     printf("\nClearing clone array:\n");
-    ret = jarray.clear(clone);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(clone);
-    JARRAY_CHECK_RET_FREE(ret); // should print empty array
+    jarray.clear(&clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&clone);
+    JARRAY_CHECK_RET(); // should print empty array
 
     // --- Add all ---
     printf("\nAdding all elements from original array to clone:\n");
-    ret = jarray.add_all(clone, array._data, array._length);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(clone);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.add_all(&clone, array._data, array._length);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Join ---
     printf("\nJoining elements of clone array with '-' separator:\n");
-    ret = jarray.join(clone, "-");
-    JARRAY_CHECK_RET(ret);
-    char *joined_str = JARRAY_RET_GET_POINTER(char, ret);
+    char *joined_str = jarray.join(&clone, "-");
+    JARRAY_CHECK_RET();
     printf("Joined string: %s\n", joined_str);
+    free(joined_str);
     joined_str = NULL;
-    JARRAY_FREE_RET(ret);
 
     // --- Reduce ---
     printf("\nReducing clone array (sum of elements): ");
-    ret = jarray.reduce(clone, sum, NULL, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
+    int reduced = *(int*)jarray.reduce(&clone, sum, NULL, NULL);
+    JARRAY_CHECK_RET();
+    printf("Sum = %d\n", reduced);
 
     // --- Reduce right ---
     printf("\nReducing clone array from the right (sum of elements): ");
-    ret = jarray.reduce_right(clone, sum, NULL, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("Sum = %d\n", JARRAY_RET_GET_VALUE_FREE(int, ret));
+    reduced = *(int*)jarray.reduce_right(&clone, sum, NULL, NULL);
+    JARRAY_CHECK_RET();
+    printf("Sum = %d\n", reduced);
 
     // --- Contains ---
     printf("\nChecking if clone contains 5: ");
-    ret = jarray.contains(clone, JARRAY_DIRECT_INPUT(int, 5));
-    JARRAY_CHECK_RET(ret);
-    printf("%s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "Yes" : "No");
+    bool contains = jarray.contains(&clone, JARRAY_DIRECT_INPUT(int, 5));
+    JARRAY_CHECK_RET();
+    printf("%s\n", contains ? "Yes" : "No");
 
     // --- Remove all ---
     printf("\nRemoving all elements that are in clone from original array:\n");
-    ret = jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
-    if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-    ret = jarray.remove_all(&array, clone->_data, clone->_length);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(&array); // Should only display 17
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.add(&array, JARRAY_DIRECT_INPUT(int, 17)); // add 17 to original array for testing
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.remove_all(&array, clone._data, clone._length);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&array); // Should only display 17
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Concat ---
     printf("Concat array and clone array:\n");
-    ret = jarray.concat(&array, clone);
-    if (JARRAY_CHECK_RET(ret)) return EXIT_FAILURE;
-    JARRAY *conc = JARRAY_RET_GET_POINTER(JARRAY, ret);
-    jarray.print(conc);
-    jarray.free(conc);
+    JARRAY conc = jarray.concat(&array, &clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&conc);
+    jarray.free(&conc);
 
     // --- Reverse ---
     printf("\nReversing clone array:\n");
-    ret = jarray.reverse(clone);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
-    ret = jarray.print(clone);
-    if (JARRAY_CHECK_RET_FREE(ret)) return EXIT_FAILURE;
+    jarray.reverse(&clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+    jarray.print(&clone);
+    if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
 
     // --- Any ---
     printf("\nChecking if any element in clone is > 8: ");
-    ret = jarray.any(clone, sup_8, NULL);
-    JARRAY_CHECK_RET(ret);
-    printf("%s\n", JARRAY_RET_GET_VALUE_FREE(bool, ret) ? "Yes" : "No");
+    bool any = jarray.any(&clone, sup_8, NULL);
+    JARRAY_CHECK_RET();
+    printf("%s\n", any ? "Yes" : "No");
 
     // --- Fill ---
     printf("\nFilling clone array with fives:\n");
-    ret = jarray.fill(clone, JARRAY_DIRECT_INPUT(int, 5), 10, clone->_length + 3);
-    JARRAY_CHECK_RET(ret);
-    jarray.print(clone);
+    jarray.fill(&clone, JARRAY_DIRECT_INPUT(int, 5), 10, clone._length + 3);
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
 
     // --- Shift ---
     printf("\nShifting clone:\n");
-    ret = jarray.shift(clone);
-    JARRAY_CHECK_RET(ret);
-    jarray.print(clone);
+    jarray.shift(&clone);
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
 
     // --- Shift right ---
     printf("\nShifting clone to the right and add 3:\n");
-    ret = jarray.shift_right(clone, JARRAY_DIRECT_INPUT(int, 3));
-    JARRAY_CHECK_RET(ret);
-    jarray.print(clone);
+    jarray.shift_right(&clone, JARRAY_DIRECT_INPUT(int, 3));
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
 
     // --- Splice ---
     printf("\nSplicing element 1 and 2 and replaced by 10 and 15\n");
-    ret = jarray.splice(clone, 1, 2, JARRAY_DIRECT_INPUT(int, 10), JARRAY_DIRECT_INPUT(int, 15), NULL);
-    JARRAY_CHECK_RET(ret);
-    jarray.print(clone);
+    jarray.splice(&clone, 1, 2, JARRAY_DIRECT_INPUT(int, 10), JARRAY_DIRECT_INPUT(int, 15), NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
 
     // --- Addm (Add multiple) ---
     printf("\nAdding 25 and 30 with addm:\n");
-    ret = jarray.addm(clone, JARRAY_DIRECT_INPUT(int, 25), JARRAY_DIRECT_INPUT(int, 30), NULL);
-    JARRAY_CHECK_RET(ret);
-    jarray.print(clone);
+    jarray.addm(&clone, JARRAY_DIRECT_INPUT(int, 25), JARRAY_DIRECT_INPUT(int, 30), NULL);
+    JARRAY_CHECK_RET();
+    jarray.print(&clone);
 
     // --- Cleanup ---
     jarray.free(&array);
-    jarray.free(clone);
+    jarray.free(&clone);
+    JARRAY_FREE_RET();
 
     printf("\n=== END DEMO ===\n");
     return EXIT_SUCCESS;
