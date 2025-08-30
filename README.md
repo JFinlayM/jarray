@@ -66,19 +66,19 @@ int main() {
     };
 
     jarray.init(&array, sizeof(int), imp);
-    if (JARRAY_CHECK_RET()) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
+    if (JARRAY_CHECK_RET) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
     // Or nothing if your sure there is no error
 
     
     // Add elements
     for (int i = 1; i <= 5; i++) {
         jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+        if (JARRAY_CHECK_RET) return EXIT_FAILURE;
     }
     
     jarray.print(&array); // Output: 1 2 3 4 5
     jarray.free(&array);
-    JARRAY_FREE_RET();
+    JARRAY_FREE_RET;
     return 0;
 }
 ```
@@ -160,15 +160,15 @@ bool is_even(const void *x, const void *ctx) {
 
 // Filter
 JARRAY evens = jarray.filter(&array, is_even, NULL); // No context needed here -> NULL
-if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+JARRAY_CHECK_RET_RETURN;
 jarray.print(evens);
-JARRAY_CHECK_RET();
+JARRAY_CHECK_RET;
 jarray.free(evens);
-JARRAY_CHECK_RET();
+JARRAY_CHECK_RET;
 
 // Find first
 int even = *(int*)jarray.find_first(&array, is_even, NULL); // No context needed here -> NULL
-if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+JARRAY_CHECK_RET_RETURN;
 printf("First even: %d\n", even);
 ```
 
@@ -187,14 +187,14 @@ JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
 imp.print_element_callback = print_point;
 
 jarray.init(&points, sizeof(Point), imp);
-if (JARRAY_CHECK_RET()) return EXIT_FAILURE;
+JARRAY_CHECK_RET_RETURN;
 
 Point p = {3, 4};
 jarray.add(&points, &p);
-JARRAY_CHECK_RET();
+JARRAY_CHECK_RET;
 
 jarray.print(&points);
-JARRAY_CHECK_RET();
+JARRAY_CHECK_RET;
 ```
 
 ### Sorting
@@ -239,8 +239,9 @@ imp.copy_elem_override = copy_elem_func;      // For copy override. MANDATORY wh
 
 Use these macros for automatic error checking and value extraction:
 ```c
-JARRAY_CHECK_RET();                // Print error, free error, return true if error
-JARRAY_GET_VALUE(type, val);       // Extract value from pointer (doesn't free)
-JARRAY_DIRECT_INPUT(type, val);    // Create pointer for input value
-JARRAY_FREE_RET();                  // Free error
+JARRAY_CHECK_RET;                   // Print error, free error, return true if error
+JARRAY_CHECK_RET_RETURN;            // Print error, free error, return EXIT_FAILURE if error
+JARRAY_GET_VALUE(type, val);        // Extract value from pointer (doesn't free)
+JARRAY_DIRECT_INPUT(type, val);     // Create pointer for input value
+JARRAY_FREE_RET;                    // Free error
 ```

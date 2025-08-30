@@ -304,7 +304,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Finds all indexes matching an element using `is_equal`.
      *
      * @note
-     * Allocates array of size_t containing count + indexes. Caller must free `.value`.
+     * Allocates array of size_t containing count + indexes. Caller has responsabilité to free result.
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to find.
@@ -385,7 +385,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Reduces the array to a single value using a reducer function.
      *
      * @note
-     * Allocates memory for the reduced value; caller must free `.value`.
+     * Allocates memory for the reduced value; caller has responsability to free result. 
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
@@ -438,7 +438,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from rigth to left of array.
      *
      * @note
-     * Allocates memory for the reduced value; caller must free `.value`.
+     * Allocates memory for the reduced value; caller has responsability to free result.
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
@@ -558,7 +558,7 @@ extern JARRAY_RETURN last_error_trace;
 /**
  * @brief Frees the global error trace structure.
  */
-#define JARRAY_FREE_RET() \
+#define JARRAY_FREE_RET \
 do { \
     if (last_error_trace.error_msg != NULL) { \
         free(last_error_trace.error_msg); \
@@ -613,7 +613,7 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
  *
  * @return true if error, false otherwise.
  */
-#define JARRAY_CHECK_RET() \
+#define JARRAY_CHECK_RET \
     ({ \
         bool ret_val = false; \
         if (last_error_trace.has_error) { \
@@ -623,10 +623,10 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
         ret_val; \
     })
 
-#define JARRAY_CKECK_RET_RETURN() \
+#define JARRAY_CKECK_RET_RETURN \
     if (last_error_trace.has_error) { \
         jarray.print_array_err(__FILE__, __LINE__); \
-        JARRAY_FREE_RET(); \
+        JARRAY_FREE_RET; \
         return EXIT_FAILURE; \
     }
 
