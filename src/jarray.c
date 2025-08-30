@@ -13,18 +13,18 @@ JARRAY_RETURN last_error_trace = {0};
 
 /// Lookup table mapping JARRAY_ERROR enum values to their corresponding string descriptions.
 static const char *enum_to_string[] = {
-    [JARRAY_NO_ERROR]                               = "No error",
-    [JARRAY_INDEX_OUT_OF_BOUND]                    = "Index out of bound",
-    [JARRAY_UNINITIALIZED]                   = "JARRAY uninitialized",
-    [JARRAY_DATA_NULL]                             = "Data is null",
-    [JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED]   = "Print callback not set",
-    [JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED] = "Element to string callback not set",
-    [JARRAY_EMPTY]                           = "Empty jarray",
-    [JARRAY_INVALID_ARGUMENT]                      = "Invalid argument",
-    [JARRAY_COMPARE_CALLBACK_UNINTIALIZED]         = "Compare callback not set",
-    [JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED]        = "is_equal callback not set",
-    [JARRAY_ELEMENT_NOT_FOUND]                     = "Element not found",
-    [JARRAY_UNIMPLEMENTED_FUNCTION]                = "Function not implemented",
+    [JARRAY_NO_ERROR]                                   = "No error",
+    [JARRAY_INDEX_OUT_OF_BOUND]                         = "Index out of bound",
+    [JARRAY_UNINITIALIZED]                              = "JARRAY uninitialized",
+    [JARRAY_DATA_NULL]                                  = "Data is null",
+    [JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED]        = "Print callback not set",
+    [JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED]    = "Element to string callback not set",
+    [JARRAY_EMPTY]                                      = "Empty jarray",
+    [JARRAY_INVALID_ARGUMENT]                           = "Invalid argument",
+    [JARRAY_COMPARE_CALLBACK_UNINTIALIZED]              = "Compare callback not set",
+    [JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED]             = "is_equal callback not set",
+    [JARRAY_ELEMENT_NOT_FOUND]                          = "Element not found",
+    [JARRAY_UNIMPLEMENTED_FUNCTION]                     = "Function not implemented",
 };
 
 static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
@@ -51,9 +51,7 @@ static void print_array_err(const char *file, int line) {
     } else {
         fprintf(stderr, "%s:%d [\033[31mError: %s\033[0m] : ", file, line, enum_to_string[last_error_trace.error_code]);
     }
-    if (last_error_trace.error_msg) {
-        fprintf(stderr, "%s\n", last_error_trace.error_msg);
-    }
+    fprintf(stderr, "%s\n", last_error_trace.error_msg);
 }
 
 static void array_free(JARRAY *array) {
@@ -68,34 +66,20 @@ static void array_free(JARRAY *array) {
 }
 
 static void create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
-    last_error_trace.has_error = true;
-    last_error_trace.ret_source = ret_source;
-    //free(last_error_trace.error_msg);
     va_list args;
     va_start(args, fmt);
-    size_t len = 100*sizeof(char);
-    char *buf = (char*)malloc(len);
-    if (!buf) {
-        last_error_trace.error_msg = "Error message buffer memory allocation failed";
-        last_error_trace.error_code = JARRAY_UNINITIALIZED;
-        va_end(args);
-    }
-
-    vsnprintf(buf, len, fmt, args);
-    va_end(args);
-
+    last_error_trace.has_error = true;
     last_error_trace.error_code = error_code;
-    last_error_trace.error_msg = buf;
+    vsnprintf(last_error_trace.error_msg, MAX_ERR_MSG_LENGTH, fmt, args);
+    last_error_trace.ret_source = ret_source;
+    va_end(args);
 }
 
 static void reset_error_trace(){
     last_error_trace.has_error = false;
     last_error_trace.ret_source = NULL;
     last_error_trace.error_code = JARRAY_NO_ERROR;
-    if (last_error_trace.error_msg){
-        free(last_error_trace.error_msg);
-        last_error_trace.error_msg = NULL;
-    }
+    snprintf(last_error_trace.error_msg, MAX_ERR_MSG_LENGTH, "no error");
 }
 
 static void init_array_callbacks(JARRAY *array){

@@ -95,10 +95,10 @@ JARRAY [size: 5] =>
 
 ### Basic Operations
 ```c
-jarray.init(&array, sizeof(int));                       // Initialize empty array
-jarray.init_reserve(&array, sizeof(int), capacity)      // Initialize array and reserve memory
-jarray.init_with_data(&array, data, count, sizeof(int));// Initialize with raw data (don't use if data is stack allocated)
-jarray.init_with_data_copy(&array, data, count, sizeof(int));// Initialize with a copy of raw data 
+jarray.init(&array, sizeof(int), imp);                       // Initialize empty array
+jarray.init_reserve(&array, sizeof(int), capacity, imp)      // Initialize array and reserve memory
+jarray.init_with_data(&array, data, count, sizeof(int), imp);// Initialize with raw data (don't use if data is stack allocated)
+jarray.init_with_data_copy(&array, data, count, sizeof(int), imp);// Initialize with a copy of raw data 
 jarray.init_preset(preset);                             // Returns a jarray with all the user functions implemented for a given preset
 jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));       // Append element
 jarray.addm(&array, ...);                               // Appends elements to the end of the array.

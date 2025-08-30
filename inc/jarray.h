@@ -1,13 +1,3 @@
-#ifndef JARRAY_H
-#define JARRAY_H
-
-#include <stdbool.h>
-#include <stddef.h>
-#include <string.h>
-#include <stdlib.h>
-
-typedef struct JARRAY JARRAY;
-
 /**
  * @file jarray.h
  * @brief Header file for the JARRAY library.
@@ -16,6 +6,18 @@ typedef struct JARRAY JARRAY;
  * A JARRAY can contain any type of data, from primitive types to user-defined structures.
  * The library needs user-defined functions for printing, comparing, and checking equality of elements. These functions can be mandatory for certain operations.
  */
+
+#ifndef JARRAY_H
+#define JARRAY_H
+ 
+#include <stdbool.h>
+#include <stddef.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_ERR_MSG_LENGTH 100
+
+typedef struct JARRAY JARRAY;
 
 /**
  * @brief JARRAY_ERROR enum.
@@ -52,7 +54,7 @@ typedef enum {
  */
 typedef struct JARRAY_RETURN {
     JARRAY_ERROR error_code;
-    char* error_msg;
+    char error_msg[MAX_ERR_MSG_LENGTH];
     bool has_error;
     const JARRAY* ret_source;
 } JARRAY_RETURN;
@@ -555,17 +557,6 @@ extern JARRAY_RETURN last_error_trace;
 /* ----- MACROS ----- */
 
 
-/**
- * @brief Frees the global error trace structure.
- */
-#define JARRAY_FREE_RET \
-do { \
-    if (last_error_trace.error_msg != NULL) { \
-        free(last_error_trace.error_msg); \
-        last_error_trace.error_msg = NULL; \
-    } \
-} while(0)
-
 
 /**
  * @brief Extracts the value from a pointer returned by JARRAY.
@@ -626,7 +617,6 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
 #define JARRAY_CKECK_RET_RETURN \
     if (last_error_trace.has_error) { \
         jarray.print_array_err(__FILE__, __LINE__); \
-        JARRAY_FREE_RET; \
         return EXIT_FAILURE; \
     }
 

@@ -92,13 +92,13 @@ int main(void) {
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
     data_start = NULL;
     jarray.reserve(&array, 20);
-    JARRAY_CHECK_RET;;
+    JARRAY_CHECK_RET;
 
-    printf("Insert 11 at index 0, and 12 at index 5\n");
+    printf("Insert 11 at index 0, and 12 at index 50 (should indicate error for index 50)\n");
     jarray.add_at(&array, 0, JARRAY_DIRECT_INPUT(int, 11));
-    if (JARRAY_CHECK_RET) return EXIT_FAILURE;
-    jarray.add_at(&array, 5, JARRAY_DIRECT_INPUT(int, 12));
-    if (JARRAY_CHECK_RET) return EXIT_FAILURE;
+    JARRAY_CHECK_RET;
+    jarray.add_at(&array, 50, JARRAY_DIRECT_INPUT(int, 12));
+    JARRAY_CHECK_RET;
 
     printf("Full array: ");
     jarray.print(&array);
@@ -305,7 +305,6 @@ int main(void) {
     // --- Cleanup ---
     jarray.free(&array);
     jarray.free(&clone);
-    JARRAY_FREE_RET;
 
     printf("\n=== END DEMO ===\n");
     return EXIT_SUCCESS;

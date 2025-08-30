@@ -35,6 +35,5 @@ int main() {
     
     jarray.print(&array); // Output: 1 2 3 4 5
     jarray.free(&array);
-    JARRAY_FREE_RET;
     return 0;
 }
