@@ -30,11 +30,12 @@ sudo ldconfig
 This should install libjarray.so and libjarray.a in /urs/local/lib/ and jarray.h in usr/local/include/
 
 To use in your projet just include with *#include <jarray.h>* and link with *-ljarray* when compiling.
-You can find in folder `Examples` some simple c files using jarray. Be sure to go through `Install` procedure as described above beforehand. To see result (for jarray_string.c for example): 
+You can find in folder `Examples` some simple c files using jarray. To see result (for jarray_string.c for example): 
 ```bash
 cd Examples
 make
 ./jarray_string hello goodbye
+./jarray_points
 ```
 
 ## Quick Start
@@ -221,7 +222,7 @@ There is some functions that can be overriden. Maybe more will be added later:
 ```c
 array.user_implementation.print_error_override = error_func;        // For error printing
 array.user_implementation.print_array_override = print_array_func;  // For print() override
-array.user_implementation.copy_elem_override = copy_elem_func;      // For copy override. NECESSARY when storing pointers (Example : strdup for char*)
+array.user_implementation.copy_elem_override = copy_elem_func;      // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
 ```
 
 ## Good practices
