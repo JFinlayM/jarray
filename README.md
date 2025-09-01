@@ -161,9 +161,9 @@ bool is_even(const void *x, const void *ctx) {
 // Filter
 JARRAY evens = jarray.filter(&array, is_even, NULL); // No context needed here -> NULL
 JARRAY_CHECK_RET_RETURN;
-jarray.print(evens);
+jarray.print(&evens);
 JARRAY_CHECK_RET;
-jarray.free(evens);
+jarray.free(&evens);
 JARRAY_CHECK_RET;
 
 // Find first

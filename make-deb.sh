@@ -37,7 +37,7 @@ EOF
 cat > debian/rules <<'EOF'
 #!/usr/bin/make -f
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
-export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+export DEB_CFLAGS_MAINT_APPEND  = -Wall -Wextra
 export DEB_LDFLAGS_MAINT_APPEND =
 
 %:
@@ -53,9 +53,6 @@ jarray ($VERSION-1) unstable; urgency=medium
 
  -- $FULLNAME <$EMAIL>  $DATE
 EOF
-
-# ===== FICHIER compat =====
-echo "13" > debian/compat
 
 # ===== FICHIER copyright =====
 cat > debian/copyright <<EOF
