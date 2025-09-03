@@ -6,7 +6,7 @@ A dynamic array library for C on **Linux** with filtering, sorting, searching, a
 It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
 The functions are inspired by higher-level languages like JavaScript and Java...
 
-**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please lool below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
+**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please look below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
 
 `main.c` is complete example of a jarray storing integers. But you can store any structure in a jarray.
 

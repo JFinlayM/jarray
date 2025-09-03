@@ -50,7 +50,7 @@ typedef enum {
     UINT_PRESET,
     ULONG_PRESET,
     USHORT_PRESET,
-} TYPE_PRESET;
+} JARRAY_TYPE_PRESET;
 
 /**
  * @brief JARRAY_RETURN structure.
@@ -176,8 +176,6 @@ typedef struct JARRAY_INTERFACE {
     /**
      * @brief Removes the last element from the array.
      *
-     * @note
-     * Returns a newly allocated copy of the removed element. Caller must free `.value`.
      *
      * @param self Pointer to JARRAY.
      */
@@ -185,9 +183,6 @@ typedef struct JARRAY_INTERFACE {
     /**
      * @brief Removes an element at a specific index.
      *
-     * @note
-     * Allocates a new buffer for the removed element and returns it.
-     * Caller MUST free the returned `.value`.
      *
      * @param self Pointer to JARRAY.
      * @param index Index of element to remove.
@@ -241,7 +236,7 @@ typedef struct JARRAY_INTERFACE {
      * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
     void (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
-    JARRAY (*init_preset)(TYPE_PRESET preset);
+    JARRAY (*init_preset)(JARRAY_TYPE_PRESET preset);
     /**
      * @brief Prints all elements using the user-defined callback.
      *
@@ -277,9 +272,6 @@ typedef struct JARRAY_INTERFACE {
     void* (*find_first)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
      * @brief Returns a copy of the internal `_data`.
-     *
-     * @note
-     * Allocates memory; caller must free `.value`.
      *
      * @param self Pointer to JARRAY.
      * @return pointer to the first element of data array.

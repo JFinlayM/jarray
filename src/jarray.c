@@ -1155,7 +1155,7 @@ extern JARRAY create_jarray_ulong(void);
 extern JARRAY create_jarray_ushort(void);
 extern JARRAY create_jarray_uint(void);
 
-static JARRAY array_init_preset(TYPE_PRESET preset){
+static JARRAY array_init_preset(JARRAY_TYPE_PRESET preset){
     JARRAY (*ret_func)(void) = NULL;
     switch (preset){
         case STRING_PRESET:
