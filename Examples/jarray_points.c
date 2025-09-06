@@ -87,7 +87,7 @@ int main(void) {
     imp.compare = compare_point;
     imp.is_equal = is_equal_point;
 
-    jarray.init_with_data_copy(&points, data_start, 5, sizeof(Point), imp);
+    jarray.init_with_data_copy(&points, data_start, 5, sizeof(Point), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
 
 

@@ -42,6 +42,10 @@ int main(int argc, char *argv[]){
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
 
+    char ** val = (char**)jarray.at(&arr_preset, 2);
+    JARRAY_CHECK_RET_RETURN;
+    printf("val at index 2 : %s\n", *val);
+
     char **values = (char**)jarray.copy_data(&arr_preset);
     for (size_t i = 0; i < arr_preset._length; i++){
         printf("%s\n", values[i]);

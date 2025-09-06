@@ -32,6 +32,6 @@ JARRAY create_jarray_uint(void){
     imp.element_to_string = element_to_string_array_callback;
     imp.compare = compare_array_callback;
     imp.is_equal = is_equal_array_callback;
-    jarray.init(&array, sizeof(unsigned int), imp);
+    jarray.init(&array, sizeof(unsigned int), JARRAY_TYPE_VALUE, imp);
     return array;
 }

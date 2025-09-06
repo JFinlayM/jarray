@@ -79,6 +79,8 @@ typedef struct JARRAY_USER_CALLBACK_IMPLEMENTATION {
     int (*compare)(const void*, const void*);
     // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.indexes_of functions.
     bool (*is_equal)(const void*, const void*);
+    // This function is MANDATORY if storing pointers (Example : strdup for char*).
+    void *(*copy_elem_override)(const void*);
 } JARRAY_USER_CALLBACK_IMPLEMENTATION;
 
 typedef struct JARRAY_USER_OVERRIDE_IMPLEMENTATION {
@@ -86,10 +88,12 @@ typedef struct JARRAY_USER_OVERRIDE_IMPLEMENTATION {
     void (*print_error_override)(const JARRAY_RETURN);
     // Override function to print the whole array. This function is NOT mandatory.
     void (*print_array_override)(const JARRAY*);
-    // This function is MANDATORY if storing pointers (Example : strdup for char*).
-    void *(*copy_elem_override)(const void*);
 }JARRAY_USER_OVERRIDE_IMPLEMENTATION;
 
+typedef enum JARRAY_DATA_TYPE {
+    JARRAY_TYPE_VALUE = 0,
+    JARRAY_TYPE_POINTER
+}JARRAY_DATA_TYPE;
 
 /**
  * @brief JARRAY structure.
@@ -103,6 +107,7 @@ typedef struct JARRAY {
     size_t _elem_size;
     size_t _length;
     size_t _min_alloc;
+    JARRAY_DATA_TYPE _data_type;
     JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks;
     JARRAY_USER_OVERRIDE_IMPLEMENTATION user_overrides;
 } JARRAY;
@@ -207,9 +212,10 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param array Pointer to JARRAY.
      * @param elem_size Size of one element in bytes.
+     * @param data_type Type of the data to be contained (value or pointer ?)
      * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    void (*init)(JARRAY *array, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
+    void (*init)(JARRAY *array, size_t elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     /**
      * @brief Initializes a JARRAY with pre-existing data.
      *
@@ -220,9 +226,10 @@ typedef struct JARRAY_INTERFACE {
      * @param data Pointer to existing data buffer.
      * @param length Number of elements in the data buffer.
      * @param elem_size Size of one element in bytes.
+     * @param data_type Type of the data to be contained (value or pointer ?)
      * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    void (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
+    void (*init_with_data_copy)(JARRAY *array, const void *data, size_t length, size_t elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     /**
      * @brief Initializes a JARRAY with pre-existing (if heap allocated!! Otherwise use `init_with_data_copy`) data.
      *
@@ -233,9 +240,10 @@ typedef struct JARRAY_INTERFACE {
      * @param data Pointer to existing data buffer.
      * @param length Number of elements in the data buffer.
      * @param elem_size Size of one element in bytes.
+     * @param data_type Type of the data to be contained (value or pointer ?)
      * @param user_callbacks Structure containing the implementation of callbacks functions.
      */
-    void (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
+    void (*init_with_data)(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks);
     JARRAY (*init_preset)(JARRAY_TYPE_PRESET preset);
     /**
      * @brief Prints all elements using the user-defined callback.
@@ -544,9 +552,10 @@ typedef struct JARRAY_INTERFACE {
      * 
      * @param self pointer to array
      * @param elem_size size in bytes of the elements to be contained in array.
+     * @param data_type Type of the data to be contained (value or pointer ?)
      * @param capacity number of element to reserve in memory.
      */
-    void (*init_reserve)(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_USER_CALLBACK_IMPLEMENTATION imp);
+    void (*init_reserve)(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp);
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;

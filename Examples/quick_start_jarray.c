@@ -22,7 +22,7 @@ int main() {
         .is_equal = NULL
     };
 
-    jarray.init(&array, sizeof(int), imp);
+    jarray.init(&array, sizeof(int), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
     // Or nothing if your sure there is no error
     

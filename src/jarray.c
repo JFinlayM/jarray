@@ -32,13 +32,13 @@ static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
 static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const void *__restrict__ __elem, size_t __count){
     void *ret = __dest;
 
-    if (!self->user_overrides.copy_elem_override) {
+    if (self->_data_type == JARRAY_TYPE_VALUE) {
         ret = memcpy(__dest, __elem, self->_elem_size * __count);
-    } else {
+    } else if (self->_data_type == JARRAY_TYPE_POINTER){
         for (size_t i = 0; i < __count; i++) {
             const void *src_elem = (const char*)__elem + i * self->_elem_size;
             if (!src_elem || !(*(void**)src_elem)) continue;
-            const void *src_elem_copy = self->user_overrides.copy_elem_override(src_elem);
+            const void *src_elem_copy = self->user_callbacks.copy_elem_override(src_elem);
             memcpy((char*)__dest + i * self->_elem_size, src_elem_copy, self->_elem_size);
         }
     }
@@ -62,6 +62,12 @@ static void print_array_err(const char *file, int line) {
 
 static void array_free(JARRAY *array) {
     if (!array) return;
+    if (array->_data_type == JARRAY_TYPE_POINTER) {
+        for (size_t i = 0; i < array->_length; i++){
+            void **ptr = (void**)jarray.at(array, i);
+            free(*ptr);
+        }
+    }
     free(array->_data);
     array->_data = NULL;
     array->_length = 0;
@@ -93,12 +99,12 @@ static void init_array_callbacks(JARRAY *array){
     array->user_callbacks.element_to_string = NULL;
     array->user_callbacks.compare = NULL;
     array->user_callbacks.is_equal = NULL;
+    array->user_callbacks.copy_elem_override = NULL;
 }
 
 static void init_array_overrides(JARRAY *array){
     array->user_overrides.print_array_override = NULL;
     array->user_overrides.print_error_override = NULL;
-    array->user_overrides.copy_elem_override = NULL;
 }
 
 static void* array_at(const JARRAY *self, size_t index) {
@@ -194,21 +200,22 @@ static void array_remove(JARRAY *self) {
     return array_remove_at(self, last_index);
 }
 
-static void array_init(JARRAY *array, size_t _elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION imp) {
+static void array_init(JARRAY *array, size_t _elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp) {
     if (!array)
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     array->_data = NULL;
     array->_length = 0;
     array->_min_alloc = 0;
     array->_elem_size = _elem_size;
-    
+    array->_data_type = data_type;
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
-static void array_init_with_data_copy(JARRAY *array, const void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
+static void array_init_with_data_copy(JARRAY *array, const void *data, size_t length, size_t elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
     if (!array)
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!data)
@@ -222,14 +229,16 @@ static void array_init_with_data_copy(JARRAY *array, const void *data, size_t le
     array->_length = length;
     array->_min_alloc = 0;
     array->_elem_size = elem_size;
+    array->_data_type = data_type;
 
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
-static void array_init_with_data(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
+static void array_init_with_data(JARRAY *array, void *data, size_t length, size_t elem_size, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
     if (!array)
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!data)
@@ -239,10 +248,12 @@ static void array_init_with_data(JARRAY *array, void *data, size_t length, size_
     array->_length = length;
     array->_min_alloc = 0;
     array->_elem_size = elem_size;
+    array->_data_type = data_type;
 
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
@@ -565,6 +576,7 @@ static JARRAY array_clone(JARRAY *self) {
     clone._length = self->_length;
     clone._min_alloc = self->_min_alloc;
     clone._elem_size = self->_elem_size;
+    clone._data_type = self->_data_type;
     clone._data = malloc(max_size_t(self->_length, self->_min_alloc) * self->_elem_size);
     if (!clone._data) {
         free(clone._data);
@@ -639,7 +651,7 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
 
     JARRAY temp_array;
-    jarray.init_reserve(&temp_array, sizeof(size_t), self->_length, (JARRAY_USER_CALLBACK_IMPLEMENTATION){0});
+    jarray.init_reserve(&temp_array, sizeof(size_t), self->_length, JARRAY_TYPE_VALUE, (JARRAY_USER_CALLBACK_IMPLEMENTATION){0});
     size_t* indexes;
     for (size_t i = 0; i < count; i++) {
         const void *elem = (const char*)data + i * self->_elem_size;
@@ -1144,8 +1156,8 @@ static void array_reserve(JARRAY *self, size_t capacity){
     reset_error_trace();
 }
 
-static void array_init_reserve(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
-    jarray.init(self, elem_size, imp);
+static void array_init_reserve(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
+    jarray.init(self, elem_size, data_type, imp);
     if (last_error_trace.has_error) return;
     jarray.reserve(self, capacity);
 }

@@ -88,7 +88,7 @@ int main(void) {
     imp.compare = compare_int;
     imp.is_equal = is_equal_int;
 
-    jarray.init_with_data(&array, data_start, 10, sizeof(int), imp);
+    jarray.init_with_data(&array, data_start, 10, sizeof(int), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
     data_start = NULL;
     jarray.reserve(&array, 20);
