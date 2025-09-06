@@ -20,7 +20,7 @@ int main(int argc, char *argv[]){
     jarray.print(&arr_preset);
 
     char* joined = jarray.join(&arr_preset, ", ");
-    JARRAY_CKECK_RET_RETURN;
+    JARRAY_CHECK_RET_RETURN;
     printf("Joined string: %s\n", joined);
 
     jarray.sort(&arr_preset, QSORT, NULL);

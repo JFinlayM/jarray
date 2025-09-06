@@ -612,7 +612,7 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
         ret_val; \
     })
 
-#define JARRAY_CKECK_RET_RETURN \
+#define JARRAY_CHECK_RET_RETURN \
     if (last_error_trace.has_error) { \
         jarray.print_array_err(__FILE__, __LINE__); \
         return EXIT_FAILURE; \
