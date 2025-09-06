@@ -2,7 +2,7 @@
 set -e
 
 PKGNAME="libjarray-dev"
-VERSION="1.0.0"
+VERSION="1.0.0-beta"
 FULLNAME="JFinlayM"
 USER="JFinlayM"
 DATE=$(date -R)

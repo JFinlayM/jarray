@@ -23,7 +23,7 @@ sudo ldconfig
 Via dpkg:
 
 ```bash
-sudo dpkg -i libjarray-dev_1.0.0-1_amd64.deb
+sudo dpkg -i libjarray-dev_1.0.0-beta-1_amd64.deb
 sudo apt-get install -f
 sudo ldconfig
 ```
