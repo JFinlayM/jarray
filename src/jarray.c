@@ -29,22 +29,19 @@ static const char *enum_to_string[] = {
 
 static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
 
-static inline void* memcpy_elem(JARRAY *self,
-                                void *__restrict__ __dest,
-                                const void *__restrict__ __elem,
-                                size_t __count)
-{
+static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const void *__restrict__ __elem, size_t __count){
     void *ret = __dest;
 
     if (!self->user_overrides.copy_elem_override) {
         ret = memcpy(__dest, __elem, self->_elem_size * __count);
     } else {
         for (size_t i = 0; i < __count; i++) {
-            void *src_elem_copy = self->user_overrides.copy_elem_override((const char*)__elem + i * self->_elem_size);
+            const void *src_elem = (const char*)__elem + i * self->_elem_size;
+            if (!src_elem || !(*(void**)src_elem)) continue;
+            const void *src_elem_copy = self->user_overrides.copy_elem_override(src_elem);
             memcpy((char*)__dest + i * self->_elem_size, src_elem_copy, self->_elem_size);
         }
     }
-
     return ret;
 }
 
