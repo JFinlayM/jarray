@@ -42,6 +42,13 @@ int main(int argc, char *argv[]){
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
 
+    char * chars = jarray.copy_data(&arr_preset);
+    for (size_t i = 0; i < arr_preset._length; i++){
+        printf("%c", chars[i]);
+    }
+    printf("\n");
+    free(chars);
+
     // --- Cleanup ---
     jarray.free(&arr_preset);
 

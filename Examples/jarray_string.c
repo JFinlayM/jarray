@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
     JARRAY_CHECK_RET;
 
     for (int i = 1; i < argc; i++) {
-        jarray.add(&arr_preset, argv[i]);
+        jarray.add(&arr_preset, &argv[i]);
         JARRAY_CHECK_RET;
     }
     jarray.print(&arr_preset);
@@ -28,21 +28,21 @@ int main(int argc, char *argv[]){
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    jarray.add(&arr_preset, "thanks");
+    jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(char*, "thanks"));
     JARRAY_CHECK_RET;
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    bool contains = jarray.contains(&arr_preset, "hello");
+    bool contains = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(char*, "hello"));
     JARRAY_CHECK_RET;
     printf("Contains 'hello' ? %s\n", contains ? "true" : "false");
 
-    jarray.splice(&arr_preset, 2, 1, "great", NULL);
+    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(char*, "great"), NULL);
     JARRAY_CHECK_RET;
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    char **values = jarray.copy_data(&arr_preset);
+    char **values = (char**)jarray.copy_data(&arr_preset);
     for (size_t i = 0; i < arr_preset._length; i++){
         printf("%s\n", values[i]);
         free(values[i]);
