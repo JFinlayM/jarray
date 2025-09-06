@@ -1176,34 +1176,34 @@ extern JARRAY create_jarray_uint(void);
 static JARRAY array_init_preset(JARRAY_TYPE_PRESET preset){
     JARRAY (*ret_func)(void) = NULL;
     switch (preset){
-        case STRING_PRESET:
+        case JARRAY_STRING_PRESET:
             ret_func = create_jarray_string;
             break;
-        case INT_PRESET:
+        case JARRAY_INT_PRESET:
             ret_func = create_jarray_int;
             break;
-        case FLOAT_PRESET:
+        case JARRAY_FLOAT_PRESET:
             ret_func = create_jarray_float;
             break;
-        case CHAR_PRESET:
+        case JARRAY_CHAR_PRESET:
             ret_func = create_jarray_char;
             break;
-        case DOUBLE_PRESET:
+        case JARRAY_DOUBLE_PRESET:
             ret_func = create_jarray_double;
             break;
-        case LONG_PRESET:
+        case JARRAY_LONG_PRESET:
             ret_func = create_jarray_long;
             break;
-        case SHORT_PRESET:
+        case JARRAY_SHORT_PRESET:
             ret_func = create_jarray_short;
             break;
-        case UINT_PRESET:
+        case JARRAY_UINT_PRESET:
             ret_func = create_jarray_uint;
             break;
-        case USHORT_PRESET:
+        case JARRAY_USHORT_PRESET:
             ret_func = create_jarray_ushort;
             break;
-        case ULONG_PRESET:
+        case JARRAY_ULONG_PRESET:
             ret_func = create_jarray_ulong;
             break;
     }

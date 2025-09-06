@@ -9,7 +9,7 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    JARRAY arr_preset = jarray.init_preset(FLOAT_PRESET);
+    JARRAY arr_preset = jarray.init_preset(JARRAY_FLOAT_PRESET);
     jarray.reserve(&arr_preset, 5);
     JARRAY_CHECK_RET;
 
