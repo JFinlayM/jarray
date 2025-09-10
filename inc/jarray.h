@@ -106,7 +106,9 @@ typedef struct JARRAY {
     void * _data;
     size_t _elem_size;
     size_t _length;
+    size_t _capacity;
     size_t _min_alloc;
+    float _capacity_multiplier; // Must be greater or equal to 1
     JARRAY_DATA_TYPE _data_type;
     JARRAY_USER_CALLBACK_IMPLEMENTATION user_callbacks;
     JARRAY_USER_OVERRIDE_IMPLEMENTATION user_overrides;

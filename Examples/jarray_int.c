@@ -37,7 +37,11 @@ int main(int argc, char *argv[]){
     JARRAY_CHECK_RET;
     printf("Contains -3 ? %s\n", contains ? "true" : "false");
 
-    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(int, 25), NULL);
+    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(int, 25), JARRAY_DIRECT_INPUT(int, 26), JARRAY_DIRECT_INPUT(int, 27), JARRAY_DIRECT_INPUT(int, 28), NULL);
+    JARRAY_CHECK_RET;
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET;
+    jarray.splice(&arr_preset, 2, 2, NULL);
     JARRAY_CHECK_RET;
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;

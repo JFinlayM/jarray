@@ -30,7 +30,8 @@ sudo ldconfig
 This should install libjarray.so and libjarray.a in /urs/local/lib/ and jarray.h in usr/local/include/
 
 To use in your projet just include with *#include <jarray.h>* and link with *-ljarray* when compiling.
-You can find in folder `Examples` some simple c files using jarray. To see result (for jarray_string.c for example): 
+You can find in folder `Examples` some simple c files using jarray. These examples uses presets so there should be not user implementation function but if you want to store custom types, you will need to implement functions. You can see examples of how the functions are implemented in `src/jarray_presets` folder.
+To see result (for jarray_string.c and jarray_points.c for example): 
 ```bash
 cd Examples
 make
@@ -43,43 +44,52 @@ make
 ```c
 #include <jarray.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-void print_int(const void *x) {
-    printf("%d ", JARRAY_GET_VALUE(const int, x));
-}
 
-int compare_int(const void *a, const void *b) {
-    return JARRAY_GET_VALUE(const int, a) - JARRAY_GET_VALUE(const int, b);
-}
-
-int main() {
-    JARRAY array;
-
-    // --- Initialize ---
-
-    // Set callbacks
-    JARRAY_USER_CALLBACK_IMPLEMENTATION imp = {
-        .print_element_callback = print_int,
-        .compare = compare_int,
-        .element_to_string = NULL,
-        .is_equal = NULL
-    };
-
-    jarray.init(&array, sizeof(int), imp);
-    if (JARRAY_CHECK_RET) return EXIT_FAILURE; // Check for errors and return. This will print error that specifies this line and file.
-    // Or nothing if your sure there is no error
-
-    
-    // Add elements
-    for (int i = 1; i <= 5; i++) {
-        jarray.add(&array, JARRAY_DIRECT_INPUT(int, i));
-        if (JARRAY_CHECK_RET) return EXIT_FAILURE;
+int main(int argc, char *argv[]){
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s n1 n2 ...\n", argv[0]);
+        return EXIT_FAILURE;
     }
-    
-    jarray.print(&array); // Output: 1 2 3 4 5
-    jarray.free(&array);
-    JARRAY_FREE_RET;
-    return 0;
+
+    JARRAY arr_preset = jarray.init_preset(JARRAY_INT_PRESET);
+    jarray.reserve(&arr_preset, 5);
+    JARRAY_CHECK_RET;
+
+    for (int i = 1; i < argc; i++) {
+        jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(int, atoi(argv[i])));
+        JARRAY_CHECK_RET;
+    }
+    jarray.print(&arr_preset);
+
+    char *joined = jarray.join(&arr_preset, ", ");
+    JARRAY_CHECK_RET;
+    printf("Joined string: %s\n", joined);
+
+    jarray.sort(&arr_preset, QSORT, NULL);
+    JARRAY_CHECK_RET;
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(int, 9));
+    JARRAY_CHECK_RET;
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    bool contains = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(int, -3));
+    JARRAY_CHECK_RET;
+    printf("Contains -3 ? %s\n", contains ? "true" : "false");
+
+    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(int, 25), NULL);
+    JARRAY_CHECK_RET;
+    jarray.print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    // --- Cleanup ---
+    jarray.free(&arr_preset);
+
+    return EXIT_SUCCESS;
 }
 ```
 ### Output
@@ -186,7 +196,7 @@ JARRAY points;
 JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
 imp.print_element_callback = print_point;
 
-jarray.init(&points, sizeof(Point), imp);
+jarray.init(&points, sizeof(Point), JARRAY_TYPE_VALUE, imp);
 JARRAY_CHECK_RET_RETURN;
 
 Point p = {3, 4};
@@ -217,6 +227,7 @@ imp.print_element_callback = print_element_array_callback;  // For print()
 imp.element_to_string = element_to_string_array_callback;   // For join()
 imp.compare = compare_array_callback;                       // For sort()
 imp.is_equal = is_equal_array_callback;                     // For contains(), find_indexes()
+imp.copy_elem_override = copy_elem_func;                    // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
 ```
 
 ## Override callbacks
@@ -226,7 +237,6 @@ There is some functions that can be overriden. Maybe more will be added later:
 JARRAY_USER_OVERRIDE_IMPLEMENTATION imp;
 imp.print_error_override = error_func;        // For error printing
 imp.print_array_override = print_array_func;  // For print() override
-imp.copy_elem_override = copy_elem_func;      // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
 ```
 
 ## Good practices

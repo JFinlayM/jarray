@@ -91,7 +91,7 @@ int main(void) {
     jarray.init_with_data(&array, data_start, 10, sizeof(int), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
     data_start = NULL;
-    jarray.reserve(&array, 20);
+    jarray.reserve(&array, 10);
     JARRAY_CHECK_RET;
 
     printf("Insert 11 at index 0, and 12 at index 50 (should indicate error for index 50)\n");
