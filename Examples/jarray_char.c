@@ -9,40 +9,40 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
 
-    JARRAY arr_preset = jarray.init_preset(JARRAY_CHAR_PRESET);
-    jarray.reserve(&arr_preset, 5);
+    JARRAY arr_preset = jarray_init_preset(JARRAY_CHAR_PRESET);
+    jarray_reserve(&arr_preset, 5);
     JARRAY_CHECK_RET;
 
     for (int i = 1; i < argc; i++) {
-        jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(char, argv[i][0]));
+        jarray_add(&arr_preset, argv[i][0]);
         JARRAY_CHECK_RET;
     }
-    jarray.print(&arr_preset);
+    jarray_print(&arr_preset);
 
-    char* joined = jarray.join(&arr_preset, "");
+    char* joined = jarray_join(&arr_preset, "");
     JARRAY_CHECK_RET;
     printf("Joined string: %s\n", joined);
 
-    jarray.sort(&arr_preset, QSORT, NULL);
+    jarray_sort(&arr_preset, QSORT, NULL);
     JARRAY_CHECK_RET;
-    jarray.print(&arr_preset);
-    JARRAY_CHECK_RET;
-
-    jarray.add(&arr_preset, JARRAY_DIRECT_INPUT(char, 'c'));
-    JARRAY_CHECK_RET;
-    jarray.print(&arr_preset);
+    jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    bool contains = jarray.contains(&arr_preset, JARRAY_DIRECT_INPUT(char, 'b'));
+    jarray_add(&arr_preset, 'c');
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    bool contains = jarray_contains(&arr_preset, 'b');
     JARRAY_CHECK_RET;
     printf("Contains 'b' ? %s\n", contains ? "true" : "false");
 
-    jarray.splice(&arr_preset, 2, 1, JARRAY_DIRECT_INPUT(char, 'z'), NULL);
+    jarray_splice(&arr_preset, 2, 1, 'z');
     JARRAY_CHECK_RET;
-    jarray.print(&arr_preset);
+    jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    char * chars = jarray.copy_data(&arr_preset);
+    char * chars = jarray_copy_data(&arr_preset);
     for (size_t i = 0; i < arr_preset._length; i++){
         printf("%c", chars[i]);
     }
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]){
     free(chars);
 
     // --- Cleanup ---
-    jarray.free(&arr_preset);
+    jarray_free(&arr_preset);
 
     return EXIT_SUCCESS;
 }

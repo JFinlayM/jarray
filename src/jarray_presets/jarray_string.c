@@ -45,10 +45,11 @@ JARRAY create_jarray_string(void){
     JARRAY array;
     JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
     imp.print_element_callback = print_element_array_callback;
-    imp.element_to_string = element_to_string_array_callback;
-    imp.compare = compare_array_callback;
-    imp.is_equal = is_equal_array_callback;
-    imp.copy_elem_override = copy_elem_override;
+    imp.element_to_string_callback = element_to_string_array_callback;
+    imp.compare_callback = compare_array_callback;
+    imp.is_equal_callback = is_equal_array_callback;
+    imp.copy_elem_callback = copy_elem_override;
     jarray.init(&array, sizeof(char*), JARRAY_TYPE_POINTER, imp);
+    array._type_preset = JARRAY_STRING_PRESET;
     return array;
 }

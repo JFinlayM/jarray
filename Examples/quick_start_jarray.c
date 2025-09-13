@@ -17,9 +17,9 @@ int main() {
     // Set callbacks
     JARRAY_USER_CALLBACK_IMPLEMENTATION imp = {
         .print_element_callback = print_int,
-        .compare = compare_int,
-        .element_to_string = NULL,
-        .is_equal = NULL
+        .compare_callback = compare_int,
+        .element_to_string_callback = NULL,
+        .is_equal_callback = NULL
     };
 
     jarray.init(&array, sizeof(int), JARRAY_TYPE_VALUE, imp);

@@ -83,9 +83,9 @@ int main(void) {
     JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
 
     imp.print_element_callback = print_point;
-    imp.element_to_string = point_to_string;
-    imp.compare = compare_point;
-    imp.is_equal = is_equal_point;
+    imp.element_to_string_callback = point_to_string;
+    imp.compare_callback = compare_point;
+    imp.is_equal_callback = is_equal_point;
 
     jarray.init_with_data_copy(&points, data_start, 5, sizeof(Point), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;

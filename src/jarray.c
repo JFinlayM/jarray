@@ -1,6 +1,5 @@
 #include "../inc/jarray.h"
 #include <stdio.h>
-#include <stdarg.h>
 #include <math.h>
 
 /**
@@ -22,7 +21,7 @@ static const char *enum_to_string[] = {
     [JARRAY_EMPTY]                                      = "Empty jarray",
     [JARRAY_INVALID_ARGUMENT]                           = "Invalid argument",
     [JARRAY_COMPARE_CALLBACK_UNINTIALIZED]              = "Compare callback not set",
-    [JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED]             = "is_equal callback not set",
+    [JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED]             = "is_equal_callback callback not set",
     [JARRAY_ELEMENT_NOT_FOUND]                          = "Element not found",
     [JARRAY_UNIMPLEMENTED_FUNCTION]                     = "Function not implemented",
 };
@@ -38,7 +37,7 @@ static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const v
         for (size_t i = 0; i < __count; i++) {
             const void *src_elem = (const char*)__elem + i * self->_elem_size;
             if (!src_elem || !(*(void**)src_elem)) continue;
-            const void *src_elem_copy = self->user_callbacks.copy_elem_override(src_elem);
+            const void *src_elem_copy = self->user_callbacks.copy_elem_callback(src_elem);
             memcpy((char*)__dest + i * self->_elem_size, src_elem_copy, self->_elem_size);
         }
     }
@@ -98,14 +97,14 @@ static void reset_error_trace(){
 
 static void init_array_callbacks(JARRAY *array){
     array->user_callbacks.print_element_callback = NULL;
-    array->user_callbacks.element_to_string = NULL;
-    array->user_callbacks.compare = NULL;
-    array->user_callbacks.is_equal = NULL;
-    array->user_callbacks.copy_elem_override = NULL;
+    array->user_callbacks.element_to_string_callback = NULL;
+    array->user_callbacks.compare_callback = NULL;
+    array->user_callbacks.is_equal_callback = NULL;
+    array->user_callbacks.copy_elem_callback = NULL;
 }
 
 static void init_array_overrides(JARRAY *array){
-    array->user_overrides.print_array_override = NULL;
+    array->user_overrides.print_jarray_override = NULL;
     array->user_overrides.print_error_override = NULL;
 }
 
@@ -270,10 +269,11 @@ static void array_init(JARRAY *array, size_t _elem_size, JARRAY_DATA_TYPE data_t
     array->_capacity_multiplier = 1.5f;
     array->_elem_size = _elem_size;
     array->_data_type = data_type;
+    array->_type_preset = JARRAY_NO_PRESET;
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
-    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_callback) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_callback' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
@@ -293,12 +293,13 @@ static void array_init_with_data_copy(JARRAY *array, const void *data, size_t le
     array->_length = length;
     array->_min_alloc = 0;
     array->_elem_size = elem_size;
+    array->_type_preset = JARRAY_NO_PRESET;
     array->_data_type = data_type;
 
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
-    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_callback) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_callback' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
@@ -314,12 +315,13 @@ static void array_init_with_data(JARRAY *array, void *data, size_t length, size_
     array->_capacity = length;
     array->_min_alloc = 0;
     array->_elem_size = elem_size;
+    array->_type_preset = JARRAY_NO_PRESET;
     array->_data_type = data_type;
 
     init_array_callbacks(array);
     init_array_overrides(array);
     array->user_callbacks = imp;
-    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_override) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_override' function must me implemented and referenced in 'user_overrides' struct in array");
+    if (data_type == JARRAY_TYPE_POINTER && !array->user_callbacks.copy_elem_callback) return create_return_error(array, JARRAY_UNIMPLEMENTED_FUNCTION, "'copy_elem_callback' function must me implemented and referenced in 'user_overrides' struct in array");
     reset_error_trace();
 }
 
@@ -366,8 +368,8 @@ static void array_print(const JARRAY *array) {
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (array->user_callbacks.print_element_callback == NULL)
         return create_return_error(array, JARRAY_PRINT_ELEMENT_CALLBACK_UNINTIALIZED, "The print single element callback not set\n");
-    if (array->user_overrides.print_array_override) {
-        array->user_overrides.print_array_override(array);
+    if (array->user_overrides.print_jarray_override) {
+        array->user_overrides.print_jarray_override(array);
         return;
     }
 
@@ -380,16 +382,16 @@ static void array_print(const JARRAY *array) {
     reset_error_trace();
 }
 
-static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(const void*, const void*)) {
+static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_callback)(const void*, const void*)) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
         return create_return_error(self, JARRAY_EMPTY, "Cannot sort an empty array");
 
-    int (*compare)(const void*, const void*) = custom_compare ? custom_compare : self->user_callbacks.compare;
+    int (*compare_callback)(const void*, const void*) = custom_compare_callback ? custom_compare_callback : self->user_callbacks.compare_callback;
 
-    if (compare == NULL)
-        return create_return_error(self, JARRAY_COMPARE_CALLBACK_UNINTIALIZED, "Either compare callback or custom compare function must be set");
+    if (compare_callback == NULL)
+        return create_return_error(self, JARRAY_COMPARE_CALLBACK_UNINTIALIZED, "Either compare_callback callback or custom compare_callback function must be set");
 
     void *copy_data = malloc(self->_length * self->_elem_size);
     if (!copy_data)
@@ -399,7 +401,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(c
 
     switch(method) {
         case QSORT:
-            qsort(copy_data, self->_length, self->_elem_size, compare);
+            qsort(copy_data, self->_length, self->_elem_size, compare_callback);
             break;
 
         case BUBBLE_SORT:
@@ -407,7 +409,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(c
                 for (size_t j = 0; j < self->_length - i - 1; j++) {
                     void *a = (char*)copy_data + j * self->_elem_size;
                     void *b = (char*)copy_data + (j + 1) * self->_elem_size;
-                    if (compare(a, b) > 0) {
+                    if (compare_callback(a, b) > 0) {
                         void *temp = malloc(self->_elem_size);
                         memcpy_elem(self, temp, a, 1);
                         memcpy_elem(self, a, b, 1);
@@ -423,7 +425,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(c
                 void *key = malloc(self->_elem_size);
                 memcpy_elem(self, key, (char*)copy_data + i * self->_elem_size, 1);
                 size_t j = i;
-                while (j > 0 && compare((char*)copy_data + (j - 1) * self->_elem_size, key) > 0) {
+                while (j > 0 && compare_callback((char*)copy_data + (j - 1) * self->_elem_size, key) > 0) {
                     memcpy_elem(self, (char*)copy_data + j * self->_elem_size,
                            (char*)copy_data + (j - 1) * self->_elem_size, 1);
                     j--;
@@ -439,7 +441,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare)(c
                 for (size_t j = i + 1; j < self->_length; j++) {
                     void *a = (char*)copy_data + j * self->_elem_size;
                     void *b = (char*)copy_data + min_idx * self->_elem_size;
-                    if (compare(a, b) < 0) {
+                    if (compare_callback(a, b) < 0) {
                         min_idx = j;
                     }
                 }
@@ -577,8 +579,8 @@ static size_t* array_indexes_of(JARRAY *self, const void *elem) {
         create_return_error(self, JARRAY_EMPTY, "Cannot search in empty array");
         return NULL;
     }
-    if (self->user_callbacks.is_equal == NULL) {
-        create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+    if (self->user_callbacks.is_equal_callback == NULL) {
+        create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal_callback callback not set");
         return NULL;
     }
     size_t *indexes = malloc(self->_length * sizeof(size_t));
@@ -588,7 +590,7 @@ static size_t* array_indexes_of(JARRAY *self, const void *elem) {
     }
     int count = 0;
     for (size_t i = 0; i < self->_length; i++) {
-        if (self->user_callbacks.is_equal((char*)self->_data + i * self->_elem_size, elem)) {
+        if (self->user_callbacks.is_equal_callback((char*)self->_data + i * self->_elem_size, elem)) {
             indexes[count+1] = i; // Store the index of the matching element
             count++;
         }
@@ -716,8 +718,8 @@ static bool array_contains(JARRAY *self, const void *elem) {
         create_return_error(self, JARRAY_EMPTY, "Cannot check containment in an empty array");
         return false;
     }
-    if (self->user_callbacks.is_equal == NULL) {
-        create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal callback not set");
+    if (self->user_callbacks.is_equal_callback == NULL) {
+        create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal_callback callback not set");
         return false;
     }
 
@@ -725,7 +727,7 @@ static bool array_contains(JARRAY *self, const void *elem) {
 
     for (size_t i = 0; i < self->_length; i++) {
         void *current_elem = (char*)self->_data + i * self->_elem_size;
-        if (self->user_callbacks.is_equal(current_elem, elem)) {
+        if (self->user_callbacks.is_equal_callback(current_elem, elem)) {
             return true;
         }
     }
@@ -733,7 +735,7 @@ static bool array_contains(JARRAY *self, const void *elem) {
     return false;
 }
 
-static int compare_size_t(const void *a, const void *b) {
+static int compare_callback_size_t(const void *a, const void *b) {
     size_t val_a = *(const size_t*)a;
     size_t val_b = *(const size_t*)b;
     return (val_a > val_b) - (val_a < val_b);
@@ -768,7 +770,7 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         }
 
         // Sort indexes ascending, so we can remove from 
-        array_sort(&temp_array, QSORT, compare_size_t);
+        array_sort(&temp_array, QSORT, compare_callback_size_t);
         // Remove in reverse order to avoid shifting
         for (size_t j = match_count; j > 0; j--) {
             size_t idx;
@@ -889,8 +891,8 @@ static char* array_join(JARRAY *self, const char *separator) {
         create_return_error(self, JARRAY_EMPTY, "Cannot join elements of an empty array");
         return NULL;
     }
-    if (self->user_callbacks.element_to_string == NULL) {
-        create_return_error(self, JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED, "element_to_string callback not set");
+    if (self->user_callbacks.element_to_string_callback == NULL) {
+        create_return_error(self, JARRAY_ELEMENT_TO_STRING_CALLBACK_UNINTIALIZED, "element_to_string_callback callback not set");
         return NULL;
     }
 
@@ -903,11 +905,11 @@ static char* array_join(JARRAY *self, const char *separator) {
 
     for (size_t i = 0; i < self->_length; i++) {
         void *elem = (char*)self->_data + i * self->_elem_size;
-        char *str = self->user_callbacks.element_to_string(elem);
+        char *str = self->user_callbacks.element_to_string_callback(elem);
         if (!str) {
             for (size_t j = 0; j < i; j++) free(string_representations[j]);
             free(string_representations);
-            create_return_error(self, JARRAY_DATA_NULL, "element_to_string callback returned null");
+            create_return_error(self, JARRAY_DATA_NULL, "element_to_string_callback callback returned null");
             return NULL;
         }
         string_representations[i] = str;
@@ -1370,6 +1372,10 @@ static JARRAY array_init_preset(JARRAY_TYPE_PRESET preset){
         case JARRAY_ULONG_PRESET:
             ret_func = create_jarray_ulong;
             break;
+        case JARRAY_NO_PRESET:
+            JARRAY array = create_jarray_int();
+            create_return_error(&array, JARRAY_INVALID_ARGUMENT, "Cannot initialize JARRAY with no preset enum");
+            return array;
     }
     JARRAY array = ret_func();
     return array;
@@ -1389,7 +1395,7 @@ JARRAY_INTERFACE jarray = {
     .init_with_data_copy = array_init_with_data_copy,
     .init_with_data = array_init_with_data,
     .init_preset = array_init_preset,
-    .print_array_err = print_array_err,
+    .print_jarray_err = print_array_err,
     .free = array_free,
     .sort = array_sort,
     .find_first = array_find_first,

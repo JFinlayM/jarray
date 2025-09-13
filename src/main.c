@@ -84,9 +84,9 @@ int main(void) {
     JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
 
     imp.print_element_callback = print_int;
-    imp.element_to_string = int_to_string;
-    imp.compare = compare_int;
-    imp.is_equal = is_equal_int;
+    imp.element_to_string_callback = int_to_string;
+    imp.compare_callback = compare_int;
+    imp.is_equal_callback = is_equal_int;
 
     jarray.init_with_data(&array, data_start, 10, sizeof(int), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
