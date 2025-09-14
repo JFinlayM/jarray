@@ -583,23 +583,6 @@ extern JARRAY_RETURN last_error_trace;
 
 #define JARRAY_GET_POINTER(type, val) ((type*)val)
 
-/**
- * @brief Allocates memory and copies a value into it.
- *
- * @param size Size of the value in bytes.
- * @param value Pointer to the value to copy.
- * @return Pointer to the newly allocated copy, or NULL if allocation fails.
- *
- * @note Caller is responsible for freeing the returned pointer.
- */
-static inline void* jarray_direct_input_impl(size_t size, void *value) {
-    /*void *p = malloc(size);
-    if (p) memcpy(p, value, size);
-    return p;*/
-    (void)size;
-    return value;
-}
-
 
 /**
  * @brief Creates a pointer to a temporary value of a given type.
@@ -610,7 +593,7 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
  *
  * @note Caller must free the returned pointer if needed.
  */
-#define JARRAY_DIRECT_INPUT(type, val) ((type*) jarray_direct_input_impl(sizeof(type), &(type){val}))
+#define JARRAY_DIRECT_INPUT(type, val) ((type*)&(type){val})
 
 
 /**
@@ -634,7 +617,6 @@ static inline void* jarray_direct_input_impl(size_t size, void *value) {
         return EXIT_FAILURE; \
     }
 
-// --- Macro principale pour les types non pointeurs ---
 #define JARRAY_GENERIC_DECLARE(array, elem)                     \
 ({                                                                     \
     union { char c; int i; float f; double d; long l; unsigned long ul; \

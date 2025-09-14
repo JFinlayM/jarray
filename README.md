@@ -66,6 +66,7 @@ int main(int argc, char *argv[]){
     char *joined = jarray.join(&arr_preset, ", ");
     JARRAY_CHECK_RET;
     printf("Joined string: %s\n", joined);
+    free(joined);
 
     jarray.sort(&arr_preset, QSORT, NULL);
     JARRAY_CHECK_RET;
@@ -99,6 +100,69 @@ JARRAY [size: 5] =>
 1 2 3 4 5 
 ```
 
+In the previous example, the preset `JARRAY_INT_PRESET` is used, so you can use macros and not directly functions so you don't need to use `JARRAY_DIRECT_INPUT`. Please note that the macros should only be used for arrays using a preset (except STRING) for now. See example below : 
+
+```c
+#include "../inc/jarray.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+
+int main(int argc, char *argv[]){
+    if (argc < 2) {
+        fprintf(stderr, "Usage: %s n1 n2 ...\n", argv[0]);
+        return EXIT_FAILURE;
+    }
+
+    JARRAY arr_preset = jarray_init_preset(JARRAY_INT_PRESET);
+    jarray_reserve(&arr_preset, 5);
+    JARRAY_CHECK_RET;
+
+    for (int i = 1; i < argc; i++) {
+        jarray_add(&arr_preset, atoi(argv[i]));
+        JARRAY_CHECK_RET;
+    }
+    jarray_print(&arr_preset);
+
+    char *joined = jarray_join(&arr_preset, ", ");
+    JARRAY_CHECK_RET;
+    printf("Joined string: %s\n", joined);
+    free(joined);
+
+    jarray_sort(&arr_preset, QSORT, NULL);
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    jarray_add(&arr_preset, 9);
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    bool contains = jarray_contains(&arr_preset, -3);
+    JARRAY_CHECK_RET;
+    printf("Contains -3 ? %s\n", contains ? "true" : "false");
+
+    // For splice and addm, if using macro, you don't need to add NULL as last argument.
+    jarray_splice(&arr_preset, 2, 1, 25, 27);
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+    jarray_addm(&arr_preset, 26, 27);
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+    jarray_splice(&arr_preset, 2, 2);
+    JARRAY_CHECK_RET;
+    jarray_print(&arr_preset);
+    JARRAY_CHECK_RET;
+
+    // --- Cleanup ---
+    jarray_free(&arr_preset);
+
+    return EXIT_SUCCESS;
+}
+```
 
 
 ## Core Functions
@@ -252,6 +316,6 @@ Use these macros for automatic error checking and value extraction:
 JARRAY_CHECK_RET;                   // Print error, free error, return true if error
 JARRAY_CHECK_RET_RETURN;            // Print error, free error, return EXIT_FAILURE if error
 JARRAY_GET_VALUE(type, val);        // Extract value from pointer (doesn't free)
-JARRAY_DIRECT_INPUT(type, val);     // Create pointer for input value
+JARRAY_DIRECT_INPUT(type, val);     // Create pointer for input value if using custom type or STRING preset
 JARRAY_FREE_RET;                    // Free error
 ```

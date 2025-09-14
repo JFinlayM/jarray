@@ -22,6 +22,7 @@ int main(int argc, char *argv[]){
     char *joined = jarray.join(&arr_preset, ", ");
     JARRAY_CHECK_RET;
     printf("Joined string: %s\n", joined);
+    free(joined);
 
     jarray.sort(&arr_preset, QSORT, NULL);
     JARRAY_CHECK_RET;

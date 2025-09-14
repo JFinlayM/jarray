@@ -162,12 +162,14 @@ int main(void) {
     char *joined = jarray.join(&clone, ", ");
     JARRAY_CHECK_RET;
     printf("%s\n", joined);
+    free(joined);
 
     // --- Reduce ---
     printf("\nReducing (sum of coords):\n");
-    Point total = *(Point*)jarray.reduce(&clone, sum_points, NULL, NULL);
+    Point *total = (Point*)jarray.reduce(&clone, sum_points, NULL, NULL);
     JARRAY_CHECK_RET;
-    printf("Sum = (%d,%d)\n", total.x, total.y);
+    printf("Sum = (%d,%d)\n", total->x, total->y);
+    free(total);
 
     // --- Splice ---
     printf("\nSplicing clone at index 1 (replace 2 elems by (10,10)):\n");

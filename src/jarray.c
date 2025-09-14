@@ -33,12 +33,30 @@ static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const v
 
     if (self->_data_type == JARRAY_TYPE_VALUE) {
         ret = memcpy(__dest, __elem, self->_elem_size * __count);
-    } else if (self->_data_type == JARRAY_TYPE_POINTER){
+    } else if (self->_data_type == JARRAY_TYPE_POINTER) {
         for (size_t i = 0; i < __count; i++) {
             const void *src_elem = (const char*)__elem + i * self->_elem_size;
-            if (!src_elem || !(*(void**)src_elem)) continue;
-            const void *src_elem_copy = self->user_callbacks.copy_elem_callback(src_elem);
-            memcpy((char*)__dest + i * self->_elem_size, src_elem_copy, self->_elem_size);
+            void *dest_elem = (char *)__dest + i * self->_elem_size;
+
+            if (!src_elem || !(*(void**)src_elem)) {
+                memset(dest_elem, 0, self->_elem_size);
+                continue;
+            }
+
+            if (!self->user_callbacks.copy_elem_callback) {
+                memcpy(dest_elem, src_elem, self->_elem_size);
+                continue;
+            }
+
+            const void *tmp = self->user_callbacks.copy_elem_callback(src_elem);
+            if (!tmp) {
+                memset(dest_elem, 0, self->_elem_size);
+                continue;
+            }
+
+            memcpy(dest_elem, tmp, self->_elem_size);
+
+            free((void*)tmp);
         }
     }
     return ret;
@@ -61,22 +79,41 @@ static void print_array_err(const char *file, int line) {
 
 static void array_free(JARRAY *array) {
     if (!array) return;
-    if (array->_data_type == JARRAY_TYPE_POINTER) {
-        for (size_t i = 0; i < array->_length; i++){
-            void **ptr = (void**)jarray.at(array, i);
-            free(*ptr);
+
+    if (array->_data) {
+        if (array->_data_type == JARRAY_TYPE_POINTER && array->_length > 0) {
+            for (size_t i = 0; i < array->_length; i++) {
+                void *elem_addr = (char*)array->_data + i * array->_elem_size;
+                void *ptr_value = NULL;
+
+                if (array->_elem_size >= sizeof(void *)) {
+                    memcpy(&ptr_value, elem_addr, sizeof(void *));
+                } else {
+                    unsigned char tmp[sizeof(void *)];
+                    memset(tmp, 0, sizeof(tmp));
+                    memcpy(tmp, elem_addr, array->_elem_size);
+                    memcpy(&ptr_value, tmp, sizeof(void *));
+                }
+
+                if (ptr_value)
+                    free(ptr_value);
+            }
         }
+
+        free(array->_data);
+        array->_data = NULL;
     }
-    free(array->_data);
-    array->_data = NULL;
+
     array->_length = 0;
     array->_elem_size = 0;
     array->_min_alloc = 0;
     array->_capacity = 0;
     array->_capacity_multiplier = 1.5f;
+
     memset(&array->user_callbacks, 0, sizeof(array->user_callbacks));
     memset(&array->user_overrides, 0, sizeof(array->user_overrides));
 }
+
 
 static void create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
     va_list args;
@@ -459,8 +496,9 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_ca
             free(copy_data);
             return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND, "Sort method %d not implemented", method);
     }
-
+    free(self->_data);
     self->_data = copy_data;
+    self->_capacity = self->_length;
     reset_error_trace();
 }
 
@@ -588,7 +626,7 @@ static size_t* array_indexes_of(JARRAY *self, const void *elem) {
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for indexes array");
         return NULL;
     }
-    int count = 0;
+    size_t count = 0;
     for (size_t i = 0; i < self->_length; i++) {
         if (self->user_callbacks.is_equal_callback((char*)self->_data + i * self->_elem_size, elem)) {
             indexes[count+1] = i; // Store the index of the matching element
@@ -787,7 +825,7 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         }
         free(indexes);
     }
-
+    array_free(&temp_array);
     reset_error_trace();
 }
 
@@ -1299,23 +1337,22 @@ static void array_reserve(JARRAY *self, size_t capacity) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT,
                                    "Cannot reserve zero capacity");
 
-    size_t required_cap = (capacity > self->_length) ? capacity : self->_length;
-    if (required_cap <= self->_capacity) {
+    if (capacity <= self->_length) {
         self->_min_alloc = capacity;
         reset_error_trace();
         return;
     }
 
     void *new_data = (self->_data)
-                         ? realloc(self->_data, required_cap * self->_elem_size)
-                         : malloc(required_cap * self->_elem_size);
+                         ? realloc(self->_data, capacity * self->_elem_size)
+                         : malloc(capacity * self->_elem_size);
 
     if (!new_data)
         return create_return_error(self, JARRAY_DATA_NULL,
                                    "Memory allocation failed when reserving");
 
     self->_data = new_data;
-    self->_capacity = required_cap;
+    self->_capacity = capacity;
     self->_min_alloc = capacity;
 
     reset_error_trace();
