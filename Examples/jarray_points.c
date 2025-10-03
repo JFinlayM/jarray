@@ -87,86 +87,86 @@ int main(void) {
     imp.compare_callback = compare_point;
     imp.is_equal_callback = is_equal_point;
 
-    jarray.init_with_data_copy(&points, data_start, 5, sizeof(Point), JARRAY_TYPE_VALUE, imp);
+    jarray_init_with_data_copy(&points, data_start, 5, sizeof(Point), JARRAY_TYPE_VALUE, imp);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
 
 
     printf("Initial array:\n");
-    jarray.print(&points);
+    jarray_print(&points);
     JARRAY_CHECK_RET;
 
     // --- Insert ---
     Point p0 = {0,0}, pX = {9,9};
-    jarray.add_at(&points, 0, &p0);
+    jarray_add_at(&points, 0, p0);
     JARRAY_CHECK_RET;
-    jarray.add(&points, &pX);
+    jarray_add(&points, pX);
     JARRAY_CHECK_RET;
 
     printf("\nAfter insertions:\n");
-    jarray.print(&points);
+    jarray_print(&points);
     JARRAY_CHECK_RET;
 
     // --- Filter ---
     printf("\nFiltering only even points:\n");
-    JARRAY evens = jarray.filter(&points, is_even_point, NULL);
+    JARRAY evens = jarray_filter(&points, is_even_point, NULL);
     JARRAY_CHECK_RET;
-    jarray.print(&evens);
+    jarray_print(&evens);
     JARRAY_CHECK_RET;
-    jarray.free(&evens);
+    jarray_free(&evens);
 
     // --- Sort ---
     printf("\nSorting points:\n");
-    jarray.sort(&points, QSORT, NULL);
-    jarray.print(&points);
+    jarray_sort(&points, QSORT, NULL);
+    jarray_print(&points);
 
     // --- Access ---
     printf("\nPoint at index 2: ");
-    Point p = *(Point*)jarray.at(&points, 2);
+    Point p = *(Point*)jarray_at(&points, 2);
     JARRAY_CHECK_RET;
     printf("(%d,%d)\n", p.x, p.y);
 
     // --- Find ---
     printf("\nFind first with x > 3:\n");
     int threshold = 3;
-    Point found = *(Point*)jarray.find_first(&points, x_greater_than, &threshold);
+    Point found = *(Point*)jarray_find_first(&points, x_greater_than, &threshold);
     JARRAY_CHECK_RET;
     printf("(%d,%d)\n", found.x, found.y);
 
     // --- Subarray ---
     printf("\nSubarray [1..3]:\n");
-    JARRAY sub = jarray.subarray(&points, 1, 3);
+    JARRAY sub = jarray_subarray(&points, 1, 3);
     JARRAY_CHECK_RET;
-    jarray.print(&sub);
-    jarray.free(&sub);
+    jarray_print(&sub);
+    jarray_free(&sub);
 
     // --- Modify ---
     printf("\nSet index 1 to (7,7):\n");
     Point p7 = {7,7};
-    jarray.set(&points, 1, &p7);
+    jarray_set(&points, 1, p7);
     JARRAY_CHECK_RET;
-    jarray.print(&points);
+    jarray_print(&points);
 
     // --- For each ---
     printf("\nModulo 3 on each point:\n");
-    jarray.for_each(&points, modulo3_point, NULL);
-    jarray.print(&points);
+    jarray_for_each(&points, modulo3_point, NULL);
+    jarray_print(&points);
 
     // --- Clone ---
     printf("\nCloning array:\n");
-    JARRAY clone = jarray.clone(&points);
+    JARRAY clone = jarray_clone(&points);
     JARRAY_CHECK_RET;
-    jarray.print(&clone);
+    jarray_print(&clone);
 
     // --- Join ---
     printf("\nJoining points with ', ':\n");
-    char *joined = jarray.join(&clone, ", ");
+    char *joined = jarray_join(&clone, ", ");
     JARRAY_CHECK_RET;
     printf("%s\n", joined);
     free(joined);
 
     // --- Reduce ---
     printf("\nReducing (sum of coords):\n");
-    Point *total = (Point*)jarray.reduce(&clone, sum_points, NULL, NULL);
+    Point *total = (Point*)jarray_reduce(&clone, sum_points, NULL, NULL);
     JARRAY_CHECK_RET;
     printf("Sum = (%d,%d)\n", total->x, total->y);
     free(total);
@@ -174,13 +174,13 @@ int main(void) {
     // --- Splice ---
     printf("\nSplicing clone at index 1 (replace 2 elems by (10,10)):\n");
     Point p10 = {10,10};
-    jarray.splice(&clone, 1, 2, &p10, NULL);
+    jarray_splice(&clone, 1, 2, p10);
     JARRAY_CHECK_RET;
-    jarray.print(&clone);
+    jarray_print(&clone);
 
     // --- Cleanup ---
-    jarray.free(&points);
-    jarray.free(&clone);
+    jarray_free(&points);
+    jarray_free(&clone);
 
     printf("\n=== END DEMO ===\n");
     return EXIT_SUCCESS;
