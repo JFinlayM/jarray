@@ -5,3 +5,8 @@
 *.a
 *.so
 *.exe
+
+# Example binaries
+/Examples/*
+!/Examples/*.c
+!/Examples/Makefile

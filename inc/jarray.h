@@ -33,26 +33,25 @@
 extern "C" {
 #endif
 
-#if defined(__GNUC__) || defined(__clang__)
-#  define JARRAY_TYPEOF(x) __typeof__(x)
-#elif defined(_MSC_VER)
-#  define JARRAY_TYPEOF(x) decltype(x)
-#else
-#  define JARRAY_TYPEOF(x) typeof(x) /* C23 */
+/* The convenience macros rely on GNU extensions (statement expressions, __typeof__, __VA_OPT__). */
+#if !defined(__GNUC__) && !defined(__clang__)
+#  error "JARRAY requires GCC or Clang (GNU statement expressions and __typeof__ are used)."
 #endif
 
-#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
-#  define JARRAY_DIRECT_INPUT(type, val) ((type[]){val})
-#else
-#  define JARRAY_DIRECT_INPUT(type, val) \
-    ({ type* tmp = (type*)malloc(sizeof(type)); if(tmp) *tmp = (val); tmp; })
-#endif
+#define JARRAY_TYPEOF(x) __typeof__(x)
+
+#define JARRAY_DIRECT_INPUT(type, val) ((type[]){val})
 
 #ifdef JARRAY_C11
 
+/*
+ * Boxes `elem` into a temporary (compound literal) and yields a pointer to it.
+ * The `(void)0,` comma makes arrays decay to pointers, so string literals and char buffers
+ * become a `char**` (what the string preset expects) instead of an invalid `char[N][]`.
+ */
 #define JARRAY_GENERIC_DECLARE(elem) \
-        JARRAY_DIRECT_INPUT(__typeof__(elem), elem)
-        
+        JARRAY_DIRECT_INPUT(JARRAY_TYPEOF(((void)0, (elem))), elem)
+
 #endif
 
 /**
@@ -140,8 +139,8 @@ extern "C" {
 /**
  * @brief Adds and/or removes array elements.
  * 
- * @note If you do not add any elements, you must have NULL as last argument. 
- * Example: jarray.splice(array, 2, 1, NULL);
+ * @note The terminating NULL is added automatically. To only remove elements, omit the variadic arguments.
+ * Example: jarray_splice(array, 2, 1);
  * 
  * @param array Pointer to JARRAY.
  * @param index position to add and/or remove items.
@@ -202,7 +201,7 @@ extern "C" {
  * @brief Checks if the array contains an element.
  *
  * @note
- * Uses `is_equal_callback` callback. Returns a pointer to a bool (true/false) using `JARRAY_DIRECT_INPUT`.
+ * Uses `is_equal_callback` callback. Returns true if the element is found, false otherwise.
  *
  * @param array Pointer to JARRAY.
  * @param elem Element to search.
@@ -244,7 +243,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function returning true for elements to keep.
- * @param ctx (Optionnal) Context pointer passed to predicate.
+ * @param ctx (Optional) Context pointer passed to predicate.
  * @return filtered jarray.
  */
 #define jarray_filter(array, predicate, ctx) \
@@ -366,7 +365,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function to check elements.
- * @param ctx (Optionnal) Context pointer for predicate.
+ * @param ctx (Optional) Context pointer for predicate.
  * @return pointer to element.
  */
 #define jarray_find_first(array, predicate, ctx) \
@@ -399,7 +398,7 @@ extern "C" {
  * @brief Finds all indexes matching an element using `is_equal_callback`.
  *
  * @note
- * Allocates array of size_t containing count + indexes. Caller has responsabilité to free result.
+ * Allocates array of size_t containing count + indexes. Caller has responsibility to free result.
  *
  * @param array Pointer to JARRAY.
  * @param elem Pointer to element to find.
@@ -416,7 +415,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param callback Function to apply to each element.
- * @param ctx (Optionnal) Context pointer.
+ * @param ctx (Optional) Context pointer.
  */
 #define jarray_for_each(array, callback, ctx) \
     jarray.for_each((array), (callback), (ctx))
@@ -483,12 +482,12 @@ extern "C" {
  * @brief Reduces the array to a single value using a reducer function.
  *
  * @note
- * Allocates memory for the reduced value; caller has responsability to free result. 
+ * Allocates memory for the reduced value; caller has responsibility to free result. 
  *
  * @param array Pointer to JARRAY.
  * @param reducer Function to combine elements.
- * @param initial_value (Optionnal) Initial accumulator value.
- * @param ctx (Optionnal) Context pointer for reducer.
+ * @param initial_value (Optional) Initial accumulator value.
+ * @param ctx (Optional) Context pointer for reducer.
  * @return pointer to result.
  */
 #define jarray_reduce(array, reducer, initial_value, ctx) \
@@ -501,7 +500,7 @@ extern "C" {
  * 
  * @param arr1 Pointer to the first JARRAY.
  * @param arr2 Pointer to the second JARRAY.
- * @return jarray concatanated.
+ * @return jarray concatenated.
  */
 #define jarray_concat(arr1, arr2) \
     jarray.concat((arr1), (arr2))
@@ -532,26 +531,26 @@ extern "C" {
  * @brief Checks if any element satisfies a predicate.
  *
  * @note
- * Returns a pointer to a bool via JARRAY_RETURN
+ * Returns true if at least one element satisfies the predicate.
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function to check elements.
- * @param ctx (Optionnal) Context pointer for predicate.
+ * @param ctx (Optional) Context pointer for predicate.
  * @return boolean : true if any satisfies the predicate, false otherwise.
  */
 #define jarray_any(array, predicate, ctx) \
     jarray.any((array), (predicate), (ctx))
 
 /**
- * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from rigth to left of array.
+ * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from right to left of array.
  *
  * @note
- * Allocates memory for the reduced value; caller has responsability to free result.
+ * Allocates memory for the reduced value; caller has responsibility to free result.
  *
  * @param array Pointer to JARRAY.
  * @param reducer Function to combine elements.
- * @param initial_value (Optionnal) Pointer to initial accumulator value.
- * @param ctx (Optionnal) Context pointer for reducer.
+ * @param initial_value (Optional) Pointer to initial accumulator value.
+ * @param ctx (Optional) Context pointer for reducer.
  * @return pointer to result.
  */
 #define jarray_reduce_right(array, reducer, initial_value, ctx) \
@@ -565,7 +564,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function to check elements.
- * @param ctx (Optionnal) Context pointer for predicate.
+ * @param ctx (Optional) Context pointer for predicate.
  * @return pointer to last element.
  */
 #define jarray_find_last(array, predicate, ctx) \
@@ -579,7 +578,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function to check elements.
- * @param ctx (Optionnal) Context pointer for predicate.
+ * @param ctx (Optional) Context pointer for predicate.
  * @return index of first element.
  */
 #define jarray_find_first_index(array, predicate, ctx) \
@@ -593,7 +592,7 @@ extern "C" {
  *
  * @param array Pointer to JARRAY.
  * @param predicate Function to check elements.
- * @param ctx (Optionnal) Context pointer for predicate.
+ * @param ctx (Optional) Context pointer for predicate.
  * @return index of last element.
  */
 #define jarray_find_last_index(array, predicate, ctx) \
@@ -611,7 +610,7 @@ extern "C" {
  * @brief Reserves `capacity * array->_elem_size` bytes for the array, and sets `array->_min_alloc` to `capacity`.
  * 
  * @note
- * `array->_min_alloc` only changes via this function, and will be spreaded when cloning array for example.
+ * `array->_min_alloc` only changes via this function, and will be spread when cloning array for example.
  * 
  * @param array Pointer o JARRAY.
  * @param capacity Number of element to reserve in memory.
@@ -693,7 +692,7 @@ typedef struct JARRAY_USER_CALLBACK_IMPLEMENTATION {
     void (*print_element_callback)(const void*);
     // Function to convert an element to a string. This function is NOT mandatory but can be useful for functions like join.
     char *(*element_to_string_callback)(const void*);
-    // Function to compare_callback two elements. This function is mandatory if you want to use the jarray.sort function.
+    // Function to compare two elements. This function is mandatory if you want to use the jarray.sort function.
     int (*compare_callback)(const void*, const void*);
     // Function to check if two elements are equal. This function is mandatory if you want to use the jarray.contains, jarray.find_first, jarray.indexes_of functions.
     bool (*is_equal_callback)(const void*, const void*);
@@ -772,7 +771,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function returning true for elements to keep.
-     * @param ctx (Optionnal) Context pointer passed to predicate.
+     * @param ctx (Optional) Context pointer passed to predicate.
      * @return filtered jarray.
      */
     JARRAY (*filter)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -895,7 +894,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx (Optionnal) Context pointer for predicate.
+     * @param ctx (Optional) Context pointer for predicate.
      * @return pointer to element.
      */
     void* (*find_first)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -933,7 +932,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Finds all indexes matching an element using `is_equal_callback`.
      *
      * @note
-     * Allocates array of size_t containing count + indexes. Caller has responsabilité to free result.
+     * Allocates array of size_t containing count + indexes. Caller has responsibility to free result.
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to find.
@@ -948,7 +947,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param callback Function to apply to each element.
-     * @param ctx (Optionnal) Context pointer.
+     * @param ctx (Optional) Context pointer.
      */
     void (*for_each)(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx);
     /**
@@ -985,7 +984,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Checks if the array contains an element.
      *
      * @note
-     * Uses `is_equal_callback` callback. Returns a pointer to a bool (true/false) using `JARRAY_DIRECT_INPUT`.
+     * Uses `is_equal_callback` callback. Returns true if the element is found, false otherwise.
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to search.
@@ -1014,12 +1013,12 @@ typedef struct JARRAY_INTERFACE {
      * @brief Reduces the array to a single value using a reducer function.
      *
      * @note
-     * Allocates memory for the reduced value; caller has responsability to free result. 
+     * Allocates memory for the reduced value; caller has responsibility to free result. 
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
-     * @param initial_value (Optionnal) Pointer to initial accumulator value.
-     * @param ctx (Optionnal) Context pointer for reducer.
+     * @param initial_value (Optional) Pointer to initial accumulator value.
+     * @param ctx (Optional) Context pointer for reducer.
      * @return pointer to result.
      */
     void* (*reduce)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
@@ -1030,7 +1029,7 @@ typedef struct JARRAY_INTERFACE {
      * 
      * @param arr1 Pointer to the first JARRAY.
      * @param arr2 Pointer to the second JARRAY.
-     * @return jarray concatanated.
+     * @return jarray concatenated.
      */
     JARRAY (*concat)(JARRAY *arr1, JARRAY *arr2);
     /**
@@ -1055,24 +1054,24 @@ typedef struct JARRAY_INTERFACE {
      * @brief Checks if any element satisfies a predicate.
      *
      * @note
-     * Returns a pointer to a bool via JARRAY_RETURN
+     * Returns true if at least one element satisfies the predicate.
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx (Optionnal) Context pointer for predicate.
+     * @param ctx (Optional) Context pointer for predicate.
      * @return boolean : true if any satisfies the predicate, false otherwise.
      */
     bool (*any)(const JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
     /**
-     * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from rigth to left of array.
+     * @brief Reduces the array to a single value using a reducer function. The reducer function is applied from right to left of array.
      *
      * @note
-     * Allocates memory for the reduced value; caller has responsability to free result.
+     * Allocates memory for the reduced value; caller has responsibility to free result.
      *
      * @param self Pointer to JARRAY.
      * @param reducer Function to combine elements.
-     * @param initial_value (Optionnal) Pointer to initial accumulator value.
-     * @param ctx (Optionnal) Context pointer for reducer.
+     * @param initial_value (Optional) Pointer to initial accumulator value.
+     * @param ctx (Optional) Context pointer for reducer.
      * @return pointer to result.
      */
     void* (*reduce_right)(JARRAY *self, void* (*reducer)(const void* accumulator, const void* elem, const void* ctx), const void* initial_value, const void* ctx);
@@ -1084,7 +1083,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx (Optionnal) Context pointer for predicate.
+     * @param ctx (Optional) Context pointer for predicate.
      * @return pointer to last element.
      */
     void* (*find_last)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -1096,7 +1095,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx (Optionnal) Context pointer for predicate.
+     * @param ctx (Optional) Context pointer for predicate.
      * @return index of first element.
      */
     size_t (*find_first_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -1108,7 +1107,7 @@ typedef struct JARRAY_INTERFACE {
      *
      * @param self Pointer to JARRAY.
      * @param predicate Function to check elements.
-     * @param ctx (Optionnal) Context pointer for predicate.
+     * @param ctx (Optional) Context pointer for predicate.
      * @return index of last element.
      */
     size_t (*find_last_index)(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx);
@@ -1162,7 +1161,7 @@ typedef struct JARRAY_INTERFACE {
      * @brief Reserves `capacity * self->_elem_size` bytes for the array, and sets `self->_min_alloc` to `capacity`.
      * 
      * @note
-     * `self->_min_alloc` only changes via this function, and will be spreaded when cloning array for example.
+     * `self->_min_alloc` only changes via this function, and will be spread when cloning array for example.
      * 
      * @param self Pointer o JARRAY.
      * @param capacity Number of element to reserve in memory.

@@ -10,12 +10,18 @@ The functions are inspired by higher-level languages like JavaScript and Java...
 
 `main.c` is complete example of a jarray storing integers. But you can store any structure in a jarray.
 
+## Requirements & portability
+
+- A **GCC or Clang** compiler (the convenience macros use GNU extensions: statement expressions, `__typeof__`, `__VA_OPT__`). MSVC is not supported.
+- **C11** (`-std=c11` or newer) to use the generic `jarray_*` macros. The `jarray.xxx(...)` function interface works with C99.
+- With the `jarray_*` macros, the value is boxed with its own C type. Make sure it matches the array's element type (for example `jarray_add(&floats, 1.5f)` for a float preset, because `1.5` is a `double` and `'c'` is an `int` in C). Strings (`"text"`, `char[]`, `char*`) work directly with the string preset.
+
 ## Install
 
 Via Git download:
 ```bash
 mkdir build && cd build
-cmake ..
+cmake ..            # add -DJARRAY_WERROR=ON to treat warnings as errors
 sudo make lib
 sudo ldconfig
 ```
@@ -23,11 +29,11 @@ sudo ldconfig
 Via dpkg:
 
 ```bash
-sudo dpkg -i libjarray-dev_1.0.0-beta-1_amd64.deb
+sudo dpkg -i libjarray-dev_<version>_amd64.deb
 sudo apt-get install -f
 sudo ldconfig
 ```
-This should install libjarray.so and libjarray.a in /urs/local/lib/ and jarray.h in usr/local/include/
+This should install libjarray.so and libjarray.a in /usr/local/lib/ and jarray.h in /usr/local/include/
 
 To use in your projet just include with *#include <jarray.h>* and link with *-ljarray* when compiling.
 You can find in folder `Examples` some simple c files using jarray. These examples uses presets so there should be not user implementation function but if you want to store custom types, you will need to implement functions. You can see examples of how the functions are implemented in `src/jarray_presets` folder.

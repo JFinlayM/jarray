@@ -2,7 +2,9 @@
 set -e
 
 PKGNAME="libjarray-dev"
-VERSION="1.0.0-beta"
+VERSION="${1:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')}"
+[ -n "$VERSION" ] || { echo "Usage: $0 <version>"; exit 1; }
+EMAIL="${EMAIL:-noreply@example.com}"
 FULLNAME="JFinlayM"
 USER="JFinlayM"
 DATE=$(date -R)
