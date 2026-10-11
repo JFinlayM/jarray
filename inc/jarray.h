@@ -105,10 +105,10 @@ extern "C" {
 #define JARRAY_GENERIC_MAP_9(a,b,c,d,e,f,g,h,i) JARRAY_GENERIC_DECLARE(a), JARRAY_GENERIC_MAP_8(b,c,d,e,f,g,h,i)
 #define JARRAY_GENERIC_MAP_10(a,b,c,d,e,f,g,h,i,j) JARRAY_GENERIC_DECLARE(a), JARRAY_GENERIC_MAP_9(b,c,d,e,f,g,h,i,j)
 
-#define GET_MACRO(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME
+#define JARRAY_GET_MACRO(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME
 
 #define JARRAY_GENERIC_MAP(...) \
-    GET_MACRO(_0 __VA_OPT__(,) __VA_ARGS__, \
+    JARRAY_GET_MACRO(_0 __VA_OPT__(,) __VA_ARGS__, \
         JARRAY_GENERIC_MAP_10, JARRAY_GENERIC_MAP_9, JARRAY_GENERIC_MAP_8, JARRAY_GENERIC_MAP_7, JARRAY_GENERIC_MAP_6, \
         JARRAY_GENERIC_MAP_5, JARRAY_GENERIC_MAP_4, JARRAY_GENERIC_MAP_3, JARRAY_GENERIC_MAP_2, JARRAY_GENERIC_MAP_1, JARRAY_GENERIC_MAP_0) \
     (__VA_ARGS__)
@@ -634,7 +634,7 @@ extern "C" {
 
 #endif
 
-#define MAX_ERR_MSG_LENGTH 100
+#define JARRAY_MAX_ERR_MSG_LENGTH 100
 
 typedef struct JARRAY JARRAY;
 
@@ -680,7 +680,7 @@ typedef enum {
  */
 typedef struct JARRAY_RETURN {
     JARRAY_ERROR error_code;
-    char error_msg[MAX_ERR_MSG_LENGTH];
+    char error_msg[JARRAY_MAX_ERR_MSG_LENGTH];
     bool has_error;
     const JARRAY* ret_source;
 } JARRAY_RETURN;

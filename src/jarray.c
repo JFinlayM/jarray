@@ -195,7 +195,7 @@ static void create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_cod
     va_start(args, fmt);
     jarray_last_error.has_error = true;
     jarray_last_error.error_code = error_code;
-    vsnprintf(jarray_last_error.error_msg, MAX_ERR_MSG_LENGTH, fmt, args);
+    vsnprintf(jarray_last_error.error_msg, JARRAY_MAX_ERR_MSG_LENGTH, fmt, args);
     jarray_last_error.ret_source = ret_source;
     va_end(args);
 }
@@ -204,7 +204,7 @@ static void reset_error_trace(){
     jarray_last_error.has_error = false;
     jarray_last_error.ret_source = NULL;
     jarray_last_error.error_code = JARRAY_NO_ERROR;
-    snprintf(jarray_last_error.error_msg, MAX_ERR_MSG_LENGTH, "no error");
+    snprintf(jarray_last_error.error_msg, JARRAY_MAX_ERR_MSG_LENGTH, "no error");
 }
 
 static void init_array_callbacks(JARRAY *array){
