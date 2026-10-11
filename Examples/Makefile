@@ -1,16 +1,16 @@
-# Compilateur et options
+# Compiler and options
 CC = gcc
 CFLAGS = -g -Wall -Wextra -std=c11
 LDFLAGS = -ljarray
 
-# Tous les fichiers .c du dossier
+# All the .c files of the folder
 SRCS = $(wildcard *.c)
-# Chaque .c devient un exécutable sans extension
+# Each .c becomes an executable without extension
 TARGETS = $(SRCS:.c=)
 
 all: $(TARGETS)
 
-# Règle générale : compile chaque .c en exécutable
+# General rule: compile each .c into an executable
 %: %.c
 	$(CC) $(CFLAGS) $< -o $@ $(LDFLAGS)
 

@@ -48,7 +48,7 @@ install(TARGETS jarray jarray_shared
     INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-# Install inc/jarray.h dans /usr/local/include
+# Install inc/jarray.h in <prefix>/include
 install(FILES inc/jarray.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 add_custom_target(lib

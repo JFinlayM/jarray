@@ -12,11 +12,11 @@ FULLNAME="JFinlayM"
 USER="JFinlayM"
 DATE=$(date -R)
 
-# Nettoyer un éventuel vieux dossier debian/
+# Remove a possible old debian/ folder
 rm -rf debian
 mkdir -p debian
 
-# ===== FICHIER control =====
+# ===== control file =====
 cat > debian/control <<EOF
 Source: jarray
 Section: libs
@@ -38,7 +38,7 @@ Description: Dynamic array library for C
  against jarray. Note that I'm a beginner programmer, so don't take this code too seriously. This is a learning project!
 EOF
 
-# ===== FICHIER rules =====
+# ===== rules file =====
 cat > debian/rules <<'EOF'
 #!/usr/bin/make -f
 export DEB_BUILD_MAINT_OPTIONS = hardening=+all
@@ -50,7 +50,7 @@ export DEB_LDFLAGS_MAINT_APPEND =
 EOF
 chmod +x debian/rules
 
-# ===== FICHIER changelog =====
+# ===== changelog file =====
 cat > debian/changelog <<EOF
 jarray ($VERSION-1) unstable; urgency=medium
 
@@ -59,7 +59,7 @@ jarray ($VERSION-1) unstable; urgency=medium
  -- $FULLNAME <$EMAIL>  $DATE
 EOF
 
-# ===== FICHIER copyright =====
+# ===== copyright file =====
 cat > debian/copyright <<EOF
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: jarray
@@ -89,6 +89,6 @@ License: MIT
  THE SOFTWARE.
 EOF
 
-echo "[OK] Dossier debian/ généré ✅"
-echo "Pour construire ton .deb :"
+echo "[OK] debian/ folder generated"
+echo "To build the .deb:"
 echo "  dpkg-buildpackage -us -uc"
