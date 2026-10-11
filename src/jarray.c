@@ -7,8 +7,8 @@
  * @brief Implementation of the JARRAY library.
  */
 
-/// Static error trace
-JARRAY_RETURN last_error_trace = {0};
+/// Error trace of the last jarray call (one per thread)
+JARRAY_THREAD_LOCAL JARRAY_RETURN last_error_trace = {0};
 
 /// Lookup table mapping JARRAY_ERROR enum values to their corresponding string descriptions.
 static const char *enum_to_string[] = {

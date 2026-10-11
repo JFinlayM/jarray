@@ -40,6 +40,9 @@ extern "C" {
 
 #define JARRAY_TYPEOF(x) __typeof__(x)
 
+/* The error trace is per thread, so jarray can be used from several threads (one JARRAY must still not be shared without a lock). */
+#define JARRAY_THREAD_LOCAL __thread
+
 #define JARRAY_DIRECT_INPUT(type, val) ((type[]){val})
 
 #ifdef JARRAY_C11
@@ -1179,7 +1182,7 @@ typedef struct JARRAY_INTERFACE {
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
-extern JARRAY_RETURN last_error_trace;
+extern JARRAY_THREAD_LOCAL JARRAY_RETURN last_error_trace;
 
 /* ----- MACROS ----- */
 
