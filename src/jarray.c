@@ -722,7 +722,7 @@ static JARRAY array_clone(JARRAY *self) {
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone _data");
         return empty_jarray();
     }
-    memcpy_elem(self, clone._data, self->_data, self->_length > self->_min_alloc ? self->_length : self->_min_alloc);
+    memcpy_elem(self, clone._data, self->_data, self->_length);
 
     reset_error_trace();
     return clone;
