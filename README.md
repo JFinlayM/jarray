@@ -210,6 +210,13 @@ int main(int argc, char *argv[]){
 ```
 
 
+## Tests
+
+Basic tests (plain assertions, no test library) are in `tests/`. They are built with AddressSanitizer and UBSan, so a memory leak or an invalid access makes them fail:
+```bash
+make -C tests
+```
+
 ## Core Functions
 
 ### Basic Operations
