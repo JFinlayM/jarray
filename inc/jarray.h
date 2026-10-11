@@ -78,7 +78,7 @@ extern "C" {
 #define JARRAY_CHECK_RET \
     ({ \
         bool ret_val = false; \
-        if (last_error_trace.has_error) { \
+        if (jarray_last_error.has_error) { \
             jarray.print_jarray_err(__FILE__, __LINE__); \
             ret_val = true; \
         } \
@@ -86,7 +86,7 @@ extern "C" {
     })
 
 #define JARRAY_CHECK_RET_RETURN \
-    if (last_error_trace.has_error) { \
+    if (jarray_last_error.has_error) { \
         jarray.print_jarray_err(__FILE__, __LINE__); \
         return EXIT_FAILURE; \
     }
@@ -1182,7 +1182,7 @@ typedef struct JARRAY_INTERFACE {
 } JARRAY_INTERFACE;
 
 extern JARRAY_INTERFACE jarray;
-extern JARRAY_THREAD_LOCAL JARRAY_RETURN last_error_trace;
+extern JARRAY_THREAD_LOCAL JARRAY_RETURN jarray_last_error;
 
 /* ----- MACROS ----- */
 

@@ -8,7 +8,7 @@
  */
 
 /// Error trace of the last jarray call (one per thread)
-JARRAY_THREAD_LOCAL JARRAY_RETURN last_error_trace = {0};
+JARRAY_THREAD_LOCAL JARRAY_RETURN jarray_last_error = {0};
 
 /// Lookup table mapping JARRAY_ERROR enum values to their corresponding string descriptions.
 static const char *enum_to_string[] = {
@@ -139,17 +139,17 @@ static JARRAY empty_jarray(void) {
 
 static void print_array_err(const char *file, int line) {
     // ret_source is NULL when the error was raised on a NULL JARRAY
-    if (last_error_trace.ret_source && last_error_trace.ret_source->user_overrides.print_error_override) {
-        last_error_trace.ret_source->user_overrides.print_error_override(last_error_trace);
+    if (jarray_last_error.ret_source && jarray_last_error.ret_source->user_overrides.print_error_override) {
+        jarray_last_error.ret_source->user_overrides.print_error_override(jarray_last_error);
         return;
     }
-    if (!last_error_trace.has_error) return;
-    if (last_error_trace.error_code < 0 || last_error_trace.error_code >= sizeof(enum_to_string) / sizeof(enum_to_string[0]) || enum_to_string[last_error_trace.error_code] == NULL) {
-        fprintf(stderr, "%s:%d [\033[31mUnknown error: %d\033[0m] : ", file, line, last_error_trace.error_code);
+    if (!jarray_last_error.has_error) return;
+    if (jarray_last_error.error_code < 0 || jarray_last_error.error_code >= sizeof(enum_to_string) / sizeof(enum_to_string[0]) || enum_to_string[jarray_last_error.error_code] == NULL) {
+        fprintf(stderr, "%s:%d [\033[31mUnknown error: %d\033[0m] : ", file, line, jarray_last_error.error_code);
     } else {
-        fprintf(stderr, "%s:%d [\033[31mError: %s\033[0m] : ", file, line, enum_to_string[last_error_trace.error_code]);
+        fprintf(stderr, "%s:%d [\033[31mError: %s\033[0m] : ", file, line, enum_to_string[jarray_last_error.error_code]);
     }
-    fprintf(stderr, "%s\n", last_error_trace.error_msg);
+    fprintf(stderr, "%s\n", jarray_last_error.error_msg);
 }
 
 static void array_free(JARRAY *array) {
@@ -193,18 +193,18 @@ static void array_free(JARRAY *array) {
 static void create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
-    last_error_trace.has_error = true;
-    last_error_trace.error_code = error_code;
-    vsnprintf(last_error_trace.error_msg, MAX_ERR_MSG_LENGTH, fmt, args);
-    last_error_trace.ret_source = ret_source;
+    jarray_last_error.has_error = true;
+    jarray_last_error.error_code = error_code;
+    vsnprintf(jarray_last_error.error_msg, MAX_ERR_MSG_LENGTH, fmt, args);
+    jarray_last_error.ret_source = ret_source;
     va_end(args);
 }
 
 static void reset_error_trace(){
-    last_error_trace.has_error = false;
-    last_error_trace.ret_source = NULL;
-    last_error_trace.error_code = JARRAY_NO_ERROR;
-    snprintf(last_error_trace.error_msg, MAX_ERR_MSG_LENGTH, "no error");
+    jarray_last_error.has_error = false;
+    jarray_last_error.ret_source = NULL;
+    jarray_last_error.error_code = JARRAY_NO_ERROR;
+    snprintf(jarray_last_error.error_msg, MAX_ERR_MSG_LENGTH, "no error");
 }
 
 static void init_array_callbacks(JARRAY *array){
@@ -793,11 +793,11 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         const void *elem = (const char*)data + i * self->_elem_size;
         indexes = array_indexes_of(self, elem);
 
-        if (last_error_trace.error_code == JARRAY_ELEMENT_NOT_FOUND) {
+        if (jarray_last_error.error_code == JARRAY_ELEMENT_NOT_FOUND) {
             continue; // No matches for this element
         } 
-        else if (last_error_trace.error_code == JARRAY_EMPTY) break;
-        else if (last_error_trace.has_error) {
+        else if (jarray_last_error.error_code == JARRAY_EMPTY) break;
+        else if (jarray_last_error.has_error) {
             return;
         } 
 
@@ -815,12 +815,12 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         for (size_t j = match_count; j > 0; j--) {
             size_t idx;
             idx = *(size_t*)array_at(&temp_array, j-1);
-            if (last_error_trace.has_error) {
+            if (jarray_last_error.has_error) {
                 free(indexes);
                 return;
             }
             array_remove_at(self, idx);
-            if (last_error_trace.has_error) {
+            if (jarray_last_error.has_error) {
                 free(indexes);
                 return;
             }
@@ -1177,7 +1177,7 @@ static void array_fill(JARRAY *self, const void *elem, size_t start, size_t end)
 
     for (size_t i = start; i <= end; i++) {
         array_set(self, i, elem);
-        if (last_error_trace.has_error)
+        if (jarray_last_error.has_error)
             return;
     }
 
@@ -1258,8 +1258,8 @@ static void array_splice_ext(JARRAY *self, size_t index, size_t count, va_list a
     // --- Suppression ---
     for (size_t i = 0; i < count; i++) {
         array_remove_at(self, index);
-        if (last_error_trace.has_error) {
-            if (last_error_trace.error_code == JARRAY_INDEX_OUT_OF_BOUND) break;
+        if (jarray_last_error.has_error) {
+            if (jarray_last_error.error_code == JARRAY_INDEX_OUT_OF_BOUND) break;
             else return;
         }
     }
@@ -1269,7 +1269,7 @@ static void array_splice_ext(JARRAY *self, size_t index, size_t count, va_list a
     void *element = va_arg(args, void*);
     while (element != NULL) {
         array_add_at(self, index + offset, element);
-        if (last_error_trace.has_error) {
+        if (jarray_last_error.has_error) {
             return;
         }
         offset++;
@@ -1293,7 +1293,7 @@ static void array_addm_ext(JARRAY *self, va_list args) {
     void *element = va_arg(args, void*);
     while (element != NULL) {
         array_add(self, element);
-        if (last_error_trace.has_error) {
+        if (jarray_last_error.has_error) {
             return;
         }
         element = va_arg(args, void*);
@@ -1343,7 +1343,7 @@ static void array_reserve(JARRAY *self, size_t capacity) {
 
 static void array_init_reserve(JARRAY *self, size_t elem_size, size_t capacity, JARRAY_DATA_TYPE data_type, JARRAY_USER_CALLBACK_IMPLEMENTATION imp){
     jarray.init(self, elem_size, data_type, imp);
-    if (last_error_trace.has_error) return;
+    if (jarray_last_error.has_error) return;
     jarray.reserve(self, capacity);
 }
 

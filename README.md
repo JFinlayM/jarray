@@ -3,7 +3,7 @@
 **Note**: This is a personal learning project. It is tested with AddressSanitizer/UBSan on the examples, but expect rough edges and breaking changes between versions.
 
 A dynamic array library for C on **Linux** with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
-It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). Functions return their result directly. Errors are not returned: they are stored in a per-thread error trace (`last_error_trace`) that you check after each call with the provided macros (`JARRAY_CHECK_RET`). 
+It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). Functions return their result directly. Errors are not returned: they are stored in a per-thread error trace (`jarray_last_error`) that you check after each call with the provided macros (`JARRAY_CHECK_RET`). 
 The functions are inspired by higher-level languages like JavaScript and Java...
 
 **Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_callback`. Please look below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
@@ -370,7 +370,7 @@ Who frees what (`T` is the element type; "pointer array" means `JARRAY_TYPE_POIN
 | `sort`, `reverse` | In place. Elements are only moved, nothing is allocated or freed. |
 | `free` | Frees the data (and the pointed data for a pointer array). Does not free the JARRAY struct itself. |
 
-A JARRAY must not be used from several threads at the same time without a lock, but the error trace (`last_error_trace`) is per thread.
+A JARRAY must not be used from several threads at the same time without a lock, but the error trace (`jarray_last_error`) is per thread.
 
 ## Macros
 
