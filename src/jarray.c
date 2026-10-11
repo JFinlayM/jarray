@@ -72,8 +72,19 @@ static inline void free_elem_at(JARRAY *self, size_t index){
     free(ptr_value);
 }
 
+/// Zeroed JARRAY returned by functions that fail. It owns nothing, so it is safe to free or ignore.
+static JARRAY empty_jarray(void) {
+    JARRAY empty;
+    memset(&empty, 0, sizeof(empty));
+    empty._capacity_multiplier = 1.5f;
+    empty._data_type = JARRAY_TYPE_VALUE;
+    empty._type_preset = JARRAY_NO_PRESET;
+    return empty;
+}
+
 static void print_array_err(const char *file, int line) {
-    if (last_error_trace.ret_source->user_overrides.print_error_override) {
+    // ret_source is NULL when the error was raised on a NULL JARRAY
+    if (last_error_trace.ret_source && last_error_trace.ret_source->user_overrides.print_error_override) {
         last_error_trace.ret_source->user_overrides.print_error_override(last_error_trace);
         return;
     }
@@ -376,11 +387,11 @@ static void array_init_with_data(JARRAY *array, void *data, size_t length, size_
 static JARRAY array_filter(JARRAY *self, bool (*predicate)(const void *elem, const void *ctx), const void *ctx) {
     if (!self){
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
-        return *self;
+        return empty_jarray();
     }
     if (!predicate){
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "Predicate cannot be NULL");
-        return *self;
+        return empty_jarray();
     }
 
     size_t count = 0;
@@ -550,19 +561,19 @@ static void* array_copy_data(JARRAY *self) {
 static JARRAY array_subarray(JARRAY *self, size_t start, size_t end){
     if (!self){
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
-        return *self;
+        return empty_jarray();
     }
     if (self->_length == 0) {
         create_return_error(self, JARRAY_EMPTY, "Cannot determine a sub array with an empty array\n");
-        return *self;
+        return empty_jarray();
     }
     if (start > end) {
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) cannot be higher than end (%zu). It is also possible that start < 0 which would also trigger this error\n", start, end);
-        return *self;
+        return empty_jarray();
     }
     if (start >= self->_length){
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "start (%zu) cannot be higher or equal than the _length of array (%zu)\n", start, self->_length);
-        return *self;
+        return empty_jarray();
     }
 
     // Clamp end to last element if it's out of bounds
@@ -582,7 +593,7 @@ static JARRAY array_subarray(JARRAY *self, size_t start, size_t end){
     ret_array.user_overrides = self->user_overrides;
     if (!ret_array._data) {
         create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate memory for subarray _data\n");
-        return *self;
+        return empty_jarray();
     }
 
     // Copy relevant elements
@@ -681,11 +692,11 @@ static void array_clear(JARRAY *self) {
 static JARRAY array_clone(JARRAY *self) {
     if (!self) {
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
-        return *self;
+        return empty_jarray();
     }
     if (self->_length == 0) {
         create_return_error(self, JARRAY_EMPTY, "Cannot clone an empty array");
-        return *self;
+        return empty_jarray();
     }
 
     JARRAY clone;
@@ -699,7 +710,7 @@ static JARRAY array_clone(JARRAY *self) {
     if (!clone._data) {
         free(clone._data);
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone _data");
-        return *self;
+        return empty_jarray();
     }
     memcpy_elem(self, clone._data, self->_data, max_size_t(self->_length, self->_min_alloc));
     clone.user_callbacks = self->user_callbacks;
@@ -891,15 +902,15 @@ static void* array_reduce(JARRAY *self, void *(*reducer)(const void *accumulator
 static JARRAY array_concat(JARRAY *arr1, JARRAY *arr2) {
     if (!arr1) {
         create_return_error(arr1, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY (arr1)");
-        return *arr1;
+        return empty_jarray();
     }
     if (!arr2) {
         create_return_error(arr2, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY (arr2)");
-        return *arr1;
+        return empty_jarray();
     }
     if (arr1->_elem_size != arr2->_elem_size) {
         create_return_error(NULL, JARRAY_INVALID_ARGUMENT, "Element sizes do not match for concatenation");
-        return *arr1;
+        return empty_jarray();
     }
 
     JARRAY new_array;
@@ -914,7 +925,7 @@ static JARRAY array_concat(JARRAY *arr1, JARRAY *arr2) {
     new_array._data = malloc(new_array._length * new_array._elem_size);
     if (!new_array._data) {
         create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array data");
-        return *arr1;
+        return empty_jarray();
     }
 
     memcpy_elem(arr1, new_array._data, arr1->_data, arr1->_length);
