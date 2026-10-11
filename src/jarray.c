@@ -152,6 +152,12 @@ static void print_array_err(const char *file, int line) {
     fprintf(stderr, "%s\n", jarray_last_error.error_msg);
 }
 
+bool jarray_check_error(const char *file, int line) {
+    if (!jarray_last_error.has_error) return false;
+    print_array_err(file, line);
+    return true;
+}
+
 static void array_free(JARRAY *array) {
     if (!array) return;
 

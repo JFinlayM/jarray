@@ -12,7 +12,7 @@ The functions are inspired by higher-level languages like JavaScript and Java...
 
 ## Requirements & portability
 
-- A **GCC or Clang** compiler (the convenience macros use GNU extensions: statement expressions, `__typeof__`, `__VA_OPT__`). MSVC is not supported.
+- A **GCC or Clang** compiler (the convenience macros use GNU extensions: `__typeof__`, `__VA_OPT__`). MSVC is not supported.
 - **C11** (`-std=c11` or newer) to use the generic `jarray_*` macros. The `jarray.xxx(...)` function interface works with C99.
 - With the `jarray_*` macros, the value is boxed with its own C type. Make sure it matches the array's element type (for example `jarray_add(&floats, 1.5f)` for a float preset, because `1.5` is a `double` and `'c'` is an `int` in C). Strings (`"text"`, `char[]`, `char*`) work directly with the string preset.
 

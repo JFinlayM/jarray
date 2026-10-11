@@ -33,9 +33,9 @@
 extern "C" {
 #endif
 
-/* The convenience macros rely on GNU extensions (statement expressions, __typeof__, __VA_OPT__). */
+/* The convenience macros rely on GNU extensions (__typeof__, __VA_OPT__). */
 #if !defined(__GNUC__) && !defined(__clang__)
-#  error "JARRAY requires GCC or Clang (GNU statement expressions and __typeof__ are used)."
+#  error "JARRAY requires GCC or Clang (__typeof__ and __VA_OPT__ are used)."
 #endif
 
 #define JARRAY_TYPEOF(x) __typeof__(x)
@@ -71,25 +71,26 @@ extern "C" {
 #define JARRAY_GET_POINTER(type, val) ((type*)val)
 
 /**
- * @brief Checks if global error trace contains error.
+ * @brief Checks if the error trace of the last jarray call contains an error. If so, prints it.
+ *
+ * @param file Source file where the check is made (use __FILE__).
+ * @param line Line where the check is made (use __LINE__).
+ * @return true if there was an error, false otherwise.
+ */
+bool jarray_check_error(const char *file, int line);
+
+/**
+ * @brief Same as `jarray_check_error(__FILE__, __LINE__)`.
  *
  * @return true if error, false otherwise.
  */
-#define JARRAY_CHECK_RET \
-    ({ \
-        bool ret_val = false; \
-        if (jarray_last_error.has_error) { \
-            jarray.print_jarray_err(__FILE__, __LINE__); \
-            ret_val = true; \
-        } \
-        ret_val; \
-    })
+#define JARRAY_CHECK_RET jarray_check_error(__FILE__, __LINE__)
 
+/**
+ * @brief Prints the error (if any) and returns EXIT_FAILURE from the current function.
+ */
 #define JARRAY_CHECK_RET_RETURN \
-    if (jarray_last_error.has_error) { \
-        jarray.print_jarray_err(__FILE__, __LINE__); \
-        return EXIT_FAILURE; \
-    }
+    do { if (jarray_check_error(__FILE__, __LINE__)) return EXIT_FAILURE; } while (0)
 
 #ifdef JARRAY_C11
 
