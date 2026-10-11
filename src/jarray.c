@@ -72,6 +72,16 @@ static inline void free_elem_at(JARRAY *self, size_t index){
     free(ptr_value);
 }
 
+/// Copies the configuration (element type, preset, growth factor, callbacks, overrides) of `src` into a derived array.
+static void copy_array_config(JARRAY *dst, const JARRAY *src) {
+    dst->_elem_size = src->_elem_size;
+    dst->_data_type = src->_data_type;
+    dst->_type_preset = src->_type_preset;
+    dst->_capacity_multiplier = src->_capacity_multiplier;
+    dst->user_callbacks = src->user_callbacks;
+    dst->user_overrides = src->user_overrides;
+}
+
 /// Zeroed JARRAY returned by functions that fail. It owns nothing, so it is safe to free or ignore.
 static JARRAY empty_jarray(void) {
     JARRAY empty;
@@ -401,14 +411,11 @@ static JARRAY array_filter(JARRAY *self, bool (*predicate)(const void *elem, con
     }
 
     JARRAY result;
+    copy_array_config(&result, self);
     result._length = count;
     result._min_alloc = count;
     result._capacity = count;
-    result._capacity_multiplier = self->_capacity_multiplier;
-    result._elem_size = self->_elem_size;
     result._data = malloc(count * self->_elem_size);
-    result.user_callbacks = self->user_callbacks;
-    result.user_overrides = self->user_overrides;
 
     size_t j = 0;
     for (size_t i = 0; i < self->_length; i++) {
@@ -583,14 +590,11 @@ static JARRAY array_subarray(JARRAY *self, size_t start, size_t end){
 
     // Allocate the JARRAY struct itself
     JARRAY ret_array;
-    ret_array._elem_size = self->_elem_size;
+    copy_array_config(&ret_array, self);
     ret_array._min_alloc = sub_length;
     ret_array._length = sub_length;
     ret_array._capacity = sub_length;
-    ret_array._capacity_multiplier = self->_capacity_multiplier;
     ret_array._data = malloc(sub_length * self->_elem_size);
-    ret_array.user_callbacks = self->user_callbacks;
-    ret_array.user_overrides = self->user_overrides;
     if (!ret_array._data) {
         create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate memory for subarray _data\n");
         return empty_jarray();
@@ -700,12 +704,10 @@ static JARRAY array_clone(JARRAY *self) {
     }
 
     JARRAY clone;
+    copy_array_config(&clone, self);
     clone._length = self->_length;
     clone._min_alloc = self->_min_alloc;
-    clone._elem_size = self->_elem_size;
-    clone._data_type = self->_data_type;
     clone._capacity = self->_capacity;
-    clone._capacity_multiplier = self->_capacity_multiplier;
     clone._data = malloc(self->_capacity * self->_elem_size);
     if (!clone._data) {
         free(clone._data);
@@ -713,8 +715,6 @@ static JARRAY array_clone(JARRAY *self) {
         return empty_jarray();
     }
     memcpy_elem(self, clone._data, self->_data, max_size_t(self->_length, self->_min_alloc));
-    clone.user_callbacks = self->user_callbacks;
-    clone.user_overrides = self->user_overrides;
 
     reset_error_trace();
     return clone;
@@ -915,13 +915,11 @@ static JARRAY array_concat(JARRAY *arr1, JARRAY *arr2) {
 
     JARRAY new_array;
 
-    new_array._elem_size = arr1->_elem_size;
+    copy_array_config(&new_array, arr1);
     new_array._length = arr1->_length + arr2->_length;
     new_array._min_alloc = arr1->_length + arr2->_length;
     new_array._capacity = new_array._length;
     new_array._capacity_multiplier = arr1->_capacity_multiplier > arr2->_capacity_multiplier ? arr1->_capacity_multiplier : arr2->_capacity_multiplier;
-    new_array._data_type = arr1->_data_type;
-    new_array._type_preset = arr1->_type_preset;
     new_array._data = malloc(new_array._length * new_array._elem_size);
     if (!new_array._data) {
         create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array data");
@@ -930,8 +928,6 @@ static JARRAY array_concat(JARRAY *arr1, JARRAY *arr2) {
 
     memcpy_elem(arr1, new_array._data, arr1->_data, arr1->_length);
     memcpy_elem(arr2, (char*)new_array._data + arr1->_length * arr1->_elem_size, arr2->_data, arr2->_length);
-    new_array.user_callbacks = arr1->user_callbacks;
-    new_array.user_overrides = arr1->user_overrides;
 
     reset_error_trace();
     return new_array;
