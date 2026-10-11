@@ -26,8 +26,6 @@ static const char *enum_to_string[] = {
     [JARRAY_UNIMPLEMENTED_FUNCTION]                     = "Function not implemented",
 };
 
-static inline size_t max_size_t(size_t a, size_t b) {return (a > b ? a : b);}
-
 static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const void *__restrict__ __elem, size_t __count){
     void *ret = __dest;
 
@@ -101,6 +99,13 @@ static bool ensure_capacity(JARRAY *self, size_t needed, const char *caller) {
     self->_data = new_data;
     self->_capacity = new_cap;
     return true;
+}
+
+/// malloc(count * elem_size) that fails (returns NULL) instead of overflowing. Never returns NULL for a zero size on success.
+static void *alloc_elems(size_t count, size_t elem_size) {
+    if (elem_size != 0 && count > SIZE_MAX / elem_size) return NULL;
+    size_t bytes = count * elem_size;
+    return malloc(bytes ? bytes : 1);
 }
 
 /// Frees the heap data owned by the element at `index` (pointer arrays only). The slot itself is left untouched.
@@ -351,7 +356,7 @@ static void array_init_with_data_copy(JARRAY *array, const void *data, size_t le
     if (!data)
         return create_return_error(array, JARRAY_INVALID_ARGUMENT, "Provided data cannot be NULL");
 
-    array->_data = malloc(length * elem_size);
+    array->_data = alloc_elems(length, elem_size);
     if (!array->_data)
         return create_return_error(array, JARRAY_DATA_NULL, "Memory allocation failed in init_with_data_copy");
 
@@ -414,7 +419,11 @@ static JARRAY array_filter(JARRAY *self, bool (*predicate)(const void *elem, con
     result._length = count;
     result._min_alloc = count;
     result._capacity = count;
-    result._data = malloc(count * self->_elem_size);
+    result._data = alloc_elems(count, self->_elem_size);
+    if (!result._data) {
+        create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for filtered _data");
+        return empty_jarray();
+    }
 
     size_t j = 0;
     for (size_t i = 0; i < self->_length; i++) {
@@ -553,7 +562,7 @@ static void* array_copy_data(JARRAY *self) {
     
     void *copy = NULL;
     if (self->_length > 0) {
-        copy = malloc(self->_length * self->_elem_size);
+        copy = alloc_elems(self->_length, self->_elem_size);
         if (!copy){
             create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate _data copy");
             return NULL;
@@ -593,7 +602,7 @@ static JARRAY array_subarray(JARRAY *self, size_t start, size_t end){
     ret_array._min_alloc = sub_length;
     ret_array._length = sub_length;
     ret_array._capacity = sub_length;
-    ret_array._data = malloc(sub_length * self->_elem_size);
+    ret_array._data = alloc_elems(sub_length, self->_elem_size);
     if (!ret_array._data) {
         create_return_error(self, JARRAY_DATA_NULL, "Failed to allocate memory for subarray _data\n");
         return empty_jarray();
@@ -638,7 +647,7 @@ static size_t* array_indexes_of(JARRAY *self, const void *elem) {
         create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal_callback callback not set");
         return NULL;
     }
-    size_t *indexes = malloc(self->_length * sizeof(size_t));
+    size_t *indexes = alloc_elems(self->_length + 1, sizeof(size_t));
     if (!indexes) {
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for indexes array");
         return NULL;
@@ -707,13 +716,13 @@ static JARRAY array_clone(JARRAY *self) {
     clone._length = self->_length;
     clone._min_alloc = self->_min_alloc;
     clone._capacity = self->_capacity;
-    clone._data = malloc(self->_capacity * self->_elem_size);
+    clone._data = alloc_elems(self->_capacity, self->_elem_size);
     if (!clone._data) {
         free(clone._data);
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for clone _data");
         return empty_jarray();
     }
-    memcpy_elem(self, clone._data, self->_data, max_size_t(self->_length, self->_min_alloc));
+    memcpy_elem(self, clone._data, self->_data, self->_length > self->_min_alloc ? self->_length : self->_min_alloc);
 
     reset_error_trace();
     return clone;
@@ -892,12 +901,17 @@ static JARRAY array_concat(JARRAY *arr1, JARRAY *arr2) {
 
     JARRAY new_array;
 
+    if (arr2->_length > SIZE_MAX - arr1->_length) {
+        create_return_error(NULL, JARRAY_INVALID_ARGUMENT, "Concatenated array would be too large");
+        return empty_jarray();
+    }
+
     copy_array_config(&new_array, arr1);
     new_array._length = arr1->_length + arr2->_length;
     new_array._min_alloc = arr1->_length + arr2->_length;
     new_array._capacity = new_array._length;
     new_array._capacity_multiplier = arr1->_capacity_multiplier > arr2->_capacity_multiplier ? arr1->_capacity_multiplier : arr2->_capacity_multiplier;
-    new_array._data = malloc(new_array._length * new_array._elem_size);
+    new_array._data = alloc_elems(new_array._length, new_array._elem_size);
     if (!new_array._data) {
         create_return_error(NULL, JARRAY_DATA_NULL, "Memory allocation failed for new array data");
         return empty_jarray();
@@ -925,7 +939,7 @@ static char* array_join(JARRAY *self, const char *separator) {
     }
 
     size_t total_length = 0;
-    char **string_representations = malloc(self->_length * sizeof(char*));
+    char **string_representations = alloc_elems(self->_length, sizeof(char*));
     if (!string_representations) {
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for string representations");
         return NULL;
@@ -1199,10 +1213,11 @@ static void array_shift(JARRAY *self) {
         new_cap = self->_min_alloc;
 
     if (self->_length <= new_cap) {
-        self->_capacity = new_cap;
         void *new_data = realloc(self->_data, new_cap * self->_elem_size);
-        if (new_data)
+        if (new_data) {
             self->_data = new_data;
+            self->_capacity = new_cap;
+        }
     }
 
     reset_error_trace();
@@ -1308,9 +1323,11 @@ static void array_reserve(JARRAY *self, size_t capacity) {
         return;
     }
 
-    void *new_data = (self->_data)
-                         ? realloc(self->_data, capacity * self->_elem_size)
-                         : malloc(capacity * self->_elem_size);
+    if (self->_elem_size != 0 && capacity > SIZE_MAX / self->_elem_size)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT,
+                                   "Requested capacity is too large when reserving");
+
+    void *new_data = realloc(self->_data, capacity * self->_elem_size);
 
     if (!new_data)
         return create_return_error(self, JARRAY_DATA_NULL,
