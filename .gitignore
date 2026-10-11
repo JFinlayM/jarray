@@ -10,3 +10,6 @@
 /Examples/*
 !/Examples/*.c
 !/Examples/Makefile
+
+# Test binary
+/tests/test_jarray
