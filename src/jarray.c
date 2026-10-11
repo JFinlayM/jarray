@@ -152,6 +152,25 @@ static void print_array_err(const char *file, int line) {
     fprintf(stderr, "%s\n", jarray_last_error.error_msg);
 }
 
+bool jarray_elem_size_mismatch(const JARRAY *array, ...) {
+    if (!array) return false;
+    va_list args;
+    va_start(args, array);
+    bool mismatch = false;
+    size_t value_size;
+    while ((value_size = va_arg(args, size_t)) != 0) {
+        if (value_size != array->_elem_size) {
+            create_return_error(array, JARRAY_INVALID_ARGUMENT,
+                                "Value is %zu bytes but the array elements are %zu bytes (wrong type? e.g. 1.5 is a double, use 1.5f)",
+                                value_size, array->_elem_size);
+            mismatch = true;
+            break;
+        }
+    }
+    va_end(args);
+    return mismatch;
+}
+
 bool jarray_check_error(const char *file, int line) {
     if (!jarray_last_error.has_error) return false;
     print_array_err(file, line);

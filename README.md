@@ -14,7 +14,7 @@ The functions are inspired by higher-level languages like JavaScript and Java...
 
 - A **GCC or Clang** compiler (the convenience macros use GNU extensions: `__typeof__`, `__VA_OPT__`). MSVC is not supported.
 - **C11** (`-std=c11` or newer) to use the generic `jarray_*` macros. The `jarray.xxx(...)` function interface works with C99.
-- With the `jarray_*` macros, the value is boxed with its own C type. Make sure it matches the array's element type (for example `jarray_add(&floats, 1.5f)` for a float preset, because `1.5` is a `double` and `'c'` is an `int` in C). Strings (`"text"`, `char[]`, `char*`) work directly with the string preset.
+- With the `jarray_*` macros, the value is boxed with its own C type, and its size is checked against the array's element size (for example `jarray_add(&floats, 1.5f)` for a float preset, because `1.5` is a `double` and `'c'` is an `int` in C). Strings (`"text"`, `char[]`, `char*`) work directly with the string preset.
 
 ## Install
 
@@ -78,11 +78,11 @@ Needs C11 and GCC/Clang.
 | Element argument | pointer (`&value`, `JARRAY_DIRECT_INPUT(type, v)`) | the value itself |
 | Variadic functions (`addm`, `splice`) | end the list with `NULL` | no `NULL` needed |
 | Needs | C99 | C11 |
-| Type safety | none (`void*`), you must pass the right type | none either: the macro uses the type of **your expression** |
+| Type safety | none (`void*`), you must pass the right type | the size of the value is checked against the element size |
 
 Use the macros for the common case (presets, literals, values). Use `jarray.function` when you already have a pointer to the element (a variable, an item of another array), or when you build for C99.
 
-**Warning**: with the macros, the type of the value must be the array's element type. `jarray_add(&floats, 1.5)` adds a `double` (8 bytes) to a float array. Write `1.5f`. Likewise `'c'` is an `int` in C, so cast it for a char array: `(char)'c'`. The compiler cannot warn you.
+**Type of the value**: with the macros, the type of the value must be the array's element type. The macros check the **size** of the value against the element size of the array and report an error (nothing is added) if they differ. So `jarray_add(&floats, 1.5)` fails because `1.5` is a `double` (8 bytes): write `1.5f`. Likewise `'c'` is an `int` in C, so write `(char)'c'` for a char array. Two different types with the same size (`int` and `unsigned`) cannot be told apart.
 
 ## Quick Start
 

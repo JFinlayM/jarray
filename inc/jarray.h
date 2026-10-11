@@ -94,6 +94,38 @@ bool jarray_check_error(const char *file, int line);
 
 #ifdef JARRAY_C11
 
+/*
+ * Size of the value as the array will store it (arrays and string literals decay to pointers).
+ * The value macros check it against the element size of the array, to catch a value of the wrong type
+ * (for example `jarray_add(&floats, 1.5)`: a double in a float array) instead of silently corrupting data.
+ */
+#define JARRAY_ELEM_SIZE(elem) sizeof(JARRAY_TYPEOF(((void)0, (elem))))
+
+struct JARRAY;
+/**
+ * @brief Checks that sizes of values match the element size of the array.
+ *
+ * @note Used by the `jarray_*` macros. Sets an error (and returns true) if a size differs.
+ * Returns false (no error) if `array` is NULL: the called function reports that itself.
+ *
+ * @param array Pointer to JARRAY.
+ * @param ... sizes of the values (size_t), terminated by 0.
+ * @return true if a size mismatch was found, false otherwise.
+ */
+bool jarray_elem_size_mismatch(const struct JARRAY *array, ...);
+
+#define JARRAY_SIZE_MAP_0() (size_t)0
+#define JARRAY_SIZE_MAP_1(a) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_0()
+#define JARRAY_SIZE_MAP_2(a,b) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_1(b)
+#define JARRAY_SIZE_MAP_3(a,b,c) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_2(b,c)
+#define JARRAY_SIZE_MAP_4(a,b,c,d) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_3(b,c,d)
+#define JARRAY_SIZE_MAP_5(a,b,c,d,e) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_4(b,c,d,e)
+#define JARRAY_SIZE_MAP_6(a,b,c,d,e,f) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_5(b,c,d,e,f)
+#define JARRAY_SIZE_MAP_7(a,b,c,d,e,f,g) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_6(b,c,d,e,f,g)
+#define JARRAY_SIZE_MAP_8(a,b,c,d,e,f,g,h) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_7(b,c,d,e,f,g,h)
+#define JARRAY_SIZE_MAP_9(a,b,c,d,e,f,g,h,i) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_8(b,c,d,e,f,g,h,i)
+#define JARRAY_SIZE_MAP_10(a,b,c,d,e,f,g,h,i,j) JARRAY_ELEM_SIZE(a), JARRAY_SIZE_MAP_9(b,c,d,e,f,g,h,i,j)
+
 #define JARRAY_GENERIC_MAP_0() NULL
 #define JARRAY_GENERIC_MAP_1(a) JARRAY_GENERIC_DECLARE(a), JARRAY_GENERIC_MAP_0()
 #define JARRAY_GENERIC_MAP_2(a,b) JARRAY_GENERIC_DECLARE(a), JARRAY_GENERIC_MAP_1(b)
@@ -107,6 +139,12 @@ bool jarray_check_error(const char *file, int line);
 #define JARRAY_GENERIC_MAP_10(a,b,c,d,e,f,g,h,i,j) JARRAY_GENERIC_DECLARE(a), JARRAY_GENERIC_MAP_9(b,c,d,e,f,g,h,i,j)
 
 #define JARRAY_GET_MACRO(_0,_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME
+
+#define JARRAY_SIZE_MAP(...) \
+    JARRAY_GET_MACRO(_0 __VA_OPT__(,) __VA_ARGS__, \
+        JARRAY_SIZE_MAP_10, JARRAY_SIZE_MAP_9, JARRAY_SIZE_MAP_8, JARRAY_SIZE_MAP_7, JARRAY_SIZE_MAP_6, \
+        JARRAY_SIZE_MAP_5, JARRAY_SIZE_MAP_4, JARRAY_SIZE_MAP_3, JARRAY_SIZE_MAP_2, JARRAY_SIZE_MAP_1, JARRAY_SIZE_MAP_0) \
+    (__VA_ARGS__)
 
 #define JARRAY_GENERIC_MAP(...) \
     JARRAY_GET_MACRO(_0 __VA_OPT__(,) __VA_ARGS__, \
@@ -125,7 +163,7 @@ bool jarray_check_error(const char *file, int line);
  * @param elem Element to append.
  */
 #define jarray_add(array, elem) \
-    jarray.add(array, JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (void)0 : jarray.add((array), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Inserts an element at a specific index, shifting elements to the right.
@@ -138,7 +176,7 @@ bool jarray_check_error(const char *file, int line);
  * @param elem Element to insert.
  */
 #define jarray_add_at(array, index, elem) \
-    jarray.add_at(array, index, JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (void)0 : jarray.add_at((array), (index), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Adds and/or removes array elements.
@@ -152,7 +190,7 @@ bool jarray_check_error(const char *file, int line);
  * @param ... the new elements to be added.
  */
 #define jarray_splice(array, index, count, ...) \
-    jarray.splice(array, index, count, JARRAY_GENERIC_MAP(__VA_ARGS__))
+    (jarray_elem_size_mismatch((array), JARRAY_SIZE_MAP(__VA_ARGS__)) ? (void)0 : jarray.splice((array), (index), (count), JARRAY_GENERIC_MAP(__VA_ARGS__)))
 
 /**
  * @brief Appends elements to the end of the array.
@@ -164,7 +202,7 @@ bool jarray_check_error(const char *file, int line);
  * @param ... elements to append.
  */
 #define jarray_addm(array, ...) \
-    jarray.addm(array, JARRAY_GENERIC_MAP(__VA_ARGS__))
+    (jarray_elem_size_mismatch((array), JARRAY_SIZE_MAP(__VA_ARGS__)) ? (void)0 : jarray.addm((array), JARRAY_GENERIC_MAP(__VA_ARGS__)))
 
 /**
  * @brief Fills array with the same element. The number of element in the array filled is specified with argument `count`.
@@ -177,7 +215,7 @@ bool jarray_check_error(const char *file, int line);
  * @param end the index where inserting ends.
  */
 #define jarray_fill(array, start, end, elem) \
-    jarray.fill(array, JARRAY_GENERIC_DECLARE(elem), start, end)
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (void)0 : jarray.fill((array), JARRAY_GENERIC_DECLARE(elem), (start), (end)))
 
 /**
  * @brief Shifts the array to the right and adds elem at index 0.
@@ -186,7 +224,7 @@ bool jarray_check_error(const char *file, int line);
  * @param elem Element to add.
  */
 #define jarray_shift_right(array, elem) \
-    jarray.shift_right(array, JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (void)0 : jarray.shift_right((array), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Sets the element at a given index.
@@ -199,7 +237,7 @@ bool jarray_check_error(const char *file, int line);
  * @param elem Element replacing element at index `index`.
  */
 #define jarray_set(array, index, elem) \
-    jarray.set(array, index, JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (void)0 : jarray.set((array), (index), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Checks if the array contains an element.
@@ -212,7 +250,7 @@ bool jarray_check_error(const char *file, int line);
  * @return boolean : true if element is in jarray, false otherwise
  */
 #define jarray_contains(array, elem) \
-    jarray.contains(array, JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? false : jarray.contains((array), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Prints the error message of the last jarray call.
@@ -409,7 +447,7 @@ bool jarray_check_error(const char *file, int line);
  * @return `JARRAY_INDEXES` (`indexes` is NULL if nothing was found).
  */
 #define jarray_indexes_of(array, elem) \
-    jarray.indexes_of((array), JARRAY_GENERIC_DECLARE(elem))
+    (jarray_elem_size_mismatch((array), JARRAY_ELEM_SIZE(elem), (size_t)0) ? (JARRAY_INDEXES){ NULL, 0 } : jarray.indexes_of((array), JARRAY_GENERIC_DECLARE(elem)))
 
 /**
  * @brief Applies a callback to each element.

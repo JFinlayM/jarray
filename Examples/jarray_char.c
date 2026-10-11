@@ -29,16 +29,16 @@ int main(int argc, char *argv[]){
     jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    jarray_add(&arr_preset, 'c');
+    jarray_add(&arr_preset, (char)'c');
     JARRAY_CHECK_RET;
     jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
 
-    bool contains = jarray_contains(&arr_preset, 'b');
+    bool contains = jarray_contains(&arr_preset, (char)'b');
     JARRAY_CHECK_RET;
     printf("Contains 'b' ? %s\n", contains ? "true" : "false");
 
-    jarray_splice(&arr_preset, 2, 1, 'z');
+    jarray_splice(&arr_preset, 2, 1, (char)'z');
     JARRAY_CHECK_RET;
     jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
