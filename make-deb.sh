@@ -2,8 +2,11 @@
 set -e
 
 PKGNAME="libjarray-dev"
-VERSION="${1:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')}"
-[ -n "$VERSION" ] || { echo "Usage: $0 <version>"; exit 1; }
+# The version comes from project(jarray VERSION x.y.z) in CMakeLists.txt.
+# Optional argument: pre-release suffix, e.g. `./make-deb.sh -beta` gives 1.2.0-beta (package 1.2.0-beta-1).
+CMAKE_VERSION=$(sed -n 's/^project(jarray VERSION \([0-9][0-9.]*\).*/\1/p' CMakeLists.txt)
+[ -n "$CMAKE_VERSION" ] || { echo "Could not read the version from CMakeLists.txt"; exit 1; }
+VERSION="${CMAKE_VERSION}${1:-}"
 EMAIL="${EMAIL:-noreply@example.com}"
 FULLNAME="JFinlayM"
 USER="JFinlayM"
