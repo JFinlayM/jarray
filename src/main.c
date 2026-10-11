@@ -179,11 +179,11 @@ int main(void) {
 
     // --- Find indexes ---
     printf("\nFinding indexes of 12:\n");
-    size_t* indexes = jarray.indexes_of(&array, JARRAY_DIRECT_INPUT(int, 12));
+    JARRAY_INDEXES found = jarray.indexes_of(&array, JARRAY_DIRECT_INPUT(int, 12));
     JARRAY_CHECK_RET;
     // print matches
-    printf("%zu\n", indexes[0]);
-    free(indexes);
+    printf("%zu\n", found.count);
+    free(found.indexes);
 
     // --- For each ---
     printf("\nFor each element, modulo 3:\n");

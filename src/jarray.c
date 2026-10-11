@@ -634,39 +634,38 @@ static void array_set(JARRAY *self, size_t index, const void *elem) {
     reset_error_trace();
 }
 
-static size_t* array_indexes_of(JARRAY *self, const void *elem) {
+static JARRAY_INDEXES array_indexes_of(JARRAY *self, const void *elem) {
+    JARRAY_INDEXES none = { NULL, 0 };
     if (!self) {
         create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
-        return NULL;
+        return none;
     }
     if (self->_length == 0){
         create_return_error(self, JARRAY_EMPTY, "Cannot search in empty array");
-        return NULL;
+        return none;
     }
     if (self->user_callbacks.is_equal_callback == NULL) {
         create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal_callback callback not set");
-        return NULL;
+        return none;
     }
-    size_t *indexes = alloc_elems(self->_length + 1, sizeof(size_t));
+    size_t *indexes = alloc_elems(self->_length, sizeof(size_t));
     if (!indexes) {
         create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed for indexes array");
-        return NULL;
+        return none;
     }
     size_t count = 0;
     for (size_t i = 0; i < self->_length; i++) {
-        if (self->user_callbacks.is_equal_callback((char*)self->_data + i * self->_elem_size, elem)) {
-            indexes[count+1] = i; // Store the index of the matching element
-            count++;
-        }
+        if (self->user_callbacks.is_equal_callback((char*)self->_data + i * self->_elem_size, elem))
+            indexes[count++] = i;
     }
     if (count == 0) {
         free(indexes);
         create_return_error(self, JARRAY_ELEMENT_NOT_FOUND, "No matching elements found");
-        return NULL;
+        return none;
     }
-    indexes[0] = count; // Store the count of matches at the first index
     reset_error_trace();
-    return indexes;
+    JARRAY_INDEXES result = { indexes, count };
+    return result;
 }
 
 static void array_for_each(JARRAY *self, void (*callback)(void *elem, void *ctx), void *ctx) {
@@ -775,59 +774,24 @@ static bool array_contains(JARRAY *self, const void *elem) {
     return false;
 }
 
-static int compare_callback_size_t(const void *a, const void *b) {
-    size_t val_a = *(const size_t*)a;
-    size_t val_b = *(const size_t*)b;
-    return (val_a > val_b) - (val_a < val_b);
-}
-
 static void array_remove_all(JARRAY *self, const void *data, size_t count) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (!data || count == 0) 
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Data is null or count is zero");
-    
-    JARRAY temp_array = jarray.init_preset(JARRAY_ULONG_PRESET);
-    size_t* indexes;
+    if (self->user_callbacks.is_equal_callback == NULL)
+        return create_return_error(self, JARRAY_IS_EQUAL_CALLBACK_UNINTIALIZED, "is_equal_callback callback not set");
+
     for (size_t i = 0; i < count; i++) {
         const void *elem = (const char*)data + i * self->_elem_size;
-        indexes = array_indexes_of(self, elem);
-
-        if (jarray_last_error.error_code == JARRAY_ELEMENT_NOT_FOUND) {
-            continue; // No matches for this element
-        } 
-        else if (jarray_last_error.error_code == JARRAY_EMPTY) break;
-        else if (jarray_last_error.has_error) {
-            return;
-        } 
-
-        size_t match_count = indexes[0];
-        array_clear(&temp_array); // Clear temp array for new indexes
-        jarray.reserve(&temp_array, match_count);
-        // Store only the real indexes
-        for (size_t j = 0; j < match_count; j++) {
-            array_add(&temp_array, &indexes[j + 1]); // j+1 because indexes[0] is count
-        }
-
-        // Sort indexes ascending, so we can remove from 
-        array_sort(&temp_array, JARRAY_QSORT, compare_callback_size_t);
-        // Remove in reverse order to avoid shifting
-        for (size_t j = match_count; j > 0; j--) {
-            size_t idx;
-            idx = *(size_t*)array_at(&temp_array, j-1);
-            if (jarray_last_error.has_error) {
-                free(indexes);
-                return;
-            }
-            array_remove_at(self, idx);
-            if (jarray_last_error.has_error) {
-                free(indexes);
-                return;
+        // Go backwards so removing an element does not shift the ones still to check
+        for (size_t j = self->_length; j > 0; j--) {
+            if (self->user_callbacks.is_equal_callback((char*)self->_data + (j - 1) * self->_elem_size, elem)) {
+                array_remove_at(self, j - 1);
+                if (jarray_last_error.has_error) return;
             }
         }
-        free(indexes);
     }
-    array_free(&temp_array);
     reset_error_trace();
 }
 

@@ -401,11 +401,11 @@ extern "C" {
  * @brief Finds all indexes matching an element using `is_equal_callback`.
  *
  * @note
- * Allocates array of size_t containing count + indexes. Caller has responsibility to free result.
+ * Returns a `JARRAY_INDEXES` (the indexes and how many there are). The caller must `free` its `indexes` member.
  *
  * @param array Pointer to JARRAY.
  * @param elem Element to find.
- * @return pointer to array of the indexes.
+ * @return `JARRAY_INDEXES` (`indexes` is NULL if nothing was found).
  */
 #define jarray_indexes_of(array, elem) \
     jarray.indexes_of((array), JARRAY_GENERIC_DECLARE(elem))
@@ -744,6 +744,16 @@ typedef enum JARRAY_SORT_METHOD {
     JARRAY_SELECTION_SORT,
 } JARRAY_SORT_METHOD;
 
+/**
+ * @brief Result of `indexes_of`: `count` indexes stored in `indexes`.
+ *
+ * @note `indexes` is NULL (and `count` 0) when nothing is found or on error. The caller must `free(indexes)`.
+ */
+typedef struct JARRAY_INDEXES {
+    size_t *indexes;
+    size_t count;
+} JARRAY_INDEXES;
+
 typedef struct JARRAY_INTERFACE {
     /**
      * @brief Prints the error message of the last jarray call.
@@ -935,13 +945,13 @@ typedef struct JARRAY_INTERFACE {
      * @brief Finds all indexes matching an element using `is_equal_callback`.
      *
      * @note
-     * Allocates array of size_t containing count + indexes. Caller has responsibility to free result.
+     * Returns a `JARRAY_INDEXES` (the indexes and how many there are). The caller must `free` its `indexes` member.
      *
      * @param self Pointer to JARRAY.
      * @param elem Pointer to element to find.
-     * @return pointer to array of the indexes.
+     * @return `JARRAY_INDEXES` (`indexes` is NULL if nothing was found).
      */
-    size_t* (*indexes_of)(JARRAY *self, const void *elem);
+    JARRAY_INDEXES (*indexes_of)(JARRAY *self, const void *elem);
     /**
      * @brief Applies a callback to each element.
      *

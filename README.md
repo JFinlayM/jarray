@@ -246,7 +246,7 @@ jarray.find_first(&array, predicate, ctx);              // First match by predic
 jarray.find_first_index(&array, predicate, ctx);        // Index of first match by predicate
 jarray.find_last(&array, predicate, ctx);               // Last match by predicate
 jarray.find_last_index(&array, predicate, ctx);         // Index of last match by predicate
-jarray.indexes_of(&array, &value);                    // All indexes of a value
+jarray.indexes_of(&array, &value);                    // All indexes of a value (JARRAY_INDEXES: .indexes and .count)
 jarray.contains(&array, &value);                        // True/false if value exists
 jarray.reverse(&array);                                 // Reverse array
 jarray.any(&array, predicate, ctx);                     // True/false if any element matches predicate
@@ -364,7 +364,7 @@ Who frees what (`T` is the element type; "pointer array" means `JARRAY_TYPE_POIN
 | `remove`, `remove_at`, `remove_all`, `shift`, `set`, `clear` | The removed or overwritten element is **freed** by the library (pointer arrays: the pointed data too). |
 | `at`, `find_first`, `find_last` | Returns a pointer **inside** the array. Do not free it. It is invalid after the array is modified or freed. |
 | `copy_data`, `reduce`, `reduce_right` | You must `free` the result. For `copy_data` on a pointer array, also free each element. |
-| `indexes_of` | You must `free` the result (`result[0]` is the count, the indexes follow). |
+| `indexes_of` | Returns a `JARRAY_INDEXES` (`.indexes` and `.count`). You must `free` `.indexes`. |
 | `join` | You must `free` the returned string. |
 | `clone`, `filter`, `subarray`, `concat` | Returns a new, independent JARRAY (deep copy for pointer arrays). Call `jarray.free` on it. |
 | `sort`, `reverse` | In place. Elements are only moved, nothing is allocated or freed. |
