@@ -401,11 +401,11 @@ extern "C" {
  * Allocates array of size_t containing count + indexes. Caller has responsibility to free result.
  *
  * @param array Pointer to JARRAY.
- * @param elem Pointer to element to find.
+ * @param elem Element to find.
  * @return pointer to array of the indexes.
  */
 #define jarray_indexes_of(array, elem) \
-    jarray.indexes_of((array), (elem))
+    jarray.indexes_of((array), JARRAY_GENERIC_DECLARE(elem))
 
 /**
  * @brief Applies a callback to each element.
