@@ -63,6 +63,46 @@ static inline void* memcpy_elem(JARRAY *self, void *__restrict__ __dest, const v
 }
 
 
+static void create_return_error(const JARRAY* ret_source, JARRAY_ERROR error_code, const char* fmt, ...);
+
+/// Next capacity when growing from `capacity` by the array's multiplier. Never goes over `limit`.
+static size_t grow_capacity(size_t capacity, float multiplier, size_t limit) {
+    if (capacity == 0) return 1;
+    double grown = (double)capacity * (double)multiplier;
+    size_t next = grown >= (double)limit ? limit : (size_t)grown;
+    if (next <= capacity) next = capacity + 1;
+    return next > limit ? limit : next;
+}
+
+/// Makes sure the array can hold `needed` elements, growing its buffer geometrically. Sizes are overflow-checked.
+/// On failure, sets the error trace (using `caller` in the message) and returns false; the array is left untouched.
+static bool ensure_capacity(JARRAY *self, size_t needed, const char *caller) {
+    if (needed <= self->_capacity) return true;
+    if (self->_elem_size == 0) {
+        create_return_error(self, JARRAY_INVALID_ARGUMENT, "Element size is zero in %s", caller);
+        return false;
+    }
+
+    const size_t limit = SIZE_MAX / self->_elem_size;
+    if (needed > limit) {
+        create_return_error(self, JARRAY_INVALID_ARGUMENT, "Requested capacity is too large in %s", caller);
+        return false;
+    }
+
+    size_t new_cap = grow_capacity(self->_capacity, self->_capacity_multiplier, limit);
+    while (new_cap < needed)
+        new_cap = grow_capacity(new_cap, self->_capacity_multiplier, limit);
+
+    void *new_data = realloc(self->_data, new_cap * self->_elem_size);
+    if (!new_data) {
+        create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in %s", caller);
+        return false;
+    }
+    self->_data = new_data;
+    self->_capacity = new_cap;
+    return true;
+}
+
 /// Frees the heap data owned by the element at `index` (pointer arrays only). The slot itself is left untouched.
 static inline void free_elem_at(JARRAY *self, size_t index){
     if (self->_data_type != JARRAY_TYPE_POINTER || !self->_data) return;
@@ -200,28 +240,7 @@ static void array_add(JARRAY *self, const void *elem) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT,
                                    "Cannot insert NULL element");
 
-    if (self->_length + 1 > self->_capacity) {
-        size_t new_cap = (self->_capacity > 0)
-                             ? (size_t)((float)self->_capacity * self->_capacity_multiplier)
-                             : 1;
-
-        if (new_cap <= self->_capacity)
-            new_cap = self->_capacity + 1;
-
-        while (new_cap < self->_length + 1) {
-            size_t next = (size_t)((float)new_cap * self->_capacity_multiplier);
-            if (next <= new_cap) next = new_cap + 1;
-            new_cap = next;
-        }
-
-        void *new_data = realloc(self->_data, new_cap * self->_elem_size);
-        if (!new_data)
-            return create_return_error(self, JARRAY_DATA_NULL,
-                                       "Memory allocation failed in add");
-
-        self->_data = new_data;
-        self->_capacity = new_cap;
-    }
+    if (!ensure_capacity(self, self->_length + 1, "add")) return;
 
     memcpy_elem(self, (char *)self->_data + self->_length * self->_elem_size, elem, 1);
     self->_length++;
@@ -240,27 +259,7 @@ static void array_add_at(JARRAY *self, size_t index, const void *elem) {
         return create_return_error(self, JARRAY_INDEX_OUT_OF_BOUND,
                                    "Index %zu out of bound for insert", index);
 
-    if (self->_length + 1 > self->_capacity) {
-        size_t new_cap = (self->_capacity > 0)
-                             ? (size_t)((float)self->_capacity * self->_capacity_multiplier)
-                             : 1;
-        if (new_cap <= self->_capacity)
-            new_cap = self->_capacity + 1;
-
-        while (new_cap < self->_length + 1) {
-            size_t next = (size_t)((float)new_cap * self->_capacity_multiplier);
-            if (next <= new_cap) next = new_cap + 1;
-            new_cap = next;
-        }
-
-        void *new_data = realloc(self->_data, new_cap * self->_elem_size);
-        if (!new_data)
-            return create_return_error(self, JARRAY_DATA_NULL,
-                                       "Memory allocation failed in add_at");
-
-        self->_data = new_data;
-        self->_capacity = new_cap;
-    }
+    if (!ensure_capacity(self, self->_length + 1, "add_at")) return;
 
     if (index < self->_length) {
         memmove(
@@ -725,31 +724,9 @@ static void array_add_all(JARRAY *self, const void *data, size_t count) {
         return create_return_error(self, JARRAY_INVALID_ARGUMENT,
                                    "Data is null or count is zero");
 
-    if (self->_length + count > self->_capacity) {
-        size_t new_cap = (self->_capacity > 0)
-                             ? (size_t)((float)self->_capacity * self->_capacity_multiplier)
-                             : 1;
-
-        if ((float)new_cap < (float)self->_capacity * self->_capacity_multiplier)
-            new_cap++;
-
-        while (new_cap < self->_length + count) {
-            size_t next = (size_t)((float)new_cap * self->_capacity_multiplier);
-            if ((float)next < (float)new_cap * self->_capacity_multiplier)
-                next++;
-            if (next <= new_cap)
-                next = new_cap + 1;
-            new_cap = next;
-        }
-
-        self->_capacity = new_cap;
-        void *new_data = realloc(self->_data,
-                                    self->_capacity * self->_elem_size);
-        if (!new_data)
-            return create_return_error(self, JARRAY_DATA_NULL,
-                                       "Memory allocation failed in add_all");
-        self->_data = new_data;
-    }
+    if (count > SIZE_MAX - self->_length)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Too many elements in add_all");
+    if (!ensure_capacity(self, self->_length + count, "add_all")) return;
 
     memcpy_elem(self,
                 (char *)self->_data + self->_length * self->_elem_size,
@@ -1163,6 +1140,8 @@ static void array_fill(JARRAY *self, const void *elem, size_t start, size_t end)
     if (start > end)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT,
                                    "start (%zu) cannot be higher than end (%zu)", start, end);
+    if (end == SIZE_MAX)
+        return create_return_error(self, JARRAY_INVALID_ARGUMENT, "end is too large in fill");
     if (start >= self->_length)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT,
                                    "start (%zu) must be strictly lower than the length of the jarray (%zu)",
@@ -1174,27 +1153,7 @@ static void array_fill(JARRAY *self, const void *elem, size_t start, size_t end)
     if (end >= self->_length) {
         size_t new_length = end + 1;
 
-        if (new_length > self->_capacity) {
-            size_t new_cap = (self->_capacity > 0)
-                                 ? (size_t)((float)self->_capacity * self->_capacity_multiplier)
-                                 : 1;
-            if (new_cap <= self->_capacity)
-                new_cap = self->_capacity + 1;
-
-            while (new_cap < new_length) {
-                size_t next = (size_t)((float)new_cap * self->_capacity_multiplier);
-                if (next <= new_cap) next = new_cap + 1; /* anti-boucle */
-                new_cap = next;
-            }
-
-            void *new_data = realloc(self->_data, new_cap * self->_elem_size);
-            if (!new_data)
-                return create_return_error(self, JARRAY_DATA_NULL,
-                                           "Memory allocation failed in fill");
-
-            self->_data = new_data;
-            self->_capacity = new_cap;
-        }
+        if (!ensure_capacity(self, new_length, "fill")) return;
 
         // Zero the new slots so they are never mistaken for owned pointers
         memset((char*)self->_data + self->_length * self->_elem_size, 0,
@@ -1256,20 +1215,7 @@ static void array_shift_right(JARRAY *self, const void *elem) {
     if (!elem)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot insert NULL in a jarray");
 
-    if (self->_length >= self->_capacity) {
-        size_t new_cap = (self->_capacity > 0)
-                             ? (size_t)(self->_capacity * self->_capacity_multiplier)
-                             : 1;
-        if (new_cap <= self->_capacity)
-            new_cap = self->_capacity + 1;
-        void *new_data =
-            realloc(self->_data, new_cap * self->_elem_size);
-        if (!new_data)
-            return create_return_error(self, JARRAY_DATA_NULL,
-                                       "Memory allocation failed in shift_right");
-        self->_data = new_data;
-        self->_capacity = new_cap;
-    }
+    if (!ensure_capacity(self, self->_length + 1, "shift_right")) return;
 
     if (self->_length > 0) {
         memmove((char *)self->_data + self->_elem_size,
