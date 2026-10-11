@@ -116,7 +116,7 @@ int main(void) {
 
     // --- Sort ---
     printf("\nSorting points:\n");
-    jarray_sort(&points, QSORT, NULL);
+    jarray_sort(&points, JARRAY_QSORT, NULL);
     jarray_print(&points);
 
     // --- Access ---

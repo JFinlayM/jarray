@@ -456,7 +456,7 @@ static void array_print(const JARRAY *array) {
     reset_error_trace();
 }
 
-static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_callback)(const void*, const void*)) {
+static void array_sort(JARRAY *self, JARRAY_SORT_METHOD method, int (*custom_compare_callback)(const void*, const void*)) {
     if (!self)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Cannot find element in a NULL JARRAY");
     if (self->_length == 0)
@@ -467,7 +467,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_ca
     if (compare_callback == NULL)
         return create_return_error(self, JARRAY_COMPARE_CALLBACK_UNINTIALIZED, "Either compare_callback callback or custom compare_callback function must be set");
 
-    if (method != QSORT && method != BUBBLE_SORT && method != INSERTION_SORT && method != SELECTION_SORT)
+    if (method != JARRAY_QSORT && method != JARRAY_BUBBLE_SORT && method != JARRAY_INSERTION_SORT && method != JARRAY_SELECTION_SORT)
         return create_return_error(self, JARRAY_INVALID_ARGUMENT, "Sort method %d not implemented", method);
 
     // Sorting is done in place: elements are only moved (shallow copy), so ownership of pointed data is preserved.
@@ -478,11 +478,11 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_ca
         return create_return_error(self, JARRAY_DATA_NULL, "Memory allocation failed in array_sort");
 
     switch(method) {
-        case QSORT:
+        case JARRAY_QSORT:
             qsort(data, self->_length, size, compare_callback);
             break;
 
-        case BUBBLE_SORT:
+        case JARRAY_BUBBLE_SORT:
             for (size_t i = 0; i + 1 < self->_length; i++) {
                 for (size_t j = 0; j < self->_length - i - 1; j++) {
                     char *a = data + j * size;
@@ -496,7 +496,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_ca
             }
             break;
 
-        case INSERTION_SORT:
+        case JARRAY_INSERTION_SORT:
             for (size_t i = 1; i < self->_length; i++) {
                 memcpy(temp, data + i * size, size);
                 size_t j = i;
@@ -508,7 +508,7 @@ static void array_sort(JARRAY *self, SORT_METHOD method, int (*custom_compare_ca
             }
             break;
 
-        case SELECTION_SORT:
+        case JARRAY_SELECTION_SORT:
             for (size_t i = 0; i + 1 < self->_length; i++) {
                 size_t min_idx = i;
                 for (size_t j = i + 1; j < self->_length; j++) {
@@ -810,7 +810,7 @@ static void array_remove_all(JARRAY *self, const void *data, size_t count) {
         }
 
         // Sort indexes ascending, so we can remove from 
-        array_sort(&temp_array, QSORT, compare_callback_size_t);
+        array_sort(&temp_array, JARRAY_QSORT, compare_callback_size_t);
         // Remove in reverse order to avoid shifting
         for (size_t j = match_count; j > 0; j--) {
             size_t idx;

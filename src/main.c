@@ -121,7 +121,7 @@ int main(void) {
     jarray.free(&filtered); // free filtered array
     // --- Sorting ---
     printf("\nSorting array:\n");
-    jarray.sort(&array, QSORT, NULL);
+    jarray.sort(&array, JARRAY_QSORT, NULL);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;
     jarray.print(&array);
     if (JARRAY_CHECK_RET) return EXIT_FAILURE;

@@ -737,12 +737,12 @@ typedef struct JARRAY {
 
 
 
-typedef enum SORT_METHOD {
-    QSORT = 0,
-    BUBBLE_SORT,
-    INSERTION_SORT,
-    SELECTION_SORT,
-} SORT_METHOD;
+typedef enum JARRAY_SORT_METHOD {
+    JARRAY_QSORT = 0,
+    JARRAY_BUBBLE_SORT,
+    JARRAY_INSERTION_SORT,
+    JARRAY_SELECTION_SORT,
+} JARRAY_SORT_METHOD;
 
 typedef struct JARRAY_INTERFACE {
     /**
@@ -888,7 +888,7 @@ typedef struct JARRAY_INTERFACE {
      * @param method Sorting method enum.
      * @param custom_compare_callback (Optional) Custom compare_callback function (overrides user callback if provided).
      */
-    void (*sort)(JARRAY *self, SORT_METHOD method, int (*custom_compare_callback)(const void*, const void*));
+    void (*sort)(JARRAY *self, JARRAY_SORT_METHOD method, int (*custom_compare_callback)(const void*, const void*));
     /**
      * @brief Finds the first element satisfying a predicate.
      *

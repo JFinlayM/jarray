@@ -24,7 +24,7 @@ int main(int argc, char *argv[]){
     printf("Joined string: %s\n", joined);
     free(joined);
 
-    jarray_sort(&arr_preset, QSORT, NULL);
+    jarray_sort(&arr_preset, JARRAY_QSORT, NULL);
     JARRAY_CHECK_RET;
     jarray_print(&arr_preset);
     JARRAY_CHECK_RET;

@@ -113,7 +113,7 @@ int main(int argc, char *argv[]){
     printf("Joined string: %s\n", joined);
     free(joined);
 
-    jarray.sort(&arr_preset, QSORT, NULL);
+    jarray.sort(&arr_preset, JARRAY_QSORT, NULL);
     JARRAY_CHECK_RET;
     jarray.print(&arr_preset);
     JARRAY_CHECK_RET;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[]){
     printf("Joined string: %s\n", joined);
     free(joined);
 
-    jarray_sort(&arr_preset, QSORT, NULL);
+    jarray_sort(&arr_preset, JARRAY_QSORT, NULL);
     JARRAY_CHECK_RET;
     jarray_print(&arr_preset);
     JARRAY_CHECK_RET;
@@ -239,7 +239,7 @@ jarray.free(&array);                                    // Free memory
 ### Advanced Operations
 ```c
 jarray.remove_all(&array, data, count);                 // Remove all occurrences of given data
-jarray.sort(&array, QSORT, compare);                    // Sort (either compare callback in arg or in user_implementation)
+jarray.sort(&array, JARRAY_QSORT, compare);                    // Sort (either compare callback in arg or in user_implementation)
 jarray.filter(&array, predicate, ctx);                  // Filter by condition (predicate callback and optional context)
 jarray.subarray(&array, start, end);                    // Extract subarray
 jarray.find_first(&array, predicate, ctx);              // First match by predicate
@@ -318,13 +318,13 @@ JARRAY_CHECK_RET;
 
 ### Sorting
 ```c
-// Sort methods: QSORT, BUBBLE_SORT, INSERTION_SORT, SELECTION_SORT
+// Sort methods: JARRAY_QSORT, JARRAY_BUBBLE_SORT, JARRAY_INSERTION_SORT, JARRAY_SELECTION_SORT
 array.user_callbacks.compare = compare_func; // Set comparison function
-jarray.sort(&array, QSORT, NULL);
+jarray.sort(&array, JARRAY_QSORT, NULL);
 ```
 Or
 ```c
-jarray.sort(&array, QSORT, compare_func);
+jarray.sort(&array, JARRAY_QSORT, compare_func);
 ```
 
 ## Required Callbacks
