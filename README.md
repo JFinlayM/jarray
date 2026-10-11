@@ -3,7 +3,7 @@
 **Note**: This is a personal learning project. It is tested with AddressSanitizer/UBSan on the examples, but expect rough edges and breaking changes between versions.
 
 A dynamic array library for C on **Linux** with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
-It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
+It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). Functions return their result directly. Errors are not returned: they are stored in a per-thread error trace (`last_error_trace`) that you check after each call with the provided macros (`JARRAY_CHECK_RET`). 
 The functions are inspired by higher-level languages like JavaScript and Java...
 
 **Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_callback`. Please look below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
@@ -44,6 +44,45 @@ make
 ./jarray_string hello goodbye
 ./jarray_points
 ```
+
+## Two ways to call the library
+
+Every operation exists twice: as `jarray.function(...)` and as `jarray_function(...)`. They do the same thing (the second one calls the first one), so you can mix them in the same program. The only difference is **how you give an element**.
+
+### `jarray.function(...)`: the real API
+`jarray` is a global structure of function pointers. Every function that takes an element takes a **pointer** to it, because the array does not know the type (it only knows the element size). So the element must live in memory:
+
+```c
+int value = 42;
+jarray.add(&array, &value);                          // pointer to a variable
+jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));    // pointer to a temporary (compound literal)
+jarray.splice(&array, 2, 1, JARRAY_DIRECT_INPUT(int, 25), NULL);   // variadic: NULL must end the list
+```
+Works with any type (including your own structures), any array (preset or not), C99, GCC and Clang.
+
+### `jarray_function(...)`: the macros
+The macros are wrappers around the same functions. For the functions that take an element (`add`, `add_at`, `addm`, `set`, `fill`, `shift_right`, `contains`, `indexes_of`, `splice`), the macro **wraps your value in a temporary for you**, using the C type of the expression you wrote. For the other functions, it only forwards its arguments.
+
+```c
+jarray_add(&array, 42);                  // same as jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42))
+jarray_add(&strings, "text");            // string preset: char* / char[] / string literal work directly
+jarray_add(&points, p);                  // any type works if the expression has the array's element type (here a Point variable)
+jarray_add(&points, ((Point){1, 2}));    // a compound literal needs extra parentheses, otherwise its comma splits the macro arguments
+jarray_splice(&array, 2, 1, 25, 27);     // no NULL needed at the end
+```
+Needs C11 and GCC/Clang.
+
+### Which one to use?
+| | `jarray.function` | `jarray_function` |
+|---|---|---|
+| Element argument | pointer (`&value`, `JARRAY_DIRECT_INPUT(type, v)`) | the value itself |
+| Variadic functions (`addm`, `splice`) | end the list with `NULL` | no `NULL` needed |
+| Needs | C99 | C11 |
+| Type safety | none (`void*`), you must pass the right type | none either: the macro uses the type of **your expression** |
+
+Use the macros for the common case (presets, literals, values). Use `jarray.function` when you already have a pointer to the element (a variable, an item of another array), or when you build for C99.
+
+**Warning**: with the macros, the type of the value must be the array's element type. `jarray_add(&floats, 1.5)` adds a `double` (8 bytes) to a float array. Write `1.5f`. Likewise `'c'` is an `int` in C, so cast it for a char array: `(char)'c'`. The compiler cannot warn you.
 
 ## Quick Start
 
@@ -106,7 +145,7 @@ JARRAY [size: 5] =>
 1 2 3 4 5 
 ```
 
-In the previous example, the preset `JARRAY_INT_PRESET` is used, so you can use macros and not directly functions so you don't need to use `JARRAY_DIRECT_INPUT`. Please note that the macros should only be used for arrays using a preset (except STRING) for now. See example below : 
+In the previous example, the preset `JARRAY_INT_PRESET` is used, so you can use macros and not directly functions so you don't need to use `JARRAY_DIRECT_INPUT`. See [Two ways to call the library](#two-ways-to-call-the-library) for the difference. Example with the macros : 
 
 ```c
 #include "../inc/jarray.h"
@@ -175,10 +214,10 @@ int main(int argc, char *argv[]){
 
 ### Basic Operations
 ```c
-jarray.init(&array, sizeof(int), imp);                       // Initialize empty array
-jarray.init_reserve(&array, sizeof(int), capacity, imp)      // Initialize array and reserve memory
-jarray.init_with_data(&array, data, count, sizeof(int), imp);// Initialize with raw data (don't use if data is stack allocated)
-jarray.init_with_data_copy(&array, data, count, sizeof(int), imp);// Initialize with a copy of raw data 
+jarray.init(&array, sizeof(int), JARRAY_TYPE_VALUE, imp);    // Initialize empty array (JARRAY_TYPE_VALUE or JARRAY_TYPE_POINTER)
+jarray.init_reserve(&array, sizeof(int), capacity, JARRAY_TYPE_VALUE, imp) // Initialize array and reserve memory
+jarray.init_with_data(&array, data, count, sizeof(int), JARRAY_TYPE_VALUE, imp);// Initialize with raw data (don't use if data is stack allocated)
+jarray.init_with_data_copy(&array, data, count, sizeof(int), JARRAY_TYPE_VALUE, imp);// Initialize with a copy of raw data 
 jarray.init_preset(preset);                             // Returns a jarray with all the user functions implemented for a given preset
 jarray.add(&array, JARRAY_DIRECT_INPUT(int, 42));       // Append element
 jarray.addm(&array, ...);                               // Appends elements to the end of the array.
@@ -186,8 +225,8 @@ jarray.add_all(&array, data, count);                    // Append multiple eleme
 jarray.add_at(&array, index, &value);                   // Insert at index
 jarray.at(&array, index);                               // Get element at index
 jarray.set(&array, index, &value);                      // Overwrite element
-jarray.remove(&array);                                  // Remove last element (and returns copy)
-jarray.remove_at(&array, index);                        // Remove at index (and returns copy)
+jarray.remove(&array);                                  // Remove last element (and frees it)
+jarray.remove_at(&array, index);                        // Remove at index (and frees it)
 jarray.print(&array);                                   // Print array (needs print_element_callback)
 jarray.copy_data(&array);                               // Copy raw buffer
 jarray.clear(&array);                                   // Clear contents
