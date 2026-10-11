@@ -1,12 +1,12 @@
 # JARRAY - Generic Dynamic Array for C on Linux
 
-**Note**: I'm a beginner programmer, so don't take this code too seriously. This is a learning project!
+**Note**: This is a personal learning project. It is tested with AddressSanitizer/UBSan on the examples, but expect rough edges and breaking changes between versions.
 
 A dynamic array library for C on **Linux** with filtering, sorting, searching, and more. The library is designed to be generic, allowing storage of any data type by specifying the element size during initialization. 
 It provides a variety of utility functions and supports user-defined callbacks for custom behavior (a bit). The functions return a struct containing either the result or an error code/message, which can be checked using provided macros. 
 The functions are inspired by higher-level languages like JavaScript and Java...
 
-**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_override`. Please look below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
+**Note**: You can store either pointers or values, but if storing pointers you have to implement a certain function `copy_elem_callback`. Please look below for more info. You can also find the file `jarray_string.c` where I implemented the functions need to have a jarray of string (char*) as a preset. You have an example of the use of this present in `jarray_string.c` in folder `Examples`.
 
 `main.c` is complete example of a jarray storing integers. But you can store any structure in a jarray.
 
@@ -207,7 +207,7 @@ jarray.find_first(&array, predicate, ctx);              // First match by predic
 jarray.find_first_index(&array, predicate, ctx);        // Index of first match by predicate
 jarray.find_last(&array, predicate, ctx);               // Last match by predicate
 jarray.find_last_index(&array, predicate, ctx);         // Index of last match by predicate
-jarray.find_indexes(&array, &value);                    // All indexes of a value
+jarray.indexes_of(&array, &value);                    // All indexes of a value
 jarray.contains(&array, &value);                        // True/false if value exists
 jarray.reverse(&array);                                 // Reverse array
 jarray.any(&array, predicate, ctx);                     // True/false if any element matches predicate
@@ -294,10 +294,10 @@ Set these before using related functions:
 ```c
 JARRAY_USER_CALLBACK_IMPLEMENTATION imp;
 imp.print_element_callback = print_element_array_callback;  // For print()
-imp.element_to_string = element_to_string_array_callback;   // For join()
-imp.compare = compare_array_callback;                       // For sort()
-imp.is_equal = is_equal_array_callback;                     // For contains(), find_indexes()
-imp.copy_elem_override = copy_elem_func;                    // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
+imp.element_to_string_callback = element_to_string_array_callback;   // For join()
+imp.compare_callback = compare_array_callback;                       // For sort()
+imp.is_equal_callback = is_equal_array_callback;                     // For contains(), indexes_of()
+imp.copy_elem_callback = copy_elem_func;                    // For copy override. MANDATORY when storing pointers (Example : strdup for char*)
 ```
 
 ## Override callbacks
@@ -306,14 +306,32 @@ There is some functions that can be overriden. Maybe more will be added later:
 ```c
 JARRAY_USER_OVERRIDE_IMPLEMENTATION imp;
 imp.print_error_override = error_func;        // For error printing
-imp.print_array_override = print_array_func;  // For print() override
+imp.print_jarray_override = print_array_func;  // For print() override
 ```
 
 ## Good practices
-- you **should** implement every function of `JARRAY_USER_CALLBACKS_IMPLEMENTATION`.
+- you **should** implement every function of `JARRAY_USER_CALLBACK_IMPLEMENTATION`.
 - always check return value with macros below to be noticed if the last jarray function call produced an error.
 - if you know rougly how many element there should be in your jarray, you should use `reserve` function to allocate memory beforehand (to reduce realloc calls).
-- if you need to store pointers, you **must** implement the `copy_elem_override` function and set it in the user implementation structure of your array. Please look at file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
+- if you need to store pointers, you **must** implement the `copy_elem_callback` function and set it in the user implementation structure of your array. Please look at file `jarray_string.c` in folder `Examples` where I implemented an array of string (char*) as an example. 
+
+## Memory ownership
+
+Who frees what (`T` is the element type; "pointer array" means `JARRAY_TYPE_POINTER`, like the string preset):
+
+| Function(s) | Ownership |
+|---|---|
+| `add`, `add_at`, `addm`, `add_all`, `set`, `fill`, `shift_right`, `splice` | The element is **copied** (with `copy_elem_callback` for a pointer array). You keep ownership of what you pass. |
+| `remove`, `remove_at`, `remove_all`, `shift`, `set`, `clear` | The removed or overwritten element is **freed** by the library (pointer arrays: the pointed data too). |
+| `at`, `find_first`, `find_last` | Returns a pointer **inside** the array. Do not free it. It is invalid after the array is modified or freed. |
+| `copy_data`, `reduce`, `reduce_right` | You must `free` the result. For `copy_data` on a pointer array, also free each element. |
+| `indexes_of` | You must `free` the result (`result[0]` is the count, the indexes follow). |
+| `join` | You must `free` the returned string. |
+| `clone`, `filter`, `subarray`, `concat` | Returns a new, independent JARRAY (deep copy for pointer arrays). Call `jarray.free` on it. |
+| `sort`, `reverse` | In place. Elements are only moved, nothing is allocated or freed. |
+| `free` | Frees the data (and the pointed data for a pointer array). Does not free the JARRAY struct itself. |
+
+A JARRAY must not be used from several threads at the same time without a lock, but the error trace (`last_error_trace`) is per thread.
 
 ## Macros
 
@@ -323,5 +341,4 @@ JARRAY_CHECK_RET;                   // Print error, free error, return true if e
 JARRAY_CHECK_RET_RETURN;            // Print error, free error, return EXIT_FAILURE if error
 JARRAY_GET_VALUE(type, val);        // Extract value from pointer (doesn't free)
 JARRAY_DIRECT_INPUT(type, val);     // Create pointer for input value if using custom type or STRING preset
-JARRAY_FREE_RET;                    // Free error
 ```
